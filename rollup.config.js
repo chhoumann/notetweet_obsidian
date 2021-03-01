@@ -5,7 +5,7 @@ import commonjs from '@rollup/plugin-commonjs';
 export default {
   input: 'main.ts',
   output: {
-    dir: '.',
+    dir: 'D:\\Mapper\\Tools\\Dev\\Projects\\notes\\.obsidian\\plugins\\notetweet-obsidian',
     sourcemap: 'inline',
     format: 'cjs',
     exports: 'default'

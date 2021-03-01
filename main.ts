@@ -1,60 +1,90 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import {App, MarkdownView, Plugin} from 'obsidian';
+import {TwitterClient} from "twitter-api-client";
+import {NoteTweetSettings} from "./noteTweetSettings";
+import {NoteTweetSettingsTab} from "./noteTweetSettingsTab";
+import {TweetPostedModal} from "./tweetPostedModal";
+import {TweetErrorModal} from "./tweetErrorModal";
 
-interface MyPluginSettings {
-	mySetting: string;
+const DEFAULT_SETTINGS: NoteTweetSettings = {
+	APIKey: '',
+	APISecret: '',
+	accessToken: '',
+	accessTokenSecret: '',
+	postTweetTag: ''
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
+const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class NoteTweet extends Plugin {
+	settings: NoteTweetSettings;
+
+	private twitterClient: TwitterClient;
 
 	async onload() {
-		console.log('loading plugin');
+		console.log(WELCOME_MESSAGE);
 
 		await this.loadSettings();
-
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
-			new Notice('This is a notice!');
+		// TODO: Add some error handling. What if no settings are provided?
+		this.twitterClient = new TwitterClient({
+			apiKey: this.settings.APIKey,
+			apiSecret: this.settings.APISecret,
+			accessToken: this.settings.accessToken,
+			accessTokenSecret: this.settings.accessTokenSecret
 		});
 
-		this.addStatusBarItem().setText('Status Bar Text');
-
 		this.addCommand({
-			id: 'open-sample-modal',
-			name: 'Open Sample Modal',
-			// callback: () => {
-			// 	console.log('Simple Callback');
-			// },
-			checkCallback: (checking: boolean) => {
-				let leaf = this.app.workspace.activeLeaf;
-				if (leaf) {
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-					return true;
+			id: 'post-selected-as-tweet',
+			name: 'Post Selected as Tweet',
+			callback: async () => {
+				// TODO: Block this if user hasn't provided settings
+				let activeLeaf = this.app.workspace.activeLeaf;
+				if (!activeLeaf || !(activeLeaf.view instanceof MarkdownView)) return;
+
+				let editor = activeLeaf.view.sourceMode.cmEditor;
+
+				if (editor.somethingSelected()) {
+					let selection: string = editor.getSelection();
+
+					await this.postTweet(selection);
+				} else {
+					new TweetErrorModal(this.app, "nothing selected.").open();
 				}
-				return false;
 			}
 		});
 
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addCommand({
+			id: 'post-file-as-thread',
+			name: 'Post File as Thread',
+			callback: async () => {
+				// Differentiate tweets
+				let active_view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				let editor = active_view.sourceMode.cmEditor;
+				let doc = editor.getDoc();
+				let contentArray = doc.getValue().split("\n");
 
-		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
-		});
+				let startIndex = contentArray.indexOf("THREAD START") + 1;
+				let endIndex = contentArray.indexOf("THREAD END");
 
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
+				let threadContent = contentArray.slice(startIndex, endIndex).join("\n").split("\n---\n");
 
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+				// post thread
+				let post = await this.postTweet(threadContent[0].trim());
+
+				for (let i = 1; i < threadContent.length; i++) {
+					post = await this.twitterClient.tweets.statusesUpdate({
+						status: threadContent[i].trim(),
+						in_reply_to_status_id: post.id_str
+					});
+				}
+			}
+		})
+
+		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
 	}
 
 	onunload() {
-		console.log('unloading plugin');
+		console.log(UNLOAD_MESSAGE);
 	}
 
 	async loadSettings() {
@@ -64,49 +94,35 @@ export default class MyPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-}
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
+	private async postTweet(tweet: string) {
+		try {
+			let newStatus = await this.twitterClient.tweets.statusesUpdate({
+				status: tweet
+			});
+
+			new TweetPostedModal(this.app, newStatus).open();
+
+			//if (this.settings.postTweetTag)
+			//	await this.appendPostTweetTag(tweet);
+
+			return newStatus;
+		}
+		catch (e) {
+			new TweetErrorModal(this.app, e.data).open();
+		}
 	}
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+	private async appendPostTweetTag(selection: string) {
+		let active_view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (active_view == null) return;
 
-	onClose() {
-		let {contentEl} = this;
-		contentEl.empty();
-	}
-}
+		let editor = active_view.sourceMode.cmEditor;
+		let doc = editor.getDoc();
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+		doc.replaceSelection(`${selection} ${this.settings.postTweetTag}`);
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		let {containerEl} = this;
-
-		containerEl.empty();
-
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue('')
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+		editor.focus();
 	}
 }
+
