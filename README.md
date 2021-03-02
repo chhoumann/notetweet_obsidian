@@ -14,6 +14,7 @@ This plugin allows you to post tweets directly from Obsidian.
 - Confirmation prompts
 - Delete tweet/thread that was just posted (undo)
 - Easier authentication (if possible?)
+- **Secure mode**
 
 Feel free to recommend features!
 
