@@ -4,14 +4,15 @@ import {NoteTweetSettings} from "./noteTweetSettings";
 import {NoteTweetSettingsTab} from "./noteTweetSettingsTab";
 import {TweetsPostedModal} from "./tweetsPostedModal";
 import {TweetErrorModal} from "./tweetErrorModal";
-import {exec} from "child_process";
+import {SecureModeGetPasswordModal} from "./SecureModeGetPasswordModal";
 
 const DEFAULT_SETTINGS: NoteTweetSettings = {
-	APIKey: '',
-	APISecret: '',
+	apiKey: '',
+	apiSecret: '',
 	accessToken: '',
 	accessTokenSecret: '',
-	postTweetTag: ''
+	postTweetTag: '',
+	secureMode: false,
 }
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
@@ -21,30 +22,23 @@ export default class NoteTweet extends Plugin {
 	settings: NoteTweetSettings;
 
 	private twitterClient: TwitterClient;
-	public isReady = true;
+	public isReady = false;
 
 	async onload() {
 		console.log(WELCOME_MESSAGE);
 
 		await this.loadSettings();
-		this.connectToTwitter();
+		if (!this.settings.secureMode) {
+			let {apiKey, apiSecret, accessToken, accessTokenSecret} = this.settings;
+			this.connectToTwitter(apiKey, apiSecret, accessToken, accessTokenSecret);
+		}
 
 		this.addCommand({
 			id: 'post-selected-as-tweet',
 			name: 'Post Selected as Tweet',
 			callback: async () => {
-				// TODO: Block this if user hasn't provided settings
-				let activeLeaf = this.app.workspace.activeLeaf;
-				if (!activeLeaf || !(activeLeaf.view instanceof MarkdownView)) return;
-
-				let editor = activeLeaf.view.sourceMode.cmEditor;
-
-				if (editor.somethingSelected()) {
-					let selection: string = editor.getSelection();
-
-					await this.postTweet(selection);
-				} else {
-					new TweetErrorModal(this.app, "nothing selected.").open();
+				if (this.secureModeCheck()) {
+					await this.postSelectedTweet();
 				}
 			}
 		});
@@ -62,17 +56,40 @@ export default class NoteTweet extends Plugin {
 
 		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
 	}
-	public connectToTwitter() {
+
+	private async postSelectedTweet() {
+		let activeLeaf = this.app.workspace.activeLeaf;
+		if (!activeLeaf || !(activeLeaf.view instanceof MarkdownView)) return;
+
+		let editor = activeLeaf.view.sourceMode.cmEditor;
+
+		if (editor.somethingSelected()) {
+			let selection: string = editor.getSelection();
+
+			await this.postTweet(selection);
+		} else {
+			new TweetErrorModal(this.app, "nothing selected.").open();
+		}
+	}
+
+	private secureModeCheck() {
+		if (this.settings.secureMode && !this.isReady) {
+			new SecureModeGetPasswordModal(this.app, this).open();
+
+			return this.isReady;
+		}
+		return this.isReady;
+	}
+
+	public connectToTwitter(apiKey: string, apiSecret: string, accessToken: string, accessTokenSecret: string) {
 		try {
 			this.twitterClient = new TwitterClient({
-				apiKey: this.settings.APIKey,
-				apiSecret: this.settings.APISecret,
-				accessToken: this.settings.accessToken,
-				accessTokenSecret: this.settings.accessTokenSecret
+				apiKey, apiSecret, accessToken, accessTokenSecret
 			});
 			this.isReady = true;
 		}
 		catch (e) {
+			console.log(e);
 			this.isReady = false;
 		}
 	}
@@ -127,7 +144,7 @@ export default class NoteTweet extends Plugin {
 			new TweetsPostedModal(this.app, postedTweets).open();
 		}
 		catch (e) {
-			new TweetErrorModal(this.app, e.data).open();
+			new TweetErrorModal(this.app, e.data || e).open();
 		}
 	}
 
@@ -145,7 +162,7 @@ export default class NoteTweet extends Plugin {
 			return newStatus;
 		}
 		catch (e) {
-			new TweetErrorModal(this.app, e.data).open();
+			new TweetErrorModal(this.app, e.data || e).open();
 		}
 	}
 

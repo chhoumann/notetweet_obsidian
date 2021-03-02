@@ -1,8 +1,8 @@
 export interface NoteTweetSettings {
-    APIKey: string,
-    APISecret: string,
+    apiKey: string,
+    apiSecret: string,
     accessToken: string,
     accessTokenSecret: string,
-    postTweetTag: string
-
+    postTweetTag: string,
+    secureMode: boolean,
 }

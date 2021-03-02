@@ -1,5 +1,7 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
 import NoteTweet from "./main";
+import {SecureModeModal} from "./SecureModeModal";
+import {EventsNew} from "twitter-api-client";
 
 export class NoteTweetSettingsTab extends PluginSettingTab {
     plugin: NoteTweet;
@@ -23,12 +25,12 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
             .setDesc('Twitter API key.')
             .addText(text => text
                 .setPlaceholder('Enter your API key')
-                .setValue(this.plugin.settings.APIKey)
+                .setValue(this.plugin.settings.apiKey)
                 .onChange(async (value) => {
-                    this.plugin.settings.APIKey = value;
+                    this.plugin.settings.apiKey = value;
                     await this.plugin.saveSettings();
 
-                    this.plugin.connectToTwitter();
+                    this.attemptConnect();
                     this.checkStatus(statusIndicator);
                 }));
 
@@ -37,12 +39,12 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
             .setDesc('Twitter API Secret.')
             .addText(text => text
                 .setPlaceholder('Enter your API Secret')
-                .setValue(this.plugin.settings.APISecret)
+                .setValue(this.plugin.settings.apiSecret)
                 .onChange(async (value) => {
-                    this.plugin.settings.APISecret = value;
+                    this.plugin.settings.apiSecret = value;
                     await this.plugin.saveSettings();
 
-                    this.plugin.connectToTwitter();
+                    this.attemptConnect();
                     this.checkStatus(statusIndicator);
                 }));
 
@@ -56,7 +58,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                     this.plugin.settings.accessToken = value;
                     await this.plugin.saveSettings();
 
-                    this.plugin.connectToTwitter();
+                    this.attemptConnect();
                     this.checkStatus(statusIndicator);
                 }));
 
@@ -70,7 +72,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                     this.plugin.settings.accessTokenSecret = value;
                     await this.plugin.saveSettings();
 
-                    this.plugin.connectToTwitter();
+                    this.attemptConnect();
                     this.checkStatus(statusIndicator);
                 }));
 
@@ -85,6 +87,26 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 })
             )
+
+        new Setting(containerEl)
+            .setName('Secure Mode')
+            .setDesc('Require password to unlock usage.')
+            .addToggle(toggle => toggle
+                .setTooltip('Toggle Secure Mode')
+                .setValue(this.plugin.settings.secureMode)
+                .onChange(async value => {
+                    this.plugin.settings.secureMode = value;
+                    await this.plugin.saveSettings();
+
+                    new SecureModeModal(this.app, this.plugin, value).open();
+                })
+            )
+
+    }
+
+    private attemptConnect() {
+        let {apiKey, apiSecret, accessToken, accessTokenSecret} = this.plugin.settings;
+        this.plugin.connectToTwitter(apiKey, apiSecret, accessToken, accessTokenSecret);
     }
 
     checkStatus(statusIndicator: any) {
