@@ -4,6 +4,7 @@ import {NoteTweetSettings} from "./noteTweetSettings";
 import {NoteTweetSettingsTab} from "./noteTweetSettingsTab";
 import {TweetsPostedModal} from "./tweetsPostedModal";
 import {TweetErrorModal} from "./tweetErrorModal";
+import {exec} from "child_process";
 
 const DEFAULT_SETTINGS: NoteTweetSettings = {
 	APIKey: '',
@@ -112,6 +113,7 @@ export default class NoteTweet extends Plugin {
 				})
 
 				postedTweets.push(previousPost);
+				await this.appendPostTweetTag(tweet);
 			}
 
 			new TweetsPostedModal(this.app, postedTweets).open();
@@ -139,7 +141,6 @@ export default class NoteTweet extends Plugin {
 		}
 	}
 
-	// TODO: Fix this
 	private async appendPostTweetTag(selection: string) {
 		let active_view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (active_view == null) return;
@@ -148,7 +149,8 @@ export default class NoteTweet extends Plugin {
 		let doc = editor.getDoc();
 
 		let pageContent = doc.getValue();
-		pageContent.replace(selection, `${selection} ${this.settings.postTweetTag}`);
+
+		pageContent = pageContent.replace(selection.trim(), `${selection.trim()} ${this.settings.postTweetTag}`);
 		doc.setValue(pageContent);
 
 		editor.focus();

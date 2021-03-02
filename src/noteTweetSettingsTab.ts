@@ -60,10 +60,9 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        // TODO: Once fixed, remove WIP text
         new Setting(containerEl)
-            .setName('Tweet Tag - WIP 🚧')
-            .setDesc('Appended to your tweets to indicate that it has been posted. !!This is WIP!!')
+            .setName('Tweet Tag')
+            .setDesc('Appended to your tweets to indicate that it has been posted.')
             .addText(text => text
                 .setPlaceholder('Tag to append')
                 .setValue(this.plugin.settings.postTweetTag)
