@@ -15,6 +15,8 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
         containerEl.empty();
 
         containerEl.createEl('h2', {text: 'NoteTweet'});
+        let statusIndicator = containerEl.createEl("p");
+        this.checkStatus(statusIndicator);
 
         new Setting(containerEl)
             .setName('API Key')
@@ -25,6 +27,9 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.APIKey = value;
                     await this.plugin.saveSettings();
+
+                    this.plugin.connectToTwitter();
+                    this.checkStatus(statusIndicator);
                 }));
 
         new Setting(containerEl)
@@ -36,6 +41,9 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.APISecret = value;
                     await this.plugin.saveSettings();
+
+                    this.plugin.connectToTwitter();
+                    this.checkStatus(statusIndicator);
                 }));
 
         new Setting(containerEl)
@@ -47,6 +55,9 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.accessToken = value;
                     await this.plugin.saveSettings();
+
+                    this.plugin.connectToTwitter();
+                    this.checkStatus(statusIndicator);
                 }));
 
         new Setting(containerEl)
@@ -58,6 +69,9 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.accessTokenSecret = value;
                     await this.plugin.saveSettings();
+
+                    this.plugin.connectToTwitter();
+                    this.checkStatus(statusIndicator);
                 }));
 
         new Setting(containerEl)
@@ -71,5 +85,11 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 })
             )
+    }
+
+    checkStatus(statusIndicator: any) {
+        statusIndicator.innerHTML =
+            `<strong>Plugin Status:</strong> ${this.plugin.isReady ?
+                "✅ Plugin connected to Twitter." : "🛑 Plugin not connected to Twitter."}`;
     }
 }

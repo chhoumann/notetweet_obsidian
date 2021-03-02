@@ -21,18 +21,13 @@ export default class NoteTweet extends Plugin {
 	settings: NoteTweetSettings;
 
 	private twitterClient: TwitterClient;
+	public isReady = true;
 
 	async onload() {
 		console.log(WELCOME_MESSAGE);
 
 		await this.loadSettings();
-		// TODO: Add some error handling. What if no settings are provided?
-		this.twitterClient = new TwitterClient({
-			apiKey: this.settings.APIKey,
-			apiSecret: this.settings.APISecret,
-			accessToken: this.settings.accessToken,
-			accessTokenSecret: this.settings.accessTokenSecret
-		});
+		this.connectToTwitter();
 
 		this.addCommand({
 			id: 'post-selected-as-tweet',
@@ -54,31 +49,12 @@ export default class NoteTweet extends Plugin {
 			}
 		});
 
-		function getCurrentDocumentContent(app: App) {
-			let active_view = app.workspace.getActiveViewOfType(MarkdownView);
-			let editor = active_view.sourceMode.cmEditor;
-			let doc = editor.getDoc();
-
-			return doc.getValue();
-		}
-
-		// All threads start with THREAD START and ends with THREAD END. To separate tweets in a thread,
-		// one should use use a newline and '---' (this prevents markdown from believing the above tweet is a heading).
-		// We also purposefully remove the newline after the separator - otherwise tweets will be posted with a newline
-		// as their first line.
-		function parseThreadFromText(text: string) {
-			let contentArray = text.split("\n");
-			let threadStartIndex = contentArray.indexOf("THREAD START") + 1;
-			let threadEndIndex = contentArray.indexOf("THREAD END");
-			return contentArray.slice(threadStartIndex, threadEndIndex).join("\n").split("\n---\n");
-		}
-
 		this.addCommand({
 			id: 'post-file-as-thread',
 			name: 'Post File as Thread',
 			callback: async () => {
-				let content = getCurrentDocumentContent(this.app);
-				let threadContent = parseThreadFromText(content);
+				let content = this.getCurrentDocumentContent(this.app);
+				let threadContent = this.parseThreadFromText(content);
 
 				await this.postThread(threadContent);
 			}
@@ -86,7 +62,20 @@ export default class NoteTweet extends Plugin {
 
 		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
 	}
-
+	public connectToTwitter() {
+		try {
+			this.twitterClient = new TwitterClient({
+				apiKey: this.settings.APIKey,
+				apiSecret: this.settings.APISecret,
+				accessToken: this.settings.accessToken,
+				accessTokenSecret: this.settings.accessTokenSecret
+			});
+			this.isReady = true;
+		}
+		catch (e) {
+			this.isReady = false;
+		}
+	}
 
 	onunload() {
 		console.log(UNLOAD_MESSAGE);
@@ -98,6 +87,25 @@ export default class NoteTweet extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	getCurrentDocumentContent(app: App) {
+		let active_view = app.workspace.getActiveViewOfType(MarkdownView);
+		let editor = active_view.sourceMode.cmEditor;
+		let doc = editor.getDoc();
+
+		return doc.getValue();
+	}
+
+	// All threads start with THREAD START and ends with THREAD END. To separate tweets in a thread,
+	// one should use use a newline and '---' (this prevents markdown from believing the above tweet is a heading).
+	// We also purposefully remove the newline after the separator - otherwise tweets will be posted with a newline
+	// as their first line.
+	parseThreadFromText(text: string) {
+		let contentArray = text.split("\n");
+		let threadStartIndex = contentArray.indexOf("THREAD START") + 1;
+		let threadEndIndex = contentArray.indexOf("THREAD END");
+		return contentArray.slice(threadStartIndex, threadEndIndex).join("\n").split("\n---\n");
 	}
 
 	private async postThread(threadContent: string[]) {
