@@ -29,6 +29,8 @@ You'll see an indicator which tells you if you're connected or not.
 Single tweets are simple. Just select some text and use the `Post Selected as Tweet` command.
 
 **Threads** have a specific format. First off, it only detects the first thread in any file.
+
+Format:
 ```
 THREAD START
 
@@ -44,3 +46,5 @@ Enjoy!
 
 THREAD END
 ```
+
+Threads must start with `THREAD START` and end with `THREAD END`.
