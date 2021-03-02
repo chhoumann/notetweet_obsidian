@@ -1,8 +1,8 @@
 import {App, MarkdownView, Plugin} from 'obsidian';
-import {TwitterClient} from "twitter-api-client";
+import {StatusesUpdate, TwitterClient} from "twitter-api-client";
 import {NoteTweetSettings} from "./noteTweetSettings";
 import {NoteTweetSettingsTab} from "./noteTweetSettingsTab";
-import {TweetPostedModal} from "./tweetPostedModal";
+import {TweetsPostedModal} from "./tweetsPostedModal";
 import {TweetErrorModal} from "./tweetErrorModal";
 
 const DEFAULT_SETTINGS: NoteTweetSettings = {
@@ -53,35 +53,39 @@ export default class NoteTweet extends Plugin {
 			}
 		});
 
+		function getCurrentDocumentContent(app: App) {
+			let active_view = app.workspace.getActiveViewOfType(MarkdownView);
+			let editor = active_view.sourceMode.cmEditor;
+			let doc = editor.getDoc();
+
+			return doc.getValue();
+		}
+
+		// All threads start with THREAD START and ends with THREAD END. To separate tweets in a thread,
+		// one should use use a newline and '---' (this prevents markdown from believing the above tweet is a heading).
+		// We also purposefully remove the newline after the separator - otherwise tweets will be posted with a newline
+		// as their first line.
+		function parseThreadFromText(text: string) {
+			let contentArray = text.split("\n");
+			let threadStartIndex = contentArray.indexOf("THREAD START") + 1;
+			let threadEndIndex = contentArray.indexOf("THREAD END");
+			return contentArray.slice(threadStartIndex, threadEndIndex).join("\n").split("\n---\n");
+		}
+
 		this.addCommand({
 			id: 'post-file-as-thread',
 			name: 'Post File as Thread',
 			callback: async () => {
-				// Differentiate tweets
-				let active_view = this.app.workspace.getActiveViewOfType(MarkdownView);
-				let editor = active_view.sourceMode.cmEditor;
-				let doc = editor.getDoc();
-				let contentArray = doc.getValue().split("\n");
+				let content = getCurrentDocumentContent(this.app);
+				let threadContent = parseThreadFromText(content);
 
-				let startIndex = contentArray.indexOf("THREAD START") + 1;
-				let endIndex = contentArray.indexOf("THREAD END");
-
-				let threadContent = contentArray.slice(startIndex, endIndex).join("\n").split("\n---\n");
-
-				// post thread
-				let post = await this.postTweet(threadContent[0].trim());
-
-				for (let i = 1; i < threadContent.length; i++) {
-					post = await this.twitterClient.tweets.statusesUpdate({
-						status: threadContent[i].trim(),
-						in_reply_to_status_id: post.id_str
-					});
-				}
+				await this.postThread(threadContent);
 			}
 		})
 
 		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
 	}
+
 
 	onunload() {
 		console.log(UNLOAD_MESSAGE);
@@ -95,16 +99,38 @@ export default class NoteTweet extends Plugin {
 		await this.saveData(this.settings);
 	}
 
+	private async postThread(threadContent: string[]) {
+		try {
+			let postedTweets: StatusesUpdate[] = [];
+			let previousPost: StatusesUpdate;
+			for (const tweet of threadContent) {
+				let isFirstTweet = threadContent.indexOf(tweet) == 0;
+
+				previousPost = await this.twitterClient.tweets.statusesUpdate({
+					status: tweet.trim(),
+					...(!isFirstTweet && { in_reply_to_status_id: previousPost.id_str })
+				})
+
+				postedTweets.push(previousPost);
+			}
+
+			new TweetsPostedModal(this.app, postedTweets).open();
+		}
+		catch (e) {
+			new TweetErrorModal(this.app, e.data).open();
+		}
+	}
+
 	private async postTweet(tweet: string) {
 		try {
 			let newStatus = await this.twitterClient.tweets.statusesUpdate({
-				status: tweet
+				status: tweet.trim(),
 			});
 
-			new TweetPostedModal(this.app, newStatus).open();
+			new TweetsPostedModal(this.app, [newStatus]).open();
 
-			//if (this.settings.postTweetTag)
-			//	await this.appendPostTweetTag(tweet);
+			if (this.settings.postTweetTag)
+				await this.appendPostTweetTag(tweet);
 
 			return newStatus;
 		}
@@ -113,6 +139,7 @@ export default class NoteTweet extends Plugin {
 		}
 	}
 
+	// TODO: Fix this
 	private async appendPostTweetTag(selection: string) {
 		let active_view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (active_view == null) return;
@@ -120,7 +147,9 @@ export default class NoteTweet extends Plugin {
 		let editor = active_view.sourceMode.cmEditor;
 		let doc = editor.getDoc();
 
-		doc.replaceSelection(`${selection} ${this.settings.postTweetTag}`);
+		let pageContent = doc.getValue();
+		pageContent.replace(selection, `${selection} ${this.settings.postTweetTag}`);
+		doc.setValue(pageContent);
 
 		editor.focus();
 	}
