@@ -1,6 +1,9 @@
 ## NoteTweet🐦 for Obsidian
 This plugin allows you to post tweets directly from Obsidian.
 
+[![Release](https://img.shields.io/github/v/release/chhoumann/notetweet_obsidian?style=for-the-badge)]()
+[![Github All Releases](https://img.shields.io/github/downloads/chhoumann/notetweet_obsidian/total.svg?style=for-the-badge&logo=appveyor)]()
+
 ### Features
 - Post tweets of selected text
 - Post threads from file
