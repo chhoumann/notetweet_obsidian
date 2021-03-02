@@ -7,7 +7,7 @@ This plugin allows you to post tweets directly from Obsidian.
 - Automatically appends a tag to your tweet (to keep track of what you've posted)
 
 ### Coming...
-- Ability to break text over 250 characters into multiple tweets instead of immediately posting
+- Ability to break text over 250 characters into multiple tweets instead of simply rejecting
 - Confirmation prompts
 - Delete tweet/thread that was just posted (undo)
 - Easier authentication (if possible?)
