@@ -32,7 +32,7 @@ export default class NoteTweet extends Plugin {
 					this.connectToTwitterWithPlainSettings();
 
 					if (!this.twitterHandler.isConnectedToTwitter)
-						new TweetErrorModal(this.app, "Not connected to Twitter");
+						new TweetErrorModal(this.app, "Not connected to Twitter").open();
 					else
 						await this.postSelectedTweet();
 				}
@@ -51,7 +51,7 @@ export default class NoteTweet extends Plugin {
 					this.connectToTwitterWithPlainSettings();
 
 					if (!this.twitterHandler.isConnectedToTwitter)
-						new TweetErrorModal(this.app, "Not connected to Twitter");
+						new TweetErrorModal(this.app, "Not connected to Twitter").open();
 					else
 						await this.postThreadInFile();
 				}
