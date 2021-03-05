@@ -24,9 +24,10 @@ export default class NoteTweet extends Plugin {
 			id: 'post-selected-as-tweet',
 			name: 'Post Selected as Tweet',
 			callback: async () => {
-				if (this.settings.secureMode) {
-					await this.secureModeCheck(async () => await this.postSelectedTweet());
-				}
+				if (this.settings.secureMode)
+					await this.secureModeProxy(async () => await this.postSelectedTweet());
+				else
+					await this.postSelectedTweet();
 			}
 		});
 
@@ -34,9 +35,10 @@ export default class NoteTweet extends Plugin {
 			id: 'post-file-as-thread',
 			name: 'Post File as Thread',
 			callback: async () => {
-				if (this.settings.secureMode) {
-					await this.secureModeCheck(async () => await this.postThreadInFile());
-				}
+				if (this.settings.secureMode)
+					await this.secureModeProxy(async () => await this.postThreadInFile());
+				else
+					await this.postThreadInFile();
 			}
 		})
 
@@ -91,7 +93,7 @@ export default class NoteTweet extends Plugin {
 		}
 	}
 
-	private async secureModeCheck(callback: any) {
+	private async secureModeProxy(callback: any) {
 		if (!(this.settings.secureMode && !this.twitterHandler.isConnectedToTwitter))
 			return;
 
@@ -100,7 +102,7 @@ export default class NoteTweet extends Plugin {
 
 		let retryConnection = async () => {
 			if (!this.twitterHandler.isConnectedToTwitter && modal.isOpen)
-				setTimeout(async () => await retryConnection(), 200);
+				setTimeout(async () => await retryConnection(), 200); // Duration was arbitrarily selected.
 			else if (this.twitterHandler.isConnectedToTwitter)
 				await callback();
 		};
