@@ -8,7 +8,7 @@ This plugin allows you to post tweets directly from Obsidian.
 - Post tweets of selected text
 - Post threads from file
 - Automatically appends a tag to your tweet (to keep track of what you've posted)
-- **Secure mode** - encrypts your API keys so you can only be accessed with a password.
+- **Secure mode** - encrypts your API keys such that they can only be accessed with a password.
 
 ### Coming...
 - Ability to break text over 250 characters into multiple tweets instead of simply rejecting
