@@ -46,7 +46,6 @@ export class SecureModeModal extends Modal {
         contentEl.empty();
     }
 
-
     private async encryptKeysWithPassword(password: string) {
         this._plugin.settings.apiKey = SecureModeCrypt.encryptString(this._plugin.settings.apiKey, password);
         this._plugin.settings.apiSecret = SecureModeCrypt.encryptString(this._plugin.settings.apiSecret, password);

@@ -3,8 +3,9 @@ import NoteTweet from "../main";
 import {SecureModeCrypt} from '../SecureModeCrypt'
 
 export class SecureModeGetPasswordModal extends Modal {
+    public isOpen: boolean;
+
     private _plugin: NoteTweet;
-    private callback: any;
 
     constructor(app: App, plugin: NoteTweet) {
         super(app);
@@ -13,6 +14,7 @@ export class SecureModeGetPasswordModal extends Modal {
 
     onOpen() {
         let {contentEl} = this;
+        this.isOpen = true;
 
         contentEl.createEl("h2", {text: "Secure Mode"});
         contentEl.createEl("p", {text: "Please enter your password to continue:"})
@@ -43,5 +45,6 @@ export class SecureModeGetPasswordModal extends Modal {
     onClose() {
         let {contentEl} = this;
         contentEl.empty();
+        this.isOpen = false;
     }
 }

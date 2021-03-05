@@ -24,8 +24,8 @@ export default class NoteTweet extends Plugin {
 			id: 'post-selected-as-tweet',
 			name: 'Post Selected as Tweet',
 			callback: async () => {
-				if (this.secureModeCheck()) {
-					await this.postSelectedTweet();
+				if (this.settings.secureMode) {
+					await this.secureModeCheck(async () => await this.postSelectedTweet());
 				}
 			}
 		});
@@ -34,8 +34,8 @@ export default class NoteTweet extends Plugin {
 			id: 'post-file-as-thread',
 			name: 'Post File as Thread',
 			callback: async () => {
-				if (this.secureModeCheck()) {
-					await this.postThreadInFile();
+				if (this.settings.secureMode) {
+					await this.secureModeCheck(async () => await this.postThreadInFile());
 				}
 			}
 		})
@@ -91,13 +91,21 @@ export default class NoteTweet extends Plugin {
 		}
 	}
 
-	private secureModeCheck() {
-		if (this.settings.secureMode && !this.twitterHandler.isConnectedToTwitter) {
-			new SecureModeGetPasswordModal(this.app, this).open();
+	private async secureModeCheck(callback: any) {
+		if (!(this.settings.secureMode && !this.twitterHandler.isConnectedToTwitter))
+			return;
 
-			return this.twitterHandler.isConnectedToTwitter;
-		}
-		return this.twitterHandler.isConnectedToTwitter;
+		let modal = new SecureModeGetPasswordModal(this.app, this);
+		modal.open();
+
+		let retryConnection = async () => {
+			if (!this.twitterHandler.isConnectedToTwitter && modal.isOpen)
+				setTimeout(async () => await retryConnection(), 200);
+			else if (this.twitterHandler.isConnectedToTwitter)
+				await callback();
+		};
+
+		await retryConnection();
 	}
 
 	onunload() {
