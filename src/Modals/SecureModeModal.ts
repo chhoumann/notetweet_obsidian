@@ -1,6 +1,6 @@
 import {App, Modal} from "obsidian";
-import NoteTweet from "./main";
-import CryptoES from "crypto-es";
+import NoteTweet from "../main";
+import {SecureModeCrypt} from "../SecureModeCrypt";
 
 export class SecureModeModal extends Modal {
     private _plugin: NoteTweet;
@@ -24,7 +24,11 @@ export class SecureModeModal extends Modal {
         hashButton.addEventListener("click", async () => {
             let password = passwordInput.value;
 
-            this._enable ? await this.encryptKeysWithPassword(password) : await this.decryptKeysWithPassword(password);
+            this._enable ?
+                await this.encryptKeysWithPassword(password) :
+                await this.decryptKeysWithPassword(password);
+
+            this.close();
         })
 
         contentEl.createEl("h2", {text: "What is this?"}).style.marginBottom = "0.5rem";
@@ -42,20 +46,21 @@ export class SecureModeModal extends Modal {
         contentEl.empty();
     }
 
+
     private async encryptKeysWithPassword(password: string) {
-        this._plugin.settings.apiKey = CryptoES.AES.encrypt(this._plugin.settings.apiKey, password).toString();
-        this._plugin.settings.apiSecret = CryptoES.AES.encrypt(this._plugin.settings.apiSecret, password).toString();
-        this._plugin.settings.accessToken = CryptoES.AES.encrypt(this._plugin.settings.accessToken, password).toString();
-        this._plugin.settings.accessTokenSecret = CryptoES.AES.encrypt(this._plugin.settings.accessTokenSecret, password).toString();
+        this._plugin.settings.apiKey = SecureModeCrypt.encryptString(this._plugin.settings.apiKey, password);
+        this._plugin.settings.apiSecret = SecureModeCrypt.encryptString(this._plugin.settings.apiSecret, password);
+        this._plugin.settings.accessToken = SecureModeCrypt.encryptString(this._plugin.settings.accessToken, password);
+        this._plugin.settings.accessTokenSecret = SecureModeCrypt.encryptString(this._plugin.settings.accessTokenSecret, password);
 
         await this._plugin.saveSettings();
     }
 
     private async decryptKeysWithPassword(password: string) {
-        this._plugin.settings.apiKey = CryptoES.AES.decrypt(this._plugin.settings.apiKey, password).toString(CryptoES.enc.Utf8);
-        this._plugin.settings.apiSecret = CryptoES.AES.decrypt(this._plugin.settings.apiSecret, password).toString(CryptoES.enc.Utf8);
-        this._plugin.settings.accessToken = CryptoES.AES.decrypt(this._plugin.settings.accessToken, password).toString(CryptoES.enc.Utf8);
-        this._plugin.settings.accessTokenSecret = CryptoES.AES.decrypt(this._plugin.settings.accessTokenSecret, password).toString(CryptoES.enc.Utf8);
+        this._plugin.settings.apiKey = SecureModeCrypt.decryptString(this._plugin.settings.apiKey, password);
+        this._plugin.settings.apiSecret = SecureModeCrypt.decryptString(this._plugin.settings.apiSecret, password);
+        this._plugin.settings.accessToken = SecureModeCrypt.decryptString(this._plugin.settings.accessToken, password);
+        this._plugin.settings.accessTokenSecret = SecureModeCrypt.decryptString(this._plugin.settings.accessTokenSecret, password);
 
         await this._plugin.saveSettings();
     }

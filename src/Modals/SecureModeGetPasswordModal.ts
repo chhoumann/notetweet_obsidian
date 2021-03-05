@@ -1,6 +1,6 @@
 import {App, Modal, Notice} from "obsidian";
-import NoteTweet from "./main";
-import CryptoES from "crypto-es";
+import NoteTweet from "../main";
+import {SecureModeCrypt} from '../SecureModeCrypt'
 
 export class SecureModeGetPasswordModal extends Modal {
     private _plugin: NoteTweet;
@@ -24,7 +24,7 @@ export class SecureModeGetPasswordModal extends Modal {
 
             this.secureModeLogin(passwordInput.value);
 
-            if (this._plugin.isReady) {
+            if (this._plugin.twitterHandler.isConnectedToTwitter) {
                 new Notice("Successfully authenticated with Twitter!");
                 this.close();
             }
@@ -32,11 +32,11 @@ export class SecureModeGetPasswordModal extends Modal {
     }
 
     private secureModeLogin(password: string) {
-        this._plugin.connectToTwitter(
-            CryptoES.AES.decrypt(this._plugin.settings.apiKey, password).toString(CryptoES.enc.Utf8),
-            CryptoES.AES.decrypt(this._plugin.settings.apiSecret, password).toString(CryptoES.enc.Utf8),
-            CryptoES.AES.decrypt(this._plugin.settings.accessToken, password).toString(CryptoES.enc.Utf8),
-            CryptoES.AES.decrypt(this._plugin.settings.accessTokenSecret, password).toString(CryptoES.enc.Utf8)
+        this._plugin.twitterHandler.connectToTwitter(
+            SecureModeCrypt.decryptString(this._plugin.settings.apiKey, password),
+            SecureModeCrypt.decryptString(this._plugin.settings.apiSecret, password),
+            SecureModeCrypt.decryptString(this._plugin.settings.accessToken, password),
+            SecureModeCrypt.decryptString(this._plugin.settings.accessTokenSecret, password)
         );
     }
 
