@@ -24,7 +24,12 @@ export class SecureModeGetPasswordModal extends Modal {
             if (passwordInput.value === "")
                 return;
 
-            this.secureModeLogin(passwordInput.value);
+            try {
+                this.secureModeLogin(passwordInput.value);
+            }
+            catch (e) {
+                new Notice("Wrong password.");
+            }
 
             if (this._plugin.twitterHandler.isConnectedToTwitter) {
                 new Notice("Successfully authenticated with Twitter!");
