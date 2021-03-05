@@ -1,18 +1,9 @@
 import {App, MarkdownView, Plugin} from 'obsidian';
-import {StatusesUpdate, TwitterClient} from "twitter-api-client";
-import {NoteTweetSettings} from "./noteTweetSettings";
-import {NoteTweetSettingsTab} from "./noteTweetSettingsTab";
-import {TweetsPostedModal} from "./tweetsPostedModal";
-import {TweetErrorModal} from "./tweetErrorModal";
-import {exec} from "child_process";
-
-const DEFAULT_SETTINGS: NoteTweetSettings = {
-	APIKey: '',
-	APISecret: '',
-	accessToken: '',
-	accessTokenSecret: '',
-	postTweetTag: ''
-}
+import {TwitterHandler} from "./TwitterHandler";
+import {DEFAULT_SETTINGS, NoteTweetSettings, NoteTweetSettingsTab} from "./settings";
+import {TweetsPostedModal} from "./Modals/tweetsPostedModal";
+import {TweetErrorModal} from "./Modals/tweetErrorModal";
+import {SecureModeGetPasswordModal} from "./Modals/SecureModeGetPasswordModal";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
@@ -20,32 +11,23 @@ const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
 export default class NoteTweet extends Plugin {
 	settings: NoteTweetSettings;
 
-	private twitterClient: TwitterClient;
-	public isReady = true;
+	public twitterHandler: TwitterHandler;
 
 	async onload() {
 		console.log(WELCOME_MESSAGE);
 
 		await this.loadSettings();
-		this.connectToTwitter();
+		this.twitterHandler = new TwitterHandler();
+		this.connectToTwitterWithPlainSettings();
 
 		this.addCommand({
 			id: 'post-selected-as-tweet',
 			name: 'Post Selected as Tweet',
 			callback: async () => {
-				// TODO: Block this if user hasn't provided settings
-				let activeLeaf = this.app.workspace.activeLeaf;
-				if (!activeLeaf || !(activeLeaf.view instanceof MarkdownView)) return;
-
-				let editor = activeLeaf.view.sourceMode.cmEditor;
-
-				if (editor.somethingSelected()) {
-					let selection: string = editor.getSelection();
-
-					await this.postTweet(selection);
-				} else {
-					new TweetErrorModal(this.app, "nothing selected.").open();
-				}
+				if (this.settings.secureMode)
+					await this.secureModeProxy(async () => await this.postSelectedTweet());
+				else
+					await this.postSelectedTweet();
 			}
 		});
 
@@ -53,28 +35,79 @@ export default class NoteTweet extends Plugin {
 			id: 'post-file-as-thread',
 			name: 'Post File as Thread',
 			callback: async () => {
-				let content = this.getCurrentDocumentContent(this.app);
-				let threadContent = this.parseThreadFromText(content);
-
-				await this.postThread(threadContent);
+				if (this.settings.secureMode)
+					await this.secureModeProxy(async () => await this.postThreadInFile());
+				else
+					await this.postThreadInFile();
 			}
 		})
 
 		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
 	}
-	public connectToTwitter() {
+
+	private async postThreadInFile() {
+		let content = this.getCurrentDocumentContent(this.app);
+		let threadContent = this.parseThreadFromText(content);
+
 		try {
-			this.twitterClient = new TwitterClient({
-				apiKey: this.settings.APIKey,
-				apiSecret: this.settings.APISecret,
-				accessToken: this.settings.accessToken,
-				accessTokenSecret: this.settings.accessTokenSecret
-			});
-			this.isReady = true;
+			let postedTweets = await this.twitterHandler.postThread(threadContent);
+			new TweetsPostedModal(this.app, postedTweets).open();
+
+			if (this.settings.postTweetTag)
+				postedTweets.forEach(tweet => this.appendPostTweetTag(tweet.text));
+		} catch (e) {
+			new TweetErrorModal(this.app, e.data || e).open();
 		}
-		catch (e) {
-			this.isReady = false;
+	}
+
+	public connectToTwitterWithPlainSettings() {
+		if (!this.settings.secureMode) {
+			let {apiKey, apiSecret, accessToken, accessTokenSecret} = this.settings;
+			if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) return;
+
+			this.twitterHandler.connectToTwitter(apiKey, apiSecret, accessToken, accessTokenSecret);
 		}
+	}
+
+	private async postSelectedTweet() {
+		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		let editor = view.sourceMode.cmEditor;
+
+		if (editor.somethingSelected()) {
+			let selection: string = editor.getSelection();
+
+			try {
+				let tweet = await this.twitterHandler.postTweet(selection);
+
+				if (this.settings.postTweetTag)
+					await this.appendPostTweetTag(tweet.text);
+
+				new TweetsPostedModal(this.app, [tweet]).open();
+			}
+			catch (e) {
+				new TweetErrorModal(this.app, e.data || e).open();
+			}
+
+		} else {
+			new TweetErrorModal(this.app, "nothing selected.").open();
+		}
+	}
+
+	private async secureModeProxy(callback: any) {
+		if (!(this.settings.secureMode && !this.twitterHandler.isConnectedToTwitter))
+			return;
+
+		let modal = new SecureModeGetPasswordModal(this.app, this);
+		modal.open();
+
+		let retryConnection = async () => {
+			if (!this.twitterHandler.isConnectedToTwitter && modal.isOpen)
+				setTimeout(async () => await retryConnection(), 200); // Duration was arbitrarily selected.
+			else if (this.twitterHandler.isConnectedToTwitter)
+				await callback();
+		};
+
+		await retryConnection();
 	}
 
 	onunload() {
@@ -101,62 +134,17 @@ export default class NoteTweet extends Plugin {
 	// one should use use a newline and '---' (this prevents markdown from believing the above tweet is a heading).
 	// We also purposefully remove the newline after the separator - otherwise tweets will be posted with a newline
 	// as their first line.
-	parseThreadFromText(text: string) {
+	private parseThreadFromText(text: string) {
 		let contentArray = text.split("\n");
 		let threadStartIndex = contentArray.indexOf("THREAD START") + 1;
 		let threadEndIndex = contentArray.indexOf("THREAD END");
 		return contentArray.slice(threadStartIndex, threadEndIndex).join("\n").split("\n---\n");
 	}
 
-	private async postThread(threadContent: string[]) {
-		try {
-			let postedTweets: StatusesUpdate[] = [];
-			let previousPost: StatusesUpdate;
-			for (const tweet of threadContent) {
-				let isFirstTweet = threadContent.indexOf(tweet) == 0;
-
-				previousPost = await this.twitterClient.tweets.statusesUpdate({
-					status: tweet.trim(),
-					...(!isFirstTweet && { in_reply_to_status_id: previousPost.id_str })
-				})
-
-				postedTweets.push(previousPost);
-				await this.appendPostTweetTag(tweet);
-			}
-
-			new TweetsPostedModal(this.app, postedTweets).open();
-		}
-		catch (e) {
-			new TweetErrorModal(this.app, e.data).open();
-		}
-	}
-
-	private async postTweet(tweet: string) {
-		try {
-			let newStatus = await this.twitterClient.tweets.statusesUpdate({
-				status: tweet.trim(),
-			});
-
-			new TweetsPostedModal(this.app, [newStatus]).open();
-
-			if (this.settings.postTweetTag)
-				await this.appendPostTweetTag(tweet);
-
-			return newStatus;
-		}
-		catch (e) {
-			new TweetErrorModal(this.app, e.data).open();
-		}
-	}
-
-	private async appendPostTweetTag(selection: string) {
-		let active_view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (active_view == null) return;
-
-		let editor = active_view.sourceMode.cmEditor;
+	private appendPostTweetTag(selection: string) {
+		let editor = this.app.workspace.getActiveViewOfType(MarkdownView).sourceMode.cmEditor;
 		let doc = editor.getDoc();
-
-		let pageContent = doc.getValue();
+		let pageContent = this.getCurrentDocumentContent(this.app);
 
 		pageContent = pageContent.replace(selection.trim(), `${selection.trim()} ${this.settings.postTweetTag}`);
 		doc.setValue(pageContent);
