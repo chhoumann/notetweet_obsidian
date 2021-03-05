@@ -24,10 +24,18 @@ export default class NoteTweet extends Plugin {
 			id: 'post-selected-as-tweet',
 			name: 'Post Selected as Tweet',
 			callback: async () => {
-				if (this.settings.secureMode)
-					await this.secureModeProxy(async () => await this.postSelectedTweet());
-				else
+				if (this.twitterHandler.isConnectedToTwitter)
 					await this.postSelectedTweet();
+				else if (this.settings.secureMode)
+					await this.secureModeProxy(async () => await this.postSelectedTweet());
+				else {
+					this.connectToTwitterWithPlainSettings();
+
+					if (!this.twitterHandler.isConnectedToTwitter)
+						new TweetErrorModal(this.app, "Not connected to Twitter");
+					else
+						await this.postSelectedTweet();
+				}
 			}
 		});
 
@@ -35,10 +43,18 @@ export default class NoteTweet extends Plugin {
 			id: 'post-file-as-thread',
 			name: 'Post File as Thread',
 			callback: async () => {
-				if (this.settings.secureMode)
-					await this.secureModeProxy(async () => await this.postThreadInFile());
-				else
+				if (this.twitterHandler.isConnectedToTwitter)
 					await this.postThreadInFile();
+				else if (this.settings.secureMode)
+					await this.secureModeProxy(async () => await this.postThreadInFile());
+				else {
+					this.connectToTwitterWithPlainSettings();
+
+					if (!this.twitterHandler.isConnectedToTwitter)
+						new TweetErrorModal(this.app, "Not connected to Twitter");
+					else
+						await this.postThreadInFile();
+				}
 			}
 		})
 
