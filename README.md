@@ -23,7 +23,9 @@ Feel free to recommend features!
 
 ## How to use
 ### Installation
-This plugin is currently not in the Community Plugins browser. That's why you have to install it manually.
+This plugin has been added to the community plugin browser in Obsidian. You can get it from there.
+
+### Manual Installation
 
 1. Go to [Releases](https://github.com/chhoumann/notetweet_obsidian/releases) and download the ZIP file from the latest release.
 2. This ZIP file should be extracted in your Obsidian plugins folder. If you don't know where that is, you can go to `Community Plugins` inside Obsidian. There is a folder icon on the right of `Installed Plugins`. Click that and it opens your plugins folder.
