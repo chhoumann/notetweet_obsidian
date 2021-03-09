@@ -4,7 +4,9 @@ import {SecureModeCrypt} from "../SecureModeCrypt";
 
 export class SecureModeModal extends Modal {
     private _plugin: NoteTweet;
-    private _enable: boolean;
+    private readonly _enable: boolean;
+    public isOpen: boolean;
+    public userPressedCrypt: boolean = false;
 
     constructor(app: App, plugin: NoteTweet, enable: boolean) {
         super(app);
@@ -14,6 +16,7 @@ export class SecureModeModal extends Modal {
 
     onOpen() {
         let {contentEl} = this;
+        this.isOpen = true;
 
         contentEl.createEl("h1", {text: "Secure Mode Settings"});
         contentEl.createEl("p", {text: "Please enter your password below and then click the button below."})
@@ -27,6 +30,8 @@ export class SecureModeModal extends Modal {
             this._enable ?
                 await this.encryptKeysWithPassword(password) :
                 await this.decryptKeysWithPassword(password);
+
+            this.userPressedCrypt = true;
 
             this.close();
         })
@@ -44,6 +49,7 @@ export class SecureModeModal extends Modal {
     onClose() {
         let {contentEl} = this;
         contentEl.empty();
+        this.isOpen = false;
     }
 
     private async encryptKeysWithPassword(password: string) {
