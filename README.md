@@ -25,14 +25,17 @@ Feel free to recommend features!
 ### Installation
 This plugin has been added to the community plugin browser in Obsidian. You can get it from there.
 
-### Manual Installation
+If you want to watch a video on how to set up this plugin, click [here](https://www.youtube.com/watch?v=jx09b1Ien3Q).
+
+#### Manual Installation
+*Please note that these steps are not necessary anymore. You can get the plugin from the community plugin browser. Just install from there and jump to Setup.*
 
 1. Go to [Releases](https://github.com/chhoumann/notetweet_obsidian/releases) and download the ZIP file from the latest release.
 2. This ZIP file should be extracted in your Obsidian plugins folder. If you don't know where that is, you can go to `Community Plugins` inside Obsidian. There is a folder icon on the right of `Installed Plugins`. Click that and it opens your plugins folder.
 3. Extract the contents of the ZIP file there.
 4. Proceed to Setup
 
-### Setup
+#### Setup
 1. Go to https://apps.twitter.com/app/new and create a new app. Make sure it is Read + Write (otherwise you can't tweet).
 2. Get your API key & secret and access token & secret.
 3. Paste those into the plugin settings.
