@@ -1,10 +1,10 @@
 {
 	"id": "notetweet",
 	"name": "NoteTweet🐦",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"minAppVersion": "0.9.12",
 	"description": "This plugin allows you to post tweets directly from Obsidian.",
-	"author": "Christian",
+	"author": "Christian B. B. Houmann",
 	"authorUrl": "https://bagerbach.com/",
 	"isDesktopOnly": false
 }

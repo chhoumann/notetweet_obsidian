@@ -60,10 +60,26 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                 .setTooltip('Toggle Secure Mode')
                 .setValue(this.plugin.settings.secureMode)
                 .onChange(async value => {
-                    this.plugin.settings.secureMode = value;
-                    await this.plugin.saveSettings();
+                    if (value == this.plugin.settings.secureMode) return;
+                    let secureModeModal = new SecureModeModal(this.app, this.plugin, value);
+                    secureModeModal.open();
 
-                    new SecureModeModal(this.app, this.plugin, value).open();
+                    let doOnModalClose = async () => {
+                        if (secureModeModal.isOpen) {
+                            setTimeout(await doOnModalClose, 200);
+                        }
+                        else {
+                            if (secureModeModal.userPressedCrypt) {
+                                this.plugin.settings.secureMode = value;
+                                await this.plugin.saveSettings();
+                            }
+
+                            toggle.setValue(this.plugin.settings.secureMode);
+                            this.display(); // To update api-key values displayed to user (visual feedback).
+                        }
+                    }
+
+                    await doOnModalClose();
                 })
             )
     }
