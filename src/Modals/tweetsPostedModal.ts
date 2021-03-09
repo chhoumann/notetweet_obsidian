@@ -1,11 +1,12 @@
 import {App, Modal, Notice} from "obsidian";
 import {StatusesUpdate} from "twitter-api-client";
 import {TwitterHandler} from "../TwitterHandler";
-import {ok} from "assert";
 
 export class TweetsPostedModal extends Modal {
     private readonly posts: StatusesUpdate[];
     private readonly twitterHandler: TwitterHandler;
+    public isOpen: boolean;
+    public userDeletedTweets: boolean = false;
 
     constructor(app: App, post: StatusesUpdate[], twitterHandler: TwitterHandler) {
         super(app);
@@ -15,6 +16,7 @@ export class TweetsPostedModal extends Modal {
 
     onOpen() {
         let {contentEl} = this;
+        this.isOpen = true;
 
         contentEl.createEl("h2", {
             text: `Your tweet${this.posts.length > 1 ? "s are" : " is "} live! Check it out here:`
@@ -48,6 +50,7 @@ export class TweetsPostedModal extends Modal {
             let didDeleteTweets = await this.twitterHandler.deleteTweets(this.posts);
 
             if (didDeleteTweets) {
+                this.userDeletedTweets = true;
                 this.close();
                 new Notice(`${this.posts.length} tweets deleted.`);
             }
@@ -70,5 +73,6 @@ export class TweetsPostedModal extends Modal {
     onClose() {
         let {contentEl} = this;
         contentEl.empty();
+        this.isOpen = false;
     }
 }

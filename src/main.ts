@@ -4,6 +4,7 @@ import {DEFAULT_SETTINGS, NoteTweetSettings, NoteTweetSettingsTab} from "./setti
 import {TweetsPostedModal} from "./Modals/tweetsPostedModal";
 import {TweetErrorModal} from "./Modals/tweetErrorModal";
 import {SecureModeGetPasswordModal} from "./Modals/SecureModeGetPasswordModal";
+import {StatusesUpdate} from "twitter-api-client";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
@@ -61,27 +62,28 @@ export default class NoteTweet extends Plugin {
 		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
 	}
 
-	private async postThreadInFile() {
-		let content = this.getCurrentDocumentContent(this.app);
-		let threadContent = this.parseThreadFromText(content);
-
-		try {
-			let postedTweets = await this.twitterHandler.postThread(threadContent);
-			new TweetsPostedModal(this.app, postedTweets, this.twitterHandler).open();
-
-			if (this.settings.postTweetTag)
-				postedTweets.forEach(tweet => this.appendPostTweetTag(tweet.text));
-		} catch (e) {
-			new TweetErrorModal(this.app, e.data || e).open();
-		}
-	}
-
 	public connectToTwitterWithPlainSettings() {
 		if (!this.settings.secureMode) {
 			let {apiKey, apiSecret, accessToken, accessTokenSecret} = this.settings;
 			if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) return;
 
 			this.twitterHandler.connectToTwitter(apiKey, apiSecret, accessToken, accessTokenSecret);
+		}
+	}
+
+	private async postThreadInFile() {
+		let content = this.getCurrentDocumentContent(this.app);
+		let threadContent = this.parseThreadFromText(content);
+
+		try {
+			let postedTweets = await this.twitterHandler.postThread(threadContent);
+			let postedModal = new TweetsPostedModal(this.app, postedTweets, this.twitterHandler);
+			postedModal.open();
+
+			await this.appendTagOnModalClose(postedTweets, postedModal);
+
+		} catch (e) {
+			new TweetErrorModal(this.app, e.data || e).open();
 		}
 	}
 
@@ -94,11 +96,10 @@ export default class NoteTweet extends Plugin {
 
 			try {
 				let tweet = await this.twitterHandler.postTweet(selection);
+				let postedModal = new TweetsPostedModal(this.app, [tweet], this.twitterHandler);
+				postedModal.open();
 
-				if (this.settings.postTweetTag)
-					await this.appendPostTweetTag(tweet.text);
-
-				new TweetsPostedModal(this.app, [tweet], this.twitterHandler).open();
+				await this.appendTagOnModalClose([tweet], postedModal);
 			}
 			catch (e) {
 				new TweetErrorModal(this.app, e.data || e).open();
@@ -107,6 +108,20 @@ export default class NoteTweet extends Plugin {
 		} else {
 			new TweetErrorModal(this.app, "nothing selected.").open();
 		}
+	}
+
+	private async appendTagOnModalClose(postedTweets: StatusesUpdate[], postedModal: TweetsPostedModal) {
+		let doOnModalClose = async () => {
+			if (postedModal.isOpen) {
+				setTimeout(await doOnModalClose, 200);
+			}
+			else if (!postedModal.isOpen) {
+				if (!postedModal.userDeletedTweets && this.settings.postTweetTag)
+					postedTweets.forEach(tweet => this.appendPostTweetTag(tweet.text));
+			}
+		}
+
+		await doOnModalClose();
 	}
 
 	private async secureModeProxy(callback: any) {
