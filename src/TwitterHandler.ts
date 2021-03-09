@@ -39,4 +39,16 @@ export class TwitterHandler {
             status: tweet.trim(),
         });
     }
+
+    public async deleteTweets(tweets: StatusesUpdate[]) {
+        try {
+            for (const tweet of tweets)
+                await this.twitterClient.tweets.statusesDestroyById({id: tweet.id_str});
+
+            return true;
+        }
+        catch {
+            return false;
+        }
+    }
 }
