@@ -67,7 +67,7 @@ export default class NoteTweet extends Plugin {
 
 		try {
 			let postedTweets = await this.twitterHandler.postThread(threadContent);
-			new TweetsPostedModal(this.app, postedTweets).open();
+			new TweetsPostedModal(this.app, postedTweets, this.twitterHandler).open();
 
 			if (this.settings.postTweetTag)
 				postedTweets.forEach(tweet => this.appendPostTweetTag(tweet.text));
@@ -98,7 +98,7 @@ export default class NoteTweet extends Plugin {
 				if (this.settings.postTweetTag)
 					await this.appendPostTweetTag(tweet.text);
 
-				new TweetsPostedModal(this.app, [tweet]).open();
+				new TweetsPostedModal(this.app, [tweet], this.twitterHandler).open();
 			}
 			catch (e) {
 				new TweetErrorModal(this.app, e.data || e).open();
