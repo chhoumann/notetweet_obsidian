@@ -63,30 +63,41 @@ export default class NoteTweet extends Plugin {
 		this.addCommand({
 			id: 'post-tweet',
 			name: 'Post Tweet',
-			callback: () => {
-				let view = this.app.workspace.getActiveViewOfType(MarkdownView);
-				let editor = view.sourceMode.cmEditor;
+			callback: async () => {
+				if (this.twitterHandler.isConnectedToTwitter)
+					this.postTweet();
+				else if (this.settings.secureMode)
+					await this.secureModeProxy(() => this.postTweet());
+				else {
+					this.connectToTwitterWithPlainSettings();
 
-				if (editor.somethingSelected()) {
-					let selection = editor.getSelection();
-					let x = selection.toString().trim();
-
-					try {
-						x = this.parseThreadFromText(x).join("\n");
-					}
-					finally {
-						new PostTweetModal(this.app, this.twitterHandler, x).open();
-					}
+					if (!this.twitterHandler.isConnectedToTwitter)
+						new TweetErrorModal(this.app, "Not connected to Twitter").open();
+					else
+						this.postTweet();
 				}
-				else
-				{
-					new PostTweetModal(this.app, this.twitterHandler).open();
-				}
-
 			}
 		})
 
 		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
+	}
+
+	private postTweet() {
+		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		let editor = view.sourceMode.cmEditor;
+
+		if (editor.somethingSelected()) {
+			let selection = editor.getSelection();
+			let x = selection.toString().trim();
+
+			try {
+				x = this.parseThreadFromText(x).join("\n");
+			} finally {
+				new PostTweetModal(this.app, this.twitterHandler, x).open();
+			}
+		} else {
+			new PostTweetModal(this.app, this.twitterHandler).open();
+		}
 	}
 
 	public connectToTwitterWithPlainSettings() {
