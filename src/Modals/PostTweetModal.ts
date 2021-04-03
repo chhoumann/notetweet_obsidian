@@ -125,43 +125,42 @@ export class PostTweetModal extends Modal {
 
     private onInput(textarea: HTMLTextAreaElement, textZone: HTMLDivElement, lengthCheckerEl: HTMLElement) {
         return (key: any) => {
-            this.deleteEmptyTweetOnBackspace(key, textarea, textZone, lengthCheckerEl);
-            //this.disallowTextAppendOnMaxLength(textarea, key);
-            this.newTweetOnMaxLengthOnEnterPress(key, textarea, textZone);
-            this.newTweetOnCtrlEnter(key, textZone);
+            if (key.code == "Backspace" && textarea.textLength == 0 && this.textAreas.length > 1) {
+                key.preventDefault();
+                this.deleteTweet(textarea, textZone, lengthCheckerEl);
+            }
+
+            if (key.code == "Enter" && textarea.textLength >= this.MAX_TWEET_LENGTH) {
+                key.preventDefault();
+                this.createTextarea(textZone);
+            }
+
+            if ((key.code == "Enter" || key.code == "NumpadEnter") && key.altKey) {
+                key.preventDefault();
+                this.createTextarea(textZone);
+            }
+
+            if (key.code == "Enter" && key.shiftKey) {
+                key.preventDefault();
+                this.insertTweetAbove(textarea, textZone);
+            }
+
+            if (key.code == "Enter" && key.ctrlKey) {
+                key.preventDefault();
+                this.insertTweetBelow(textarea, textZone);
+            }
 
             textarea.style.height = "auto";
             textarea.style.height = (textarea.scrollHeight) + "px";
         };
     }
 
-    private deleteEmptyTweetOnBackspace(key: any, textarea: HTMLTextAreaElement, textZone: HTMLDivElement, lengthCheckerEl: HTMLElement) {
-        if (key.code == "Backspace" && textarea.textLength == 0 && this.textAreas.length > 1) {
-            let i = this.textAreas.findIndex(ele => ele === textarea);
-            this.textAreas.remove(textarea);
-            textZone.removeChild(textarea);
-            textZone.removeChild(lengthCheckerEl);
-            this.textAreas[i == 0 ? i : i - 1].focus();
-            key.preventDefault();
-        }
-    }
-
-    private disallowTextAppendOnMaxLength(textarea: HTMLTextAreaElement, key: any) {
-        if (textarea.textLength >= this.MAX_TWEET_LENGTH && key.code != "Backspace") {
-            key.preventDefault();
-        }
-    }
-
-    private newTweetOnMaxLengthOnEnterPress(key: any, textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
-        if (key.code == "Enter" && textarea.textLength >= this.MAX_TWEET_LENGTH) {
-            this.createTextarea(textZone);
-        }
-    }
-
-    private newTweetOnCtrlEnter(key: any, textZone: HTMLDivElement) {
-        if ((key.code == "Enter" || key.code == "NumpadEnter") && key.ctrlKey) {
-            this.createTextarea(textZone);
-        }
+    private deleteTweet(textarea: HTMLTextAreaElement, textZone: HTMLDivElement, lengthCheckerEl: HTMLElement) {
+        let i = this.textAreas.findIndex(ele => ele === textarea);
+        this.textAreas.remove(textarea);
+        textZone.removeChild(textarea);
+        textZone.removeChild(lengthCheckerEl);
+        this.textAreas[i == 0 ? i : i - 1].focus();
     }
 
     private onTweetLengthHandler(strlen: Number, lengthCheckerEl: HTMLElement) {
@@ -208,5 +207,31 @@ export class PostTweetModal extends Modal {
 
             this.close();
         };
+    }
+
+    private insertTweetAbove(textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
+        // Find textarea we're inserting above
+        let idx = this.textAreas.findIndex(area => area.value == textarea.value);
+        // Create new element
+        let newArea = this.createTextarea(textZone);
+        // Shift all elements below down
+        for (let i = this.textAreas.length - 1; i > idx; i--){
+            this.textAreas[i].value = this.textAreas[i - 1].value;
+        }
+        this.textAreas[idx].value = "";
+        this.textAreas[idx].focus();
+    }
+
+    private insertTweetBelow(textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
+        // Find textarea we're inserting below
+        let idx = this.textAreas.findIndex(area => area.value == textarea.value);
+        // Create new element
+        let newArea = this.createTextarea(textZone);
+        // Shift all elements below down
+        for (let i = this.textAreas.length - 1; i > idx + 1; i--){
+            this.textAreas[i].value = this.textAreas[i - 1].value;
+        }
+        this.textAreas[idx + 1].value = "";
+        this.textAreas[idx + 1].focus();
     }
 }
