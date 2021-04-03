@@ -8,7 +8,9 @@ export class PostTweetModal extends Modal {
     private readonly selectedText: string = "";
     private textAreas: HTMLTextAreaElement[] = [];
     private readonly MAX_TWEET_LENGTH: number = 250;
-    private readonly helpText: string = `Please read the documentation on the Github repository. Click <a target="_blank" href="https://github.com/chhoumann/notetweet_obsidian">here</a> to go there.`
+    private readonly helpText: string = `Please read the documentation on the Github repository.
+                        Click <a target="_blank" href="https://github.com/chhoumann/notetweet_obsidian">here</a> to go there.
+                        There are lots of shortcuts and features to explore 😁`
 
 
     constructor(app: App, twitterHandler: TwitterHandler, selection: string = "") {
@@ -21,8 +23,8 @@ export class PostTweetModal extends Modal {
         let {contentEl} = this;
         this.formatModal(contentEl);
 
-        //contentEl.createEl("p", {text: "Please enter a tweet."})
         this.addTooltip("Help", this.helpText, contentEl);
+
         let textZone = contentEl.createDiv();
 
         let textArea = this.createTextarea(textZone);
@@ -76,7 +78,7 @@ export class PostTweetModal extends Modal {
 
     private formatModal(contentEl: HTMLElement) {
         contentEl.style.maxWidth = "35rem";
-        contentEl.style.width = "40rem";
+        contentEl.style.width = "35rem";
         contentEl.style.overflowY = "auto";
         contentEl.style.maxHeight = "50rem";
         contentEl.style.paddingLeft = "0.5rem";
@@ -121,7 +123,7 @@ export class PostTweetModal extends Modal {
         tooltip.style.position = "relative";
         tooltip.style.display = "inline-block";
         tooltip.style.borderBottom = "1px dotted black";
-        tooltip.style.float = "left";
+        //tooltip.style.float = "left";
         tooltip.style.marginBottom = "5px";
 
         tooltipBody.style.visibility = "hidden";
@@ -132,7 +134,7 @@ export class PostTweetModal extends Modal {
         tooltipBody.style.padding = "10px";
         tooltipBody.style.borderRadius = "6px";
         tooltipBody.style.position = "absolute";
-        tooltipBody.style.zIndex = "1";
+        tooltipBody.style.zIndex = "0";
 
         tooltip.addEventListener("mouseenter", () => tooltipBody.style.visibility = "visible");
         tooltip.addEventListener("mouseleave", () => tooltipBody.style.visibility = "hidden");
