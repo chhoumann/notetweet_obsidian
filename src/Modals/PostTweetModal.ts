@@ -210,28 +210,31 @@ export class PostTweetModal extends Modal {
     }
 
     private insertTweetAbove(textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
-        // Find textarea we're inserting above
-        let idx = this.textAreas.findIndex(area => area.value == textarea.value);
-        // Create new element
-        let newArea = this.createTextarea(textZone);
+        let insertAboveIndex = this.textAreas.findIndex(area => area.value == textarea.value);
+
+        this.createTextarea(textZone);
+
         // Shift all elements below down
-        for (let i = this.textAreas.length - 1; i > idx; i--){
+        for (let i = this.textAreas.length - 1; i > insertAboveIndex; i--){
             this.textAreas[i].value = this.textAreas[i - 1].value;
         }
-        this.textAreas[idx].value = "";
-        this.textAreas[idx].focus();
+
+        this.textAreas[insertAboveIndex].value = "";
+        this.textAreas[insertAboveIndex].focus();
     }
 
     private insertTweetBelow(textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
-        // Find textarea we're inserting below
-        let idx = this.textAreas.findIndex(area => area.value == textarea.value);
-        // Create new element
-        let newArea = this.createTextarea(textZone);
+        let insertBelowIndex = this.textAreas.findIndex(area => area.value == textarea.value);
+        let insertedIndex = insertBelowIndex + 1;
+
+        this.createTextarea(textZone);
+
         // Shift all elements below down
-        for (let i = this.textAreas.length - 1; i > idx + 1; i--){
+        for (let i = this.textAreas.length - 1; i > insertedIndex; i--){
             this.textAreas[i].value = this.textAreas[i - 1].value;
         }
-        this.textAreas[idx + 1].value = "";
-        this.textAreas[idx + 1].focus();
+
+        this.textAreas[insertedIndex].value = "";
+        this.textAreas[insertedIndex].focus();
     }
 }
