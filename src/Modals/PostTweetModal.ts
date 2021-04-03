@@ -132,7 +132,6 @@ export class PostTweetModal extends Modal {
             if (pasted.length + textarea.textLength > this.MAX_TWEET_LENGTH) {
                 event.preventDefault();
                 this.insertTweetBelow(textarea, textZone, pasted);
-                //this.createTweetsWithInput(this.textInputHandler(pasted), textarea, textZone);
             }
         };
     }
