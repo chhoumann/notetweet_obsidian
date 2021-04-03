@@ -6,8 +6,9 @@ import {TweetErrorModal} from "./TweetErrorModal";
 export class PostTweetModal extends Modal {
     private readonly twitterHandler: TwitterHandler;
     private readonly selectedText: string = "";
-    private textAreas: HTMLTextAreaElementElement[] = [];
+    private textAreas: HTMLTextAreaElement[] = [];
     private readonly MAX_TWEET_LENGTH: number = 250;
+    private readonly helpText: string = `Please read the documentation on the Github repository. Click <a target="_blank" href="https://github.com/chhoumann/notetweet_obsidian">here</a> to go there.`
 
 
     constructor(app: App, twitterHandler: TwitterHandler, selection: string = "") {
@@ -20,7 +21,8 @@ export class PostTweetModal extends Modal {
         let {contentEl} = this;
         this.formatModal(contentEl);
 
-        contentEl.createEl("p", {text: "Please enter a tweet."})
+        //contentEl.createEl("p", {text: "Please enter a tweet."})
+        this.addTooltip("Help", this.helpText, contentEl);
         let textZone = contentEl.createDiv();
 
         let textArea = this.createTextarea(textZone);
@@ -35,9 +37,9 @@ export class PostTweetModal extends Modal {
     private selectedTextHandler(textArea: HTMLTextAreaElement, textZone: HTMLDivElement) {
         if (this.selectedText.length == 0) return false;
 
-        let jc = this.textInputHandler(this.selectedText);
+        let joinedTextChunks = this.textInputHandler(this.selectedText);
 
-        this.createTweetsWithInput(jc, textArea, textZone);
+        this.createTweetsWithInput(joinedTextChunks, textArea, textZone);
     }
 
     private createTweetsWithInput(inputStrings: string[], currentTextArea: HTMLTextAreaElement, textZone: HTMLDivElement) {
@@ -53,17 +55,18 @@ export class PostTweetModal extends Modal {
         });
     }
 
+    // Separate lines by linebreaks. Add lines together, separated by linebreak, if they can fit within a tweet.
+    // Repeat this until all separated lines are joined into tweets with proper sizes.
     private textInputHandler(str: string) {
         let chunks: string[] = str.split("\n");
-        let i = 0;
-        let jc = [];
+        let i = 0, joinedTextChunks: string[] = [];
         chunks.forEach(chunk => {
-            if (jc[i] == null) jc[i] = "";
-            if (jc[i].length + chunk.length <= this.MAX_TWEET_LENGTH - 1) {
-                jc[i] = jc[i] + chunk.trim() + "\n";
+            if (joinedTextChunks[i] == null) joinedTextChunks[i] = "";
+            if (joinedTextChunks[i].length + chunk.length <= this.MAX_TWEET_LENGTH - 1) {
+                joinedTextChunks[i] = joinedTextChunks[i] + chunk.trim() + "\n";
             } else i++;
         })
-        return jc;
+        return joinedTextChunks;
     }
 
     onClose() {
@@ -78,6 +81,7 @@ export class PostTweetModal extends Modal {
         contentEl.style.maxHeight = "50rem";
         contentEl.style.paddingLeft = "0.5rem";
         contentEl.style.paddingRight = "0.5rem";
+        contentEl.style.overflowX = "hidden";
     }
 
     private createTextarea(textZone: HTMLDivElement) {
@@ -97,6 +101,7 @@ export class PostTweetModal extends Modal {
         let lengthCheckerEl = textZone.createEl("p", {text: "0 / 250 characters."});
         lengthCheckerEl.style.marginTop = "0px";
         lengthCheckerEl.style.marginBottom = "5px";
+        lengthCheckerEl.style.color = "#339900";
 
         textarea.addEventListener("input", () => this.onTweetLengthHandler(textarea.textLength, lengthCheckerEl));
         textarea.addEventListener("focusin", this.onTextAreaFocus(textarea));
@@ -106,6 +111,31 @@ export class PostTweetModal extends Modal {
 
         textarea.focus();
         return textarea;
+    }
+
+    private addTooltip(title: string, body: string, root: HTMLElement) {
+        let tooltip = root.createEl("div", {text: title});
+        let tooltipBody = tooltip.createEl("span");
+        tooltipBody.innerHTML = body;
+
+        tooltip.style.position = "relative";
+        tooltip.style.display = "inline-block";
+        tooltip.style.borderBottom = "1px dotted black";
+        tooltip.style.float = "left";
+        tooltip.style.marginBottom = "5px";
+
+        tooltipBody.style.visibility = "hidden";
+        tooltipBody.style.width = "500px";
+        tooltipBody.style.backgroundColor = "black";
+        tooltipBody.style.color = "#fff";
+        tooltipBody.style.textAlign = "center";
+        tooltipBody.style.padding = "10px";
+        tooltipBody.style.borderRadius = "6px";
+        tooltipBody.style.position = "absolute";
+        tooltipBody.style.zIndex = "1";
+
+        tooltip.addEventListener("mouseenter", () => tooltipBody.style.visibility = "visible");
+        tooltip.addEventListener("mouseleave", () => tooltipBody.style.visibility = "hidden");
     }
 
     private onPasteMaxLengthHandler(textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
@@ -174,7 +204,7 @@ export class PostTweetModal extends Modal {
     private onTweetLengthHandler(strlen: Number, lengthCheckerEl: HTMLElement) {
         const WARN1: number = this.MAX_TWEET_LENGTH - 50;
         const WARN2: number = this.MAX_TWEET_LENGTH - 25;
-        const DEFAULT_COLOR = "rgb(56, 58, 66)";
+        const DEFAULT_COLOR = "#339900";
 
         lengthCheckerEl.innerText = `${strlen} / 250 characters.`;
 
@@ -192,12 +222,13 @@ export class PostTweetModal extends Modal {
     private createTweetButton(contentEl: HTMLElement) {
         let postButton = contentEl.createEl("button", {text: "Post!"});
 
-        postButton.style.backgroundColor = "#3ec5e0";
+        postButton.style.backgroundColor = "#5bc0de";
         postButton.style.float = "right";
         postButton.style.marginTop = "1rem";
         postButton.style.width = "120px";
         postButton.style.height = "30px";
         postButton.style.fontSize = "14px";
+        postButton.style.fontWeight = "bold";
 
         postButton.addEventListener("click", this.postTweets());
     }
