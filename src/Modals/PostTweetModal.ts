@@ -78,15 +78,20 @@ export class PostTweetModal extends Modal {
     // Separate lines by linebreaks. Add lines together, separated by linebreak, if they can fit within a tweet.
     // Repeat this until all separated lines are joined into tweets with proper sizes.
     private textInputHandler(str: string) {
-        let chunks: string[] = str.split("\n").map(txt => txt.trim());
+        let chunks: string[] = str.split("\n");
         let i = 0, joinedTextChunks: string[] = [];
         chunks.forEach((chunk, j) => {
             if (joinedTextChunks[i] == null) joinedTextChunks[i] = "";
             if (joinedTextChunks[i].length + chunk.length <= this.MAX_TWEET_LENGTH - 1) {
-                joinedTextChunks[i] = joinedTextChunks[i] + chunk.trim();
+                joinedTextChunks[i] = joinedTextChunks[i] + chunk;
                 joinedTextChunks[i] += (j == chunks.length - 1) ? "" : "\n";
             } else {
-                joinedTextChunks[++i] = chunk;
+                if (chunk.length > this.MAX_TWEET_LENGTH) {
+                    let x = chunk.split(/[.?!]\s/).join("\n");
+                    this.textInputHandler(x).forEach(split => joinedTextChunks[++i] = split);
+                } else {
+                    joinedTextChunks[++i] = chunk;
+                }
             }
         })
         return joinedTextChunks;
