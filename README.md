@@ -41,16 +41,18 @@ You'll see an indicator which tells you if you're connected or not.
 ## Post Tweet Mode
 Using the `Post Tweet` command, a new modal will open. There, you can craft threads - or single tweets.
 You can select both text or threads before using the command and it'll automatically port it into the modal. If the selected text is longer than 280 characters, it'll break it into a thread for you.
-You can paste text into the modal. If that text is longer than 280 characters, it'll also break it into multiple tweets. The tweets are added below the one you're pasting to.
+You can paste text into the modal. If that text is longer than 280 characters, it'll also break it into multiple tweets.
 
 ### Post Tweet Mode Shortcuts
-- Backspace to delete empty tweet
-- Enter to make new tweet if max length
-- Alt + Enter to make new tweet
-- Ctrl + Enter to insert a tweet below
-- Shift + Enter to insert a new tweet above
-- Ctrl + ArrowUp to focus tweet above
-- Ctrl + ArrowDown to focus tweet below
+- `Backspace` to delete empty tweet
+- `Enter` to make new tweet if max length
+- `Alt + Enter` to make new tweet
+- `Ctrl + Enter` to insert a tweet below
+- `Shift + Enter` to insert a new tweet above
+- `Ctrl + ArrowUp` to focus tweet above
+- `Ctrl + ArrowDown` to focus tweet below
+- `Ctrl + Shift + ArrowUp` to move tweet up
+- `Ctrl + Shift + ArrowDown` to move tweet down
 
 ## Quick-posts
 Single tweets are simple. Just select some text and use the `Post Selected as Tweet` command.
