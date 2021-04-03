@@ -65,16 +65,16 @@ export default class NoteTweet extends Plugin {
 			name: 'Post Tweet',
 			callback: async () => {
 				if (this.twitterHandler.isConnectedToTwitter)
-					this.postTweet();
+					this.postTweetMode();
 				else if (this.settings.secureMode)
-					await this.secureModeProxy(() => this.postTweet());
+					await this.secureModeProxy(() => this.postTweetMode());
 				else {
 					this.connectToTwitterWithPlainSettings();
 
 					if (!this.twitterHandler.isConnectedToTwitter)
 						new TweetErrorModal(this.app, "Not connected to Twitter").open();
 					else
-						this.postTweet();
+						this.postTweetMode();
 				}
 			}
 		})
@@ -82,7 +82,7 @@ export default class NoteTweet extends Plugin {
 		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
 	}
 
-	private postTweet() {
+	private postTweetMode() {
 		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		let editor = view.sourceMode.cmEditor;
 
