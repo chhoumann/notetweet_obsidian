@@ -27,13 +27,21 @@ export class PostTweetModal extends Modal {
 
         let textZone = contentEl.createDiv();
 
-        let textArea = this.createTextarea(textZone);
-        this.selectedTextHandler(textArea, textZone)
+        try {
+            let textArea = this.createTextarea(textZone);
 
-        let addTweetButton = contentEl.createEl("button", {text: "+"});
-        addTweetButton.addEventListener("click", () => this.createTextarea(textZone));
+            this.selectedTextHandler(textArea, textZone)
 
-        this.createTweetButton(contentEl);
+            let addTweetButton = contentEl.createEl("button", {text: "+"});
+            addTweetButton.addEventListener("click", () => this.createTextarea(textZone));
+
+            this.createTweetButton(contentEl);
+        }
+        catch (e) {
+            new Notice(e);
+            this.close();
+            return;
+        }
     }
 
     private selectedTextHandler(textArea: HTMLTextAreaElement, textZone: HTMLDivElement) {
@@ -50,14 +58,20 @@ export class PostTweetModal extends Modal {
 
     private createTweetsWithInput(inputStrings: string[], currentTextArea: HTMLTextAreaElement, textZone: HTMLDivElement) {
         inputStrings.forEach(chunk => {
-            let tempTextarea = currentTextArea.value.trim() == "" ? currentTextArea : this.createTextarea(textZone);
+            try {
+                let tempTextarea = currentTextArea.value.trim() == "" ? currentTextArea : this.createTextarea(textZone);
+                tempTextarea.setRangeText(chunk);
+                tempTextarea.dispatchEvent(
+                    new InputEvent('input')
+                );
 
-            tempTextarea.setRangeText(chunk);
-            tempTextarea.dispatchEvent(
-                new InputEvent('input')
-            );
-
-            tempTextarea.style.height = (tempTextarea.scrollHeight) + "px";
+                tempTextarea.style.height = (tempTextarea.scrollHeight) + "px";
+            }
+            catch (e)
+            {
+                new Notice(e);
+                return;
+            }
         });
     }
 
@@ -85,8 +99,7 @@ export class PostTweetModal extends Modal {
 
     private createTextarea(textZone: HTMLDivElement) {
         if (this.textAreas.find(ele => ele.textLength == 0)) {
-            new Notice("You cannot add a new tweet when there are empty tweets.")
-            return;
+            throw new Error("You cannot add a new tweet when there are empty tweets.")
         }
 
         let textarea = textZone.createEl("textarea");
@@ -132,12 +145,22 @@ export class PostTweetModal extends Modal {
 
             if (key.code == "Enter" && textarea.textLength >= this.MAX_TWEET_LENGTH) {
                 key.preventDefault();
-                this.createTextarea(textZone);
+                try {
+                    this.createTextarea(textZone);
+                } catch (e) {
+                    new Notice(e);
+                    return;
+                }
             }
 
             if ((key.code == "Enter" || key.code == "NumpadEnter") && key.altKey) {
                 key.preventDefault();
-                this.createTextarea(textZone);
+                try {
+                    this.createTextarea(textZone);
+                } catch (e) {
+                    new Notice(e);
+                    return;
+                }
             }
 
             if (key.code == "Enter" && key.shiftKey) {
@@ -212,11 +235,18 @@ export class PostTweetModal extends Modal {
     private insertTweetAbove(textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
         let insertAboveIndex = this.textAreas.findIndex(area => area.value == textarea.value);
 
-        this.createTextarea(textZone);
+        try {
+            this.createTextarea(textZone);
+        }
+        catch (e) {
+            new Notice(e);
+            return;
+        }
 
         // Shift all elements below down
         for (let i = this.textAreas.length - 1; i > insertAboveIndex; i--){
             this.textAreas[i].value = this.textAreas[i - 1].value;
+            this.textAreas[i].dispatchEvent(new InputEvent('input'));
         }
 
         this.textAreas[insertAboveIndex].value = "";
@@ -227,11 +257,18 @@ export class PostTweetModal extends Modal {
         let insertBelowIndex = this.textAreas.findIndex(area => area.value == textarea.value);
         let insertedIndex = insertBelowIndex + 1;
 
-        this.createTextarea(textZone);
+        try {
+            this.createTextarea(textZone);
+        }
+        catch (e) {
+            new Notice(e);
+            return;
+        }
 
         // Shift all elements below down
         for (let i = this.textAreas.length - 1; i > insertedIndex; i--){
             this.textAreas[i].value = this.textAreas[i - 1].value;
+            this.textAreas[i].dispatchEvent(new InputEvent('input'));
         }
 
         this.textAreas[insertedIndex].value = "";
