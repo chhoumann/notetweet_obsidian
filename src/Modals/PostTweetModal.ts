@@ -173,6 +173,18 @@ export class PostTweetModal extends Modal {
                 this.insertTweetBelow(textarea, textZone);
             }
 
+            if (key.code == "ArrowUp" && key.ctrlKey) {
+                let currentTweetIndex = this.textAreas.findIndex(tweet => tweet.value == textarea.value);
+                if (currentTweetIndex > 0)
+                    this.textAreas[currentTweetIndex - 1].focus()
+            }
+
+            if (key.code == "ArrowDown" && key.ctrlKey) {
+                let currentTweetIndex = this.textAreas.findIndex(tweet => tweet.value == textarea.value);
+                if (currentTweetIndex < this.textAreas.length - 1)
+                    this.textAreas[currentTweetIndex + 1].focus()
+            }
+
             textarea.style.height = "auto";
             textarea.style.height = (textarea.scrollHeight) + "px";
         };
