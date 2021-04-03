@@ -258,8 +258,9 @@ export class PostTweetModal extends Modal {
         return async () => {
             let threadContent = this.textAreas.map(textarea => textarea.value);
 
-            if (threadContent.find(txt => txt.length > this.MAX_TWEET_LENGTH)) {
-                new Notice("At least one of your tweets is too long.");
+            if (threadContent.find(txt => txt.length > this.MAX_TWEET_LENGTH || txt == "") != null) {
+                console.log("Should return")
+                new Notice("At least one of your tweets is too long or empty.");
                 return;
             }
 
