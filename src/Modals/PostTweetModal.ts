@@ -209,6 +209,14 @@ export class PostTweetModal extends Modal {
                 }
             }
 
+            if (key.code == "Delete" && key.ctrlKey && key.shiftKey) {
+                key.preventDefault();
+                if (this.textAreas.length == 1)
+                    textarea.value = "";
+                else
+                    this.deleteTweet(textarea, textZone, lengthCheckerEl);
+            }
+
             textarea.style.height = "auto";
             textarea.style.height = (textarea.scrollHeight) + "px";
         };
