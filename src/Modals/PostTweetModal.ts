@@ -21,7 +21,7 @@ export class PostTweetModal extends Modal {
 
     onOpen() {
         let {contentEl} = this;
-        this.formatModal(contentEl);
+        contentEl.addClass("postTweetModal");
 
         this.addTooltip("Help", this.helpText, contentEl);
 
@@ -76,16 +76,6 @@ export class PostTweetModal extends Modal {
         contentEl.empty();
     }
 
-    private formatModal(contentEl: HTMLElement) {
-        contentEl.style.maxWidth = "35rem";
-        contentEl.style.width = "35rem";
-        contentEl.style.overflowY = "auto";
-        contentEl.style.maxHeight = "50rem";
-        contentEl.style.paddingLeft = "0.5rem";
-        contentEl.style.paddingRight = "0.5rem";
-        contentEl.style.overflowX = "hidden";
-    }
-
     private createTextarea(textZone: HTMLDivElement) {
         if (this.textAreas.find(ele => ele.textLength == 0)) {
             new Notice("You cannot add a new tweet when there are empty tweets.")
@@ -94,20 +84,12 @@ export class PostTweetModal extends Modal {
 
         let textarea = textZone.createEl("textarea");
         this.textAreas.push(textarea);
-        textarea.style.maxWidth = "35rem";
-        textarea.style.width = "100%";
-        textarea.style.display = "inline-block";
-        textarea.style.minHeight = "7.5rem";
-        textarea.style.overflowY = "hidden";
+        textarea.addClass("tweetArea")
 
         let lengthCheckerEl = textZone.createEl("p", {text: "0 / 250 characters."});
-        lengthCheckerEl.style.marginTop = "0px";
-        lengthCheckerEl.style.marginBottom = "5px";
-        lengthCheckerEl.style.color = "#339900";
+        lengthCheckerEl.addClass("ntLengthChecker")
 
         textarea.addEventListener("input", () => this.onTweetLengthHandler(textarea.textLength, lengthCheckerEl));
-        textarea.addEventListener("focusin", this.onTextAreaFocus(textarea));
-        textarea.addEventListener("focusout", this.onTextAreaUnfocus(textarea));
         textarea.addEventListener("keydown", this.onInput(textarea, textZone, lengthCheckerEl))
         textarea.addEventListener("paste", this.onPasteMaxLengthHandler(textarea, textZone))
 
@@ -120,24 +102,8 @@ export class PostTweetModal extends Modal {
         let tooltipBody = tooltip.createEl("span");
         tooltipBody.innerHTML = body;
 
-        tooltip.style.position = "relative";
-        tooltip.style.display = "inline-block";
-        tooltip.style.borderBottom = "1px dotted black";
-        //tooltip.style.float = "left";
-        tooltip.style.marginBottom = "5px";
-
-        tooltipBody.style.visibility = "hidden";
-        tooltipBody.style.width = "500px";
-        tooltipBody.style.backgroundColor = "black";
-        tooltipBody.style.color = "#fff";
-        tooltipBody.style.textAlign = "center";
-        tooltipBody.style.padding = "10px";
-        tooltipBody.style.borderRadius = "6px";
-        tooltipBody.style.position = "absolute";
-        tooltipBody.style.zIndex = "0";
-
-        tooltip.addEventListener("mouseenter", () => tooltipBody.style.visibility = "visible");
-        tooltip.addEventListener("mouseleave", () => tooltipBody.style.visibility = "hidden");
+        tooltip.addClass("tweetTooltip");
+        tooltipBody.addClass("tweetTooltipBody");
     }
 
     private onPasteMaxLengthHandler(textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
@@ -191,18 +157,6 @@ export class PostTweetModal extends Modal {
         }
     }
 
-    private onTextAreaUnfocus(textarea: HTMLTextAreaElement) {
-        return () => {
-            textarea.style.border = "0.0px solid rgba(63,63,63,1)"
-        };
-    }
-
-    private onTextAreaFocus(textarea: HTMLTextAreaElement) {
-        return () => {
-            textarea.style.border = "0.5px solid rgba(63,63,63,1)";
-        };
-    }
-
     private onTweetLengthHandler(strlen: Number, lengthCheckerEl: HTMLElement) {
         const WARN1: number = this.MAX_TWEET_LENGTH - 50;
         const WARN2: number = this.MAX_TWEET_LENGTH - 25;
@@ -223,14 +177,7 @@ export class PostTweetModal extends Modal {
 
     private createTweetButton(contentEl: HTMLElement) {
         let postButton = contentEl.createEl("button", {text: "Post!"});
-
-        postButton.style.backgroundColor = "#5bc0de";
-        postButton.style.float = "right";
-        postButton.style.marginTop = "1rem";
-        postButton.style.width = "120px";
-        postButton.style.height = "30px";
-        postButton.style.fontSize = "14px";
-        postButton.style.fontWeight = "bold";
+        postButton.addClass("postTweetButton");
 
         postButton.addEventListener("click", this.postTweets());
     }

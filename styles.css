@@ -1,4 +1,60 @@
-/* Sets all the text color to red! */
-body {
-    color: red;
+.postTweetModal {
+    max-width: 35rem;
+    width: 35rem;
+    overflow-y: auto;
+    max-height: 50rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    overflow-x: hidden;
+}
+
+.tweetArea {
+    max-width: 35rem;
+    width: 100%;
+    display: inline-block;
+    min-height: 7.5rem;
+    overflow-y: hidden;
+    border: 0 solid rgba(63,63,63,1);
+}
+
+textarea:focus {
+    border: 1px solid rgba(63,63,63,1);
+}
+
+.ntLengthChecker {
+    margin-top: 0px;
+    margin-bottom: 5px;
+    color: #339900;
+}
+
+.tweetTooltip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px dotted black;
+    margin-bottom: 5px;
+}
+
+.tweetTooltip:hover .tweetTooltipBody {
+    visibility: visible;
+}
+
+.tweetTooltipBody {
+    visibility: hidden;
+    width: 500px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+    border-radius: 6px;
+    position: absolute;
+    z-index: 0;
+}
+
+.postTweetButton {
+    float: right;
+    margin-top: 1rem;
+    width: 120px;
+    height: 30px;
+    font-size: 14px;
+    font-weight: bold;
 }
