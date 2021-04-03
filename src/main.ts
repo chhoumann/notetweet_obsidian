@@ -91,10 +91,11 @@ export default class NoteTweet extends Plugin {
 
 			try {
 				selection = this.parseThreadFromText(selection).join("--nt_sep--");
+				new PostTweetModal(this.app, this.twitterHandler, {text: selection, thread: true}).open();
 			}
 			catch {} // Intentionally suppressing exceptions. They're expected.
 			finally {
-				new PostTweetModal(this.app, this.twitterHandler, {text: selection, thread: true}).open();
+				new PostTweetModal(this.app, this.twitterHandler, {text: selection, thread: false}).open();
 			}
 		} else {
 			new PostTweetModal(this.app, this.twitterHandler).open();

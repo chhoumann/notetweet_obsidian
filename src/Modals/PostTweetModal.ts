@@ -7,7 +7,7 @@ export class PostTweetModal extends Modal {
     private readonly twitterHandler: TwitterHandler;
     private readonly selectedText: { text: string; thread: boolean };
     private textAreas: HTMLTextAreaElement[] = [];
-    private readonly MAX_TWEET_LENGTH: number = 250;
+    private readonly MAX_TWEET_LENGTH: number = 280;
     private readonly helpText: string = `Please read the documentation on the Github repository.
                         Click <a target="_blank" href="https://github.com/chhoumann/notetweet_obsidian">here</a> to go there.
                         There are lots of shortcuts and features to explore 😁`
@@ -40,7 +40,7 @@ export class PostTweetModal extends Modal {
         if (this.selectedText.text.length == 0) return false;
 
         let joinedTextChunks;
-        if (!this.selectedText.thread)
+        if (this.selectedText.thread == false)
             joinedTextChunks = this.textInputHandler(this.selectedText.text);
         else
             joinedTextChunks = this.selectedText.text.split("--nt_sep--");
@@ -90,7 +90,7 @@ export class PostTweetModal extends Modal {
         this.textAreas.push(textarea);
         textarea.addClass("tweetArea")
 
-        let lengthCheckerEl = textZone.createEl("p", {text: "0 / 250 characters."});
+        let lengthCheckerEl = textZone.createEl("p", {text: "0 / 280 characters."});
         lengthCheckerEl.addClass("ntLengthChecker")
 
         textarea.addEventListener("input", () => this.onTweetLengthHandler(textarea.textLength, lengthCheckerEl));
@@ -189,6 +189,11 @@ export class PostTweetModal extends Modal {
     private postTweets() {
         return async () => {
             let threadContent = this.textAreas.map(textarea => textarea.value);
+
+            if (threadContent.find(txt => txt.length > this.MAX_TWEET_LENGTH)) {
+                new Notice("At least one of your tweets is too long.");
+                return;
+            }
 
             try {
                 let postedTweets = await this.twitterHandler.postThread(threadContent);
