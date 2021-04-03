@@ -90,11 +90,11 @@ export default class NoteTweet extends Plugin {
 			let selection = editor.getSelection();
 
 			try {
-				selection = this.parseThreadFromText(selection).join("\n");
+				selection = this.parseThreadFromText(selection).join("--nt_sep--");
 			}
 			catch {} // Intentionally suppressing exceptions. They're expected.
 			finally {
-				new PostTweetModal(this.app, this.twitterHandler, selection).open();
+				new PostTweetModal(this.app, this.twitterHandler, {text: selection, thread: true}).open();
 			}
 		} else {
 			new PostTweetModal(this.app, this.twitterHandler).open();
@@ -225,7 +225,7 @@ export default class NoteTweet extends Plugin {
 			throw new Error("Please write something in your thread.");
 		}
 
-		return content;
+		return content.map(txt => txt.trim());
 	}
 
 	private appendPostTweetTag(selection: string) {

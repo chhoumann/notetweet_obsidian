@@ -5,7 +5,7 @@ import {TweetErrorModal} from "./TweetErrorModal";
 
 export class PostTweetModal extends Modal {
     private readonly twitterHandler: TwitterHandler;
-    private readonly selectedText: string = "";
+    private readonly selectedText: { text: string; thread: boolean };
     private textAreas: HTMLTextAreaElement[] = [];
     private readonly MAX_TWEET_LENGTH: number = 250;
     private readonly helpText: string = `Please read the documentation on the Github repository.
@@ -13,9 +13,9 @@ export class PostTweetModal extends Modal {
                         There are lots of shortcuts and features to explore 😁`
 
 
-    constructor(app: App, twitterHandler: TwitterHandler, selection: string = "") {
+    constructor(app: App, twitterHandler: TwitterHandler, selection?: { text: string; thread: boolean }) {
         super(app);
-        this.selectedText = selection;
+        this.selectedText = selection ?? {text: "", thread: false};
         this.twitterHandler = twitterHandler;
     }
 
@@ -37,9 +37,13 @@ export class PostTweetModal extends Modal {
     }
 
     private selectedTextHandler(textArea: HTMLTextAreaElement, textZone: HTMLDivElement) {
-        if (this.selectedText.length == 0) return false;
+        if (this.selectedText.text.length == 0) return false;
 
-        let joinedTextChunks = this.textInputHandler(this.selectedText);
+        let joinedTextChunks;
+        if (!this.selectedText.thread)
+            joinedTextChunks = this.textInputHandler(this.selectedText.text);
+        else
+            joinedTextChunks = this.selectedText.text.split("--nt_sep--");
 
         this.createTweetsWithInput(joinedTextChunks, textArea, textZone);
     }
