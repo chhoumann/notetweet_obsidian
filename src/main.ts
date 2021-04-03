@@ -70,7 +70,13 @@ export default class NoteTweet extends Plugin {
 				if (editor.somethingSelected()) {
 					let selection = editor.getSelection();
 					let x = selection.toString().trim();
-					new PostTweetModal(this.app, this.twitterHandler, x.trim()).open();
+
+					try {
+						x = this.parseThreadFromText(x).join("\n");
+					}
+					finally {
+						new PostTweetModal(this.app, this.twitterHandler, x).open();
+					}
 				}
 				else
 				{
@@ -94,7 +100,14 @@ export default class NoteTweet extends Plugin {
 
 	private async postThreadInFile() {
 		let content = this.getCurrentDocumentContent(this.app);
-		let threadContent = this.parseThreadFromText(content);
+		let threadContent: string[];
+		try {
+			threadContent = this.parseThreadFromText(content);
+		}
+		catch (e) {
+			new TweetErrorModal(this.app, e).open();
+			return;
+		}
 
 		if (!threadContent) return;
 
@@ -194,15 +207,12 @@ export default class NoteTweet extends Plugin {
 		let threadEndIndex = contentArray.indexOf("THREAD END");
 
 		if (threadStartIndex == 0 || threadEndIndex == -1) {
-			new TweetErrorModal(this.app, "Failed to detect THREAD START or THREAD END").open();
-			return false;
+			throw new Error("Failed to detect THREAD START or THREAD END");
 		}
 
 		let content = contentArray.slice(threadStartIndex, threadEndIndex).join("\n").split("\n---\n");
-		console.log(content)
 		if (content.length == 1 && content[0] == "") {
-			new TweetErrorModal(this.app, "Please write something in your thread.").open();
-			return false;
+			throw new Error("Please write something in your thread.");
 		}
 
 		return content;
