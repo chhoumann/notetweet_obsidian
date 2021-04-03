@@ -1,10 +1,11 @@
 import {App, MarkdownView, Plugin} from 'obsidian';
 import {TwitterHandler} from "./TwitterHandler";
 import {DEFAULT_SETTINGS, NoteTweetSettings, NoteTweetSettingsTab} from "./settings";
-import {TweetsPostedModal} from "./Modals/tweetsPostedModal";
-import {TweetErrorModal} from "./Modals/tweetErrorModal";
+import {TweetsPostedModal} from "./Modals/TweetsPostedModal";
+import {TweetErrorModal} from "./Modals/TweetErrorModal";
 import {SecureModeGetPasswordModal} from "./Modals/SecureModeGetPasswordModal";
 import {StatusesUpdate} from "twitter-api-client";
+import {PostTweetModal} from "./Modals/PostTweetModal";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
@@ -59,7 +60,45 @@ export default class NoteTweet extends Plugin {
 			}
 		})
 
+		this.addCommand({
+			id: 'post-tweet',
+			name: 'Post Tweet',
+			callback: async () => {
+				if (this.twitterHandler.isConnectedToTwitter)
+					this.postTweetMode();
+				else if (this.settings.secureMode)
+					await this.secureModeProxy(() => this.postTweetMode());
+				else {
+					this.connectToTwitterWithPlainSettings();
+
+					if (!this.twitterHandler.isConnectedToTwitter)
+						new TweetErrorModal(this.app, "Not connected to Twitter").open();
+					else
+						this.postTweetMode();
+				}
+			}
+		})
+
 		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
+	}
+
+	private postTweetMode() {
+		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		let editor = view.sourceMode.cmEditor;
+
+		if (editor.somethingSelected()) {
+			let selection = editor.getSelection();
+
+			try {
+				selection = this.parseThreadFromText(selection).join("--nt_sep--");
+				new PostTweetModal(this.app, this.twitterHandler, {text: selection, thread: true}).open();
+			}
+			catch {
+				new PostTweetModal(this.app, this.twitterHandler, {text: selection, thread: false}).open();
+			} // Intentionally suppressing exceptions. They're expected.
+		} else {
+			new PostTweetModal(this.app, this.twitterHandler).open();
+		}
 	}
 
 	public connectToTwitterWithPlainSettings() {
@@ -73,7 +112,14 @@ export default class NoteTweet extends Plugin {
 
 	private async postThreadInFile() {
 		let content = this.getCurrentDocumentContent(this.app);
-		let threadContent = this.parseThreadFromText(content);
+		let threadContent: string[];
+		try {
+			threadContent = this.parseThreadFromText(content);
+		}
+		catch (e) {
+			new TweetErrorModal(this.app, e).open();
+			return;
+		}
 
 		try {
 			let postedTweets = await this.twitterHandler.postThread(threadContent);
@@ -169,7 +215,17 @@ export default class NoteTweet extends Plugin {
 		let contentArray = text.split("\n");
 		let threadStartIndex = contentArray.indexOf("THREAD START") + 1;
 		let threadEndIndex = contentArray.indexOf("THREAD END");
-		return contentArray.slice(threadStartIndex, threadEndIndex).join("\n").split("\n---\n");
+
+		if (threadStartIndex == 0 || threadEndIndex == -1) {
+			throw new Error("Failed to detect THREAD START or THREAD END");
+		}
+
+		let content = contentArray.slice(threadStartIndex, threadEndIndex).join("\n").split("\n---\n");
+		if (content.length == 1 && content[0] == "") {
+			throw new Error("Please write something in your thread.");
+		}
+
+		return content.map(txt => txt.trim());
 	}
 
 	private appendPostTweetTag(selection: string) {
