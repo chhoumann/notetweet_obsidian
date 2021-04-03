@@ -136,7 +136,7 @@ export class PostTweetModal extends Modal {
             let pasted: string = event.clipboardData.getData("text");
             if (pasted.length + textarea.textLength > this.MAX_TWEET_LENGTH) {
                 event.preventDefault();
-                this.insertTweetBelow(textarea, textZone, pasted);
+                //this.insertTweetBelow(textarea, textZone, pasted);
             }
         };
     }
@@ -190,20 +190,36 @@ export class PostTweetModal extends Modal {
                     this.textAreas[currentTweetIndex + 1].focus();
             }
 
-            if (key.code == "ArrowUp" && key.ctrlKey && key.shiftKey) {
-                // Move up
-                //this.insertTweetAbove(textarea, textZone)
+            if (key.code == "ArrowDown" && key.ctrlKey && key.shiftKey) {
+                let tweetIndex = this.textAreas.findIndex(ta => ta.value == textarea.value);
+                if (tweetIndex != this.textAreas.length - 1) {
+                    key.preventDefault();
+                    this.switchTweets(textarea, this.textAreas[tweetIndex + 1]);
+                    this.textAreas[tweetIndex + 1].focus();
+                }
             }
 
-            if (key.code == "ArrowDown" && key.ctrlKey && key.shiftKey) {
-                // move down
-                this.insertTweetBelowWithText(textarea, textZone, textarea.value);
-                //this.deleteTweet(textarea, textZone,lengthCheckerEl);
+            if (key.code == "ArrowUp" && key.ctrlKey && key.shiftKey) {
+                let tweetIndex = this.textAreas.findIndex(ta => ta.value == textarea.value);
+                console.log(tweetIndex)
+                if (tweetIndex != 0) {
+                    key.preventDefault();
+                    this.switchTweets(textarea, this.textAreas[tweetIndex - 1]);
+                    this.textAreas[tweetIndex - 1].focus();
+                }
             }
 
             textarea.style.height = "auto";
             textarea.style.height = (textarea.scrollHeight) + "px";
         };
+    }
+
+    private switchTweets(textarea1: HTMLTextAreaElement, textarea2: HTMLTextAreaElement) {
+        let temp: string = textarea1.value;
+        textarea1.value = textarea2.value;
+        textarea2.value = temp;
+        textarea1.dispatchEvent(new InputEvent('input'));
+        textarea2.dispatchEvent(new InputEvent('input'));
     }
 
     private deleteTweet(textarea: HTMLTextAreaElement, textZone: HTMLDivElement, lengthCheckerEl: HTMLElement) {
@@ -264,21 +280,23 @@ export class PostTweetModal extends Modal {
         let insertAboveIndex = this.textAreas.findIndex(area => area.value == textarea.value);
 
         try {
-            this.createTextarea(textZone);
+            let insertedTweet = this.createTextarea(textZone);
+
+            // Shift all elements below down
+            for (let i = this.textAreas.length - 1; i > insertAboveIndex; i--){
+                this.textAreas[i].value = this.textAreas[i - 1].value;
+                this.textAreas[i].dispatchEvent(new InputEvent('input'));
+            }
+
+            this.textAreas[insertAboveIndex].value = "";
+            this.textAreas[insertAboveIndex].focus();
+
+            return {tweet: insertedTweet, index: insertAboveIndex}
         }
         catch (e) {
             new Notice(e);
             return;
         }
-
-        // Shift all elements below down
-        for (let i = this.textAreas.length - 1; i > insertAboveIndex; i--){
-            this.textAreas[i].value = this.textAreas[i - 1].value;
-            this.textAreas[i].dispatchEvent(new InputEvent('input'));
-        }
-
-        this.textAreas[insertAboveIndex].value = "";
-        this.textAreas[insertAboveIndex].focus();
     }
 
     private insertTweetBelow(textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
@@ -308,8 +326,10 @@ export class PostTweetModal extends Modal {
 
         // Insert tweet, assign to var. Pass that var in again.
         // It'll be reverse order if I don't insert below each one. For inserting above, you can just insert as you normally would.
+        console.log("insert below with text call")
 
         if (insertText.length > this.MAX_TWEET_LENGTH) {
+            console.log("insert - too long")
             let sliced = this.textInputHandler(insertText); // First, make sure the text is sized correctly.
             let {tweet, index} = this.insertTweetBelow(textarea, textZone);
             console.log(`Should have inserted into index: ${index}`)
@@ -317,9 +337,9 @@ export class PostTweetModal extends Modal {
             this.insertTweetBelowWithText(tweet, textZone, sliced.slice(1).join());
         }
         if (insertText.length <= this.MAX_TWEET_LENGTH) {
+            console.log("insert - just like it")
             let {tweet, index} = this.insertTweetBelow(textarea, textZone);
             this.textAreas[index].value = insertText;
-            tweet.focus();
         }
     }
 }
