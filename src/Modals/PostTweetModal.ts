@@ -136,7 +136,8 @@ export class PostTweetModal extends Modal {
             let pasted: string = event.clipboardData.getData("text");
             if (pasted.length + textarea.textLength > this.MAX_TWEET_LENGTH) {
                 event.preventDefault();
-                //this.insertTweetBelowWithText(textarea, textZone, pasted);
+                let splicedPaste = this.textInputHandler(pasted);
+                this.createTweetsWithInput(splicedPaste, textarea, textZone);
             }
         };
     }
@@ -259,7 +260,6 @@ export class PostTweetModal extends Modal {
             let threadContent = this.textAreas.map(textarea => textarea.value);
 
             if (threadContent.find(txt => txt.length > this.MAX_TWEET_LENGTH || txt == "") != null) {
-                console.log("Should return")
                 new Notice("At least one of your tweets is too long or empty.");
                 return;
             }
@@ -296,13 +296,12 @@ export class PostTweetModal extends Modal {
         let fromIndex = insertBelowIndex + 1;
 
         try {
-            this.createTextarea(textZone);
+            let insertedTextarea = this.createTextarea(textZone);
             this.shiftTweetsDownFromIndex(fromIndex);
 
-            return fromIndex;
+            return insertedTextarea;
         }
         catch (e) {
-            console.log("???")
             new Notice(e);
         }
     }
