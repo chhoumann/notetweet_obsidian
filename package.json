@@ -1,6 +1,6 @@
 {
   "name": "notetweet",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Post tweets from Obsidian",
   "main": "src/main.js",
   "scripts": {
