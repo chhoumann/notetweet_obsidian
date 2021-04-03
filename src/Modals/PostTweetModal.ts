@@ -131,7 +131,8 @@ export class PostTweetModal extends Modal {
             let pasted: string = event.clipboardData.getData("text");
             if (pasted.length + textarea.textLength > this.MAX_TWEET_LENGTH) {
                 event.preventDefault();
-                this.createTweetsWithInput(this.textInputHandler(pasted), textarea, textZone);
+                this.insertTweetBelow(textarea, textZone, pasted);
+                //this.createTweetsWithInput(this.textInputHandler(pasted), textarea, textZone);
             }
         };
     }
@@ -253,7 +254,7 @@ export class PostTweetModal extends Modal {
         this.textAreas[insertAboveIndex].focus();
     }
 
-    private insertTweetBelow(textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
+    private insertTweetBelow(textarea: HTMLTextAreaElement, textZone: HTMLDivElement, insertText?: string) {
         let insertBelowIndex = this.textAreas.findIndex(area => area.value == textarea.value);
         let insertedIndex = insertBelowIndex + 1;
 
@@ -271,7 +272,19 @@ export class PostTweetModal extends Modal {
             this.textAreas[i].dispatchEvent(new InputEvent('input'));
         }
 
-        this.textAreas[insertedIndex].value = "";
+        if (insertText != null) {
+            if (insertText.length > this.MAX_TWEET_LENGTH) {
+                let sliced = this.textInputHandler(insertText);
+                this.textAreas[insertedIndex].value = sliced[0];
+                this.insertTweetBelow(this.textAreas[insertedIndex - 1], textZone, sliced.slice(1).join());
+            }
+            if (insertText.length <= this.MAX_TWEET_LENGTH)
+                this.textAreas[insertedIndex].value = insertText;
+        }
+        else {
+            this.textAreas[insertedIndex].value = "";
+        }
+
         this.textAreas[insertedIndex].focus();
     }
 }
