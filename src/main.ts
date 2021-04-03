@@ -88,12 +88,13 @@ export default class NoteTweet extends Plugin {
 
 		if (editor.somethingSelected()) {
 			let selection = editor.getSelection();
-			let x = selection.toString().trim();
 
 			try {
-				x = this.parseThreadFromText(x).join("\n");
-			} finally {
-				new PostTweetModal(this.app, this.twitterHandler, x).open();
+				selection = this.parseThreadFromText(selection).join("\n");
+			}
+			catch {} // Intentionally suppressing exceptions. They're expected.
+			finally {
+				new PostTweetModal(this.app, this.twitterHandler, selection).open();
 			}
 		} else {
 			new PostTweetModal(this.app, this.twitterHandler).open();
