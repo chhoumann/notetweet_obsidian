@@ -201,7 +201,6 @@ export class PostTweetModal extends Modal {
 
             if (key.code == "ArrowUp" && key.ctrlKey && key.shiftKey) {
                 let tweetIndex = this.textAreas.findIndex(ta => ta.value == textarea.value);
-                console.log(tweetIndex)
                 if (tweetIndex != 0) {
                     key.preventDefault();
                     this.switchTweets(textarea, this.textAreas[tweetIndex - 1]);
