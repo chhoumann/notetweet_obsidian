@@ -136,7 +136,7 @@ export class PostTweetModal extends Modal {
             let pasted: string = event.clipboardData.getData("text");
             if (pasted.length + textarea.textLength > this.MAX_TWEET_LENGTH) {
                 event.preventDefault();
-                //this.insertTweetBelow(textarea, textZone, pasted);
+                //this.insertTweetBelowWithText(textarea, textZone, pasted);
             }
         };
     }
@@ -280,15 +280,7 @@ export class PostTweetModal extends Modal {
 
         try {
             let insertedTweet = this.createTextarea(textZone);
-
-            // Shift all elements below down
-            for (let i = this.textAreas.length - 1; i > insertAboveIndex; i--){
-                this.textAreas[i].value = this.textAreas[i - 1].value;
-                this.textAreas[i].dispatchEvent(new InputEvent('input'));
-            }
-
-            this.textAreas[insertAboveIndex].value = "";
-            this.textAreas[insertAboveIndex].focus();
+            this.shiftTweetsDownFromIndex(insertAboveIndex);
 
             return {tweet: insertedTweet, index: insertAboveIndex}
         }
@@ -300,45 +292,51 @@ export class PostTweetModal extends Modal {
 
     private insertTweetBelow(textarea: HTMLTextAreaElement, textZone: HTMLDivElement) {
         let insertBelowIndex = this.textAreas.findIndex(area => area.value == textarea.value);
-        let insertedIndex = insertBelowIndex + 1;
+        let fromIndex = insertBelowIndex + 1;
 
         try {
-            let insertedTweet = this.createTextarea(textZone);
+            this.createTextarea(textZone);
+            this.shiftTweetsDownFromIndex(fromIndex);
 
-            // Shift all elements below down
-            for (let i = this.textAreas.length - 1; i > insertedIndex; i--){
-                this.textAreas[i].value = this.textAreas[i - 1].value;
-                this.textAreas[i].dispatchEvent(new InputEvent('input'));
-            }
-
-            this.textAreas[insertedIndex].value = "";
-            this.textAreas[insertedIndex].focus();
-            return {tweet: insertedTweet, index: insertedIndex};
+            return fromIndex;
         }
         catch (e) {
+            console.log("???")
             new Notice(e);
-            return;
         }
     }
 
-    private insertTweetBelowWithText(textarea: HTMLTextAreaElement, textZone: HTMLDivElement, insertText: string){
+    private shiftTweetsDownFromIndex(insertedIndex: number) {
+        for (let i = this.textAreas.length - 1; i > insertedIndex; i--) {
+            this.textAreas[i].value = this.textAreas[i - 1].value;
+            this.textAreas[i].dispatchEvent(new InputEvent('input'));
+        }
 
+        this.textAreas[insertedIndex].value = "";
+        this.textAreas[insertedIndex].focus();
+    }
+
+/*    private insertTweetBelowWithText(textarea: HTMLTextAreaElement, textZone: HTMLDivElement, insertText: string){
         // Insert tweet, assign to var. Pass that var in again.
         // It'll be reverse order if I don't insert below each one. For inserting above, you can just insert as you normally would.
-        console.log("insert below with text call")
-
         if (insertText.length > this.MAX_TWEET_LENGTH) {
-            console.log("insert - too long")
             let sliced = this.textInputHandler(insertText); // First, make sure the text is sized correctly.
-            let {tweet, index} = this.insertTweetBelow(textarea, textZone);
-            console.log(`Should have inserted into index: ${index}`)
-            this.textAreas[index].value = sliced[0];
+            let tweet: HTMLTextAreaElement = textarea;
+
+            let tweetIndex = this.insertTweetBelow(tweet, textZone);
+            tweet = this.textAreas[tweetIndex];
             this.insertTweetBelowWithText(tweet, textZone, sliced.slice(1).join());
+
+            // sliced.forEach(chunk => {
+            //     console.log("!!!!")
+            //     let x = this.insertTweetBelow(tweet, textZone);
+            //     tweet = x.insertedTweet;
+            //     tweet.value = chunk;
+            // });
         }
-        if (insertText.length <= this.MAX_TWEET_LENGTH) {
-            console.log("insert - just like it")
-            let {tweet, index} = this.insertTweetBelow(textarea, textZone);
-            this.textAreas[index].value = insertText;
+        else {
+            let {insertedTweet, insertedIndex} = this.insertTweetBelow(textarea, textZone);
+            this.textAreas[insertedIndex].value = insertText;
         }
-    }
+    }*/
 }
