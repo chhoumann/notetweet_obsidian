@@ -75,7 +75,6 @@ export class PostTweetModal extends Modal {
                 joinedTextChunks[++i] = chunk;
             }
         })
-        console.log(joinedTextChunks[i].split(""))
         return joinedTextChunks;
     }
 
