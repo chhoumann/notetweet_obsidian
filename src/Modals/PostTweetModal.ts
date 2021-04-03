@@ -166,7 +166,7 @@ export class PostTweetModal extends Modal {
         const WARN2: number = this.MAX_TWEET_LENGTH - 25;
         const DEFAULT_COLOR = "#339900";
 
-        lengthCheckerEl.innerText = `${strlen} / 250 characters.`;
+        lengthCheckerEl.innerText = `${strlen} / 280 characters.`;
 
         if (strlen <= WARN1)
             lengthCheckerEl.style.color = DEFAULT_COLOR;
