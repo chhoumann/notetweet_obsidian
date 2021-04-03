@@ -120,8 +120,6 @@ export default class NoteTweet extends Plugin {
 			return;
 		}
 
-		if (!threadContent) return;
-
 		try {
 			let postedTweets = await this.twitterHandler.postThread(threadContent);
 			let postedModal = new TweetsPostedModal(this.app, postedTweets, this.twitterHandler);
