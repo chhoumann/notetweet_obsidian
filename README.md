@@ -53,6 +53,7 @@ You can paste text into the modal. If that text is longer than 280 characters, i
 - `Ctrl + ArrowDown` to focus tweet below
 - `Ctrl + Shift + ArrowUp` to move tweet up
 - `Ctrl + Shift + ArrowDown` to move tweet down
+- `Ctrl + Shift + Delete` to delete the tweet you have focused
 
 ## Quick-posts
 Single tweets are simple. Just select some text and use the `Post Selected as Tweet` command.
