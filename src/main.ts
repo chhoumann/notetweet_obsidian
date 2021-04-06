@@ -1,242 +1,259 @@
-import {App, MarkdownView, Plugin} from 'obsidian';
-import {TwitterHandler} from "./TwitterHandler";
-import {DEFAULT_SETTINGS, NoteTweetSettings, NoteTweetSettingsTab} from "./settings";
-import {TweetsPostedModal} from "./Modals/TweetsPostedModal";
-import {TweetErrorModal} from "./Modals/TweetErrorModal";
-import {SecureModeGetPasswordModal} from "./Modals/SecureModeGetPasswordModal";
-import {StatusesUpdate} from "twitter-api-client";
-import {PostTweetModal} from "./Modals/PostTweetModal";
+import { App, MarkdownView, Plugin } from "obsidian";
+import { TwitterHandler } from "./TwitterHandler";
+import {
+  DEFAULT_SETTINGS,
+  NoteTweetSettings,
+  NoteTweetSettingsTab,
+} from "./settings";
+import { TweetsPostedModal } from "./Modals/TweetsPostedModal/TweetsPostedModal";
+import { TweetErrorModal } from "./Modals/TweetErrorModal";
+import { SecureModeGetPasswordModal } from "./Modals/SecureModeGetPasswordModal";
+import { StatusesUpdate } from "twitter-api-client";
+import { PostTweetModal } from "./Modals/PostTweetModal";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
 
 export default class NoteTweet extends Plugin {
-	settings: NoteTweetSettings;
+  settings: NoteTweetSettings;
 
-	public twitterHandler: TwitterHandler;
+  public twitterHandler: TwitterHandler;
 
-	async onload() {
-		console.log(WELCOME_MESSAGE);
+  async onload() {
+    console.log(WELCOME_MESSAGE);
 
-		await this.loadSettings();
-		this.twitterHandler = new TwitterHandler();
-		this.connectToTwitterWithPlainSettings();
+    await this.loadSettings();
+    this.twitterHandler = new TwitterHandler();
+    this.connectToTwitterWithPlainSettings();
 
-		this.addCommand({
-			id: 'post-selected-as-tweet',
-			name: 'Post Selected as Tweet',
-			callback: async () => {
-				if (this.twitterHandler.isConnectedToTwitter)
-					await this.postSelectedTweet();
-				else if (this.settings.secureMode)
-					await this.secureModeProxy(async () => await this.postSelectedTweet());
-				else {
-					this.connectToTwitterWithPlainSettings();
+    this.addCommand({
+      id: "post-selected-as-tweet",
+      name: "Post Selected as Tweet",
+      callback: async () => {
+        if (this.twitterHandler.isConnectedToTwitter)
+          await this.postSelectedTweet();
+        else if (this.settings.secureMode)
+          await this.secureModeProxy(
+            async () => await this.postSelectedTweet()
+          );
+        else {
+          this.connectToTwitterWithPlainSettings();
 
-					if (!this.twitterHandler.isConnectedToTwitter)
-						new TweetErrorModal(this.app, "Not connected to Twitter").open();
-					else
-						await this.postSelectedTweet();
-				}
-			}
-		});
+          if (!this.twitterHandler.isConnectedToTwitter)
+            new TweetErrorModal(this.app, "Not connected to Twitter").open();
+          else await this.postSelectedTweet();
+        }
+      },
+    });
 
-		this.addCommand({
-			id: 'post-file-as-thread',
-			name: 'Post File as Thread',
-			callback: async () => {
-				if (this.twitterHandler.isConnectedToTwitter)
-					await this.postThreadInFile();
-				else if (this.settings.secureMode)
-					await this.secureModeProxy(async () => await this.postThreadInFile());
-				else {
-					this.connectToTwitterWithPlainSettings();
+    this.addCommand({
+      id: "post-file-as-thread",
+      name: "Post File as Thread",
+      callback: async () => {
+        if (this.twitterHandler.isConnectedToTwitter)
+          await this.postThreadInFile();
+        else if (this.settings.secureMode)
+          await this.secureModeProxy(async () => await this.postThreadInFile());
+        else {
+          this.connectToTwitterWithPlainSettings();
 
-					if (!this.twitterHandler.isConnectedToTwitter)
-						new TweetErrorModal(this.app, "Not connected to Twitter").open();
-					else
-						await this.postThreadInFile();
-				}
-			}
-		})
+          if (!this.twitterHandler.isConnectedToTwitter)
+            new TweetErrorModal(this.app, "Not connected to Twitter").open();
+          else await this.postThreadInFile();
+        }
+      },
+    });
 
-		this.addCommand({
-			id: 'post-tweet',
-			name: 'Post Tweet',
-			callback: async () => {
-				if (this.twitterHandler.isConnectedToTwitter)
-					this.postTweetMode();
-				else if (this.settings.secureMode)
-					await this.secureModeProxy(() => this.postTweetMode());
-				else {
-					this.connectToTwitterWithPlainSettings();
+    this.addCommand({
+      id: "post-tweet",
+      name: "Post Tweet",
+      callback: async () => {
+        if (this.twitterHandler.isConnectedToTwitter) this.postTweetMode();
+        else if (this.settings.secureMode)
+          await this.secureModeProxy(() => this.postTweetMode());
+        else {
+          this.connectToTwitterWithPlainSettings();
 
-					if (!this.twitterHandler.isConnectedToTwitter)
-						new TweetErrorModal(this.app, "Not connected to Twitter").open();
-					else
-						this.postTweetMode();
-				}
-			}
-		})
+          if (!this.twitterHandler.isConnectedToTwitter)
+            new TweetErrorModal(this.app, "Not connected to Twitter").open();
+          else this.postTweetMode();
+        }
+      },
+    });
 
-		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
-	}
+    this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
+  }
 
-	private postTweetMode() {
-		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		let editor = view.sourceMode.cmEditor;
+  private postTweetMode() {
+    let view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    let editor = view.sourceMode.cmEditor;
 
-		if (editor.somethingSelected()) {
-			let selection = editor.getSelection();
+    if (editor.somethingSelected()) {
+      let selection = editor.getSelection();
 
-			try {
-				selection = this.parseThreadFromText(selection).join("--nt_sep--");
-				new PostTweetModal(this.app, this.twitterHandler, {text: selection, thread: true}).open();
-			}
-			catch {
-				new PostTweetModal(this.app, this.twitterHandler, {text: selection, thread: false}).open();
-			} // Intentionally suppressing exceptions. They're expected.
-		} else {
-			new PostTweetModal(this.app, this.twitterHandler).open();
-		}
-	}
+      try {
+        selection = this.parseThreadFromText(selection).join("--nt_sep--");
+        new PostTweetModal(this.app, this.twitterHandler, {
+          text: selection,
+          thread: true,
+        }).open();
+      } catch {
+        new PostTweetModal(this.app, this.twitterHandler, {
+          text: selection,
+          thread: false,
+        }).open();
+      } // Intentionally suppressing exceptions. They're expected.
+    } else {
+      new PostTweetModal(this.app, this.twitterHandler).open();
+    }
+  }
 
-	public connectToTwitterWithPlainSettings() {
-		if (!this.settings.secureMode) {
-			let {apiKey, apiSecret, accessToken, accessTokenSecret} = this.settings;
-			if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) return;
+  public connectToTwitterWithPlainSettings() {
+    if (!this.settings.secureMode) {
+      let { apiKey, apiSecret, accessToken, accessTokenSecret } = this.settings;
+      if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) return;
 
-			this.twitterHandler.connectToTwitter(apiKey, apiSecret, accessToken, accessTokenSecret);
-		}
-	}
+      this.twitterHandler.connectToTwitter(
+        apiKey,
+        apiSecret,
+        accessToken,
+        accessTokenSecret
+      );
+    }
+  }
 
-	private async postThreadInFile() {
-		let content = this.getCurrentDocumentContent(this.app);
-		let threadContent: string[];
-		try {
-			threadContent = this.parseThreadFromText(content);
-		}
-		catch (e) {
-			new TweetErrorModal(this.app, e).open();
-			return;
-		}
+  private async postThreadInFile() {
+    let content = this.getCurrentDocumentContent(this.app);
+    let threadContent: string[];
+    try {
+      threadContent = this.parseThreadFromText(content);
+    } catch (e) {
+      new TweetErrorModal(this.app, e).open();
+      return;
+    }
 
-		try {
-			let postedTweets = await this.twitterHandler.postThread(threadContent);
-			let postedModal = new TweetsPostedModal(this.app, postedTweets, this.twitterHandler);
-			postedModal.open();
+    try {
+      let postedTweets = await this.twitterHandler.postThread(threadContent);
+      let postedModal = new TweetsPostedModal(
+        this.app,
+        postedTweets,
+        this.twitterHandler
+      );
 
-			await this.appendTagOnModalClose(postedTweets, postedModal);
+      await postedModal.waitForClose;
+      if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
+        postedTweets.forEach((tweet) => this.appendPostTweetTag(tweet.text));
+      }
+    } catch (e) {
+      new TweetErrorModal(this.app, e.data || e).open();
+    }
+  }
 
-		} catch (e) {
-			new TweetErrorModal(this.app, e.data || e).open();
-		}
-	}
+  private async postSelectedTweet() {
+    let view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    let editor = view.sourceMode.cmEditor;
 
-	private async postSelectedTweet() {
-		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		let editor = view.sourceMode.cmEditor;
+    if (editor.somethingSelected()) {
+      let selection: string = editor.getSelection();
 
-		if (editor.somethingSelected()) {
-			let selection: string = editor.getSelection();
+      try {
+        let tweet = await this.twitterHandler.postTweet(selection);
+        let postedModal = new TweetsPostedModal(
+          this.app,
+          [tweet],
+          this.twitterHandler
+        );
 
-			try {
-				let tweet = await this.twitterHandler.postTweet(selection);
-				let postedModal = new TweetsPostedModal(this.app, [tweet], this.twitterHandler);
-				postedModal.open();
+        await postedModal.waitForClose;
+        if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
+          this.appendPostTweetTag(tweet.text);
+        }
+      } catch (e) {
+        new TweetErrorModal(this.app, e.data || e).open();
+      }
+    } else {
+      new TweetErrorModal(this.app, "nothing selected.").open();
+    }
+  }
 
-				await this.appendTagOnModalClose([tweet], postedModal);
-			}
-			catch (e) {
-				new TweetErrorModal(this.app, e.data || e).open();
-			}
+  private async secureModeProxy(callback: any) {
+    if (
+      !(this.settings.secureMode && !this.twitterHandler.isConnectedToTwitter)
+    )
+      return;
 
-		} else {
-			new TweetErrorModal(this.app, "nothing selected.").open();
-		}
-	}
+    let modal = new SecureModeGetPasswordModal(this.app, this);
+    modal.open();
 
-	private async appendTagOnModalClose(postedTweets: StatusesUpdate[], postedModal: TweetsPostedModal) {
-		let doOnModalClose = async () => {
-			if (postedModal.isOpen) {
-				setTimeout(await doOnModalClose, 200);
-			}
-			else if (!postedModal.isOpen) {
-				if (!postedModal.userDeletedTweets && this.settings.postTweetTag)
-					postedTweets.forEach(tweet => this.appendPostTweetTag(tweet.text));
-			}
-		}
+    let retryConnection = async () => {
+      if (!this.twitterHandler.isConnectedToTwitter && modal.isOpen)
+        setTimeout(async () => await retryConnection(), 200);
+      // Duration was arbitrarily selected.
+      else if (this.twitterHandler.isConnectedToTwitter) await callback();
+    };
 
-		await doOnModalClose();
-	}
+    await retryConnection();
+  }
 
-	private async secureModeProxy(callback: any) {
-		if (!(this.settings.secureMode && !this.twitterHandler.isConnectedToTwitter))
-			return;
+  onunload() {
+    console.log(UNLOAD_MESSAGE);
+  }
 
-		let modal = new SecureModeGetPasswordModal(this.app, this);
-		modal.open();
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
 
-		let retryConnection = async () => {
-			if (!this.twitterHandler.isConnectedToTwitter && modal.isOpen)
-				setTimeout(async () => await retryConnection(), 200); // Duration was arbitrarily selected.
-			else if (this.twitterHandler.isConnectedToTwitter)
-				await callback();
-		};
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
 
-		await retryConnection();
-	}
+  getCurrentDocumentContent(app: App) {
+    let active_view = app.workspace.getActiveViewOfType(MarkdownView);
+    let editor = active_view.sourceMode.cmEditor;
+    let doc = editor.getDoc();
 
-	onunload() {
-		console.log(UNLOAD_MESSAGE);
-	}
+    return doc.getValue();
+  }
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
+  // All threads start with THREAD START and ends with THREAD END. To separate tweets in a thread,
+  // one should use use a newline and '---' (this prevents markdown from believing the above tweet is a heading).
+  // We also purposefully remove the newline after the separator - otherwise tweets will be posted with a newline
+  // as their first line.
+  private parseThreadFromText(text: string) {
+    let contentArray = text.split("\n");
+    let threadStartIndex = contentArray.indexOf("THREAD START") + 1;
+    let threadEndIndex = contentArray.indexOf("THREAD END");
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+    if (threadStartIndex == 0 || threadEndIndex == -1) {
+      throw new Error("Failed to detect THREAD START or THREAD END");
+    }
 
-	getCurrentDocumentContent(app: App) {
-		let active_view = app.workspace.getActiveViewOfType(MarkdownView);
-		let editor = active_view.sourceMode.cmEditor;
-		let doc = editor.getDoc();
+    let content = contentArray
+      .slice(threadStartIndex, threadEndIndex)
+      .join("\n")
+      .split("\n---\n");
+    if (content.length == 1 && content[0] == "") {
+      throw new Error("Please write something in your thread.");
+    }
 
-		return doc.getValue();
-	}
+    return content.map((txt) => txt.trim());
+  }
 
-	// All threads start with THREAD START and ends with THREAD END. To separate tweets in a thread,
-	// one should use use a newline and '---' (this prevents markdown from believing the above tweet is a heading).
-	// We also purposefully remove the newline after the separator - otherwise tweets will be posted with a newline
-	// as their first line.
-	private parseThreadFromText(text: string) {
-		let contentArray = text.split("\n");
-		let threadStartIndex = contentArray.indexOf("THREAD START") + 1;
-		let threadEndIndex = contentArray.indexOf("THREAD END");
+  private appendPostTweetTag(selection: string) {
+    let editor = this.app.workspace.getActiveViewOfType(MarkdownView).sourceMode
+      .cmEditor;
+    let doc = editor.getDoc();
+    let pageContent = this.getCurrentDocumentContent(this.app);
 
-		if (threadStartIndex == 0 || threadEndIndex == -1) {
-			throw new Error("Failed to detect THREAD START or THREAD END");
-		}
+    pageContent = pageContent.replace(
+      selection.trim(),
+      `${selection.trim()} ${this.settings.postTweetTag}`
+    );
 
-		let content = contentArray.slice(threadStartIndex, threadEndIndex).join("\n").split("\n---\n");
-		if (content.length == 1 && content[0] == "") {
-			throw new Error("Please write something in your thread.");
-		}
+    let scrollInfo = editor.getScrollerElement();
+    doc.setValue(pageContent);
+    editor.scrollTo(scrollInfo.offsetWidth, scrollInfo.offsetHeight);
 
-		return content.map(txt => txt.trim());
-	}
-
-	private appendPostTweetTag(selection: string) {
-		let editor = this.app.workspace.getActiveViewOfType(MarkdownView).sourceMode.cmEditor;
-		let doc = editor.getDoc();
-		let pageContent = this.getCurrentDocumentContent(this.app);
-
-		pageContent = pageContent.replace(selection.trim(), `${selection.trim()} ${this.settings.postTweetTag}`);
-		doc.setValue(pageContent);
-
-		editor.focus();
-	}
+    editor.focus();
+  }
 }
-

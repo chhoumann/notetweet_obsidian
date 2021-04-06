@@ -1,21 +1,21 @@
-import {App, Modal} from "obsidian";
+import { App, Modal } from "obsidian";
 
 export class TweetErrorModal extends Modal {
-    private readonly errorMessage: string;
+  private readonly errorMessage: string;
 
-    constructor(app: App, errorMessage: string) {
-        super(app);
-        this.errorMessage = errorMessage;
-    }
+  constructor(app: App, errorMessage: string) {
+    super(app);
+    this.errorMessage = errorMessage;
+  }
 
-    onOpen() {
-        let {contentEl} = this;
+  onOpen() {
+    let { contentEl } = this;
 
-        contentEl.setText(`Post failed: ${this.errorMessage}`)
-    }
+    contentEl.setText(`Post failed: ${this.errorMessage}`);
+  }
 
-    onClose() {
-        let {contentEl} = this;
-        contentEl.empty();
-    }
+  onClose() {
+    let { contentEl } = this;
+    contentEl.empty();
+  }
 }
