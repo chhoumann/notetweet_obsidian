@@ -21,9 +21,11 @@ export class SecureModeGetPasswordModal extends Modal {
     this.modalContent = new SecureModeGetPasswordModalContent({
       target: this.contentEl,
       props: {
-        onSubmit: (value) => this.onSubmit(value),
+        onSubmit: (value: string) => this.onSubmit(value),
       },
     });
+
+    this.open();
   }
 
   onClose() {

@@ -1,5 +1,5 @@
 <script lang="ts">
-    let passwordInput: string;
+    let passwordInput: HTMLInputElement;
 
     export let onSubmit: any;
 </script>
@@ -8,10 +8,9 @@
     <h2>Secure Mode</h2>
     <p>Please enter your password to continue.</p>
     <label>
-        Password
-        <input bind:value={passwordInput} type="password">
+        <input bind:this={passwordInput} type="password">
     </label>
-    <button on:click={onSubmit} style="margin-left: 1rem;">
+    <button on:click={() => onSubmit(passwordInput.value)} style="margin-left: 1rem;">
         Submit
     </button>
 </div>

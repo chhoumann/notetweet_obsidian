@@ -1,4 +1,4 @@
-import { App, MarkdownView, Plugin } from "obsidian";
+import { App, MarkdownView, Plugin, Notice } from "obsidian";
 import { TwitterHandler } from "./TwitterHandler";
 import {
   DEFAULT_SETTINGS,
@@ -183,16 +183,16 @@ export default class NoteTweet extends Plugin {
       return;
 
     let modal = new SecureModeGetPasswordModal(this.app, this);
-    modal.open();
 
-    let retryConnection = async () => {
-      if (!this.twitterHandler.isConnectedToTwitter && modal.isOpen)
-        setTimeout(async () => await retryConnection(), 200);
-      // Duration was arbitrarily selected.
-      else if (this.twitterHandler.isConnectedToTwitter) await callback();
-    };
-
-    await retryConnection();
+    modal.waitForClose
+      .then(async () => {
+        if (this.twitterHandler.isConnectedToTwitter) await callback();
+        else new Notice("Could not connect to Twitter");
+      })
+      .catch(() => {
+        modal.close();
+        new Notice("Could not connect to Twitter.");
+      });
   }
 
   onunload() {
