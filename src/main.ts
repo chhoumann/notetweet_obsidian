@@ -7,7 +7,7 @@ import {
 } from "./settings";
 import { TweetsPostedModal } from "./Modals/TweetsPostedModal/TweetsPostedModal";
 import { TweetErrorModal } from "./Modals/TweetErrorModal";
-import { SecureModeGetPasswordModal } from "./Modals/SecureModeGetPasswordModal";
+import { SecureModeGetPasswordModal } from "./Modals/SecureModeGetPasswordModal/SecureModeGetPasswordModal";
 import { StatusesUpdate } from "twitter-api-client";
 import { PostTweetModal } from "./Modals/PostTweetModal";
 
