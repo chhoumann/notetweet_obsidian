@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import NoteTweet from "./main";
-import { SecureModeModal } from "./Modals/SecureModeModal";
+import { SecureModeModal } from "./Modals/SecureModeSettingModal/SecureModeModal";
 
 export interface NoteTweetSettings {
   apiKey: string;
@@ -68,23 +68,16 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
               this.plugin,
               value
             );
-            secureModeModal.open();
 
-            let doOnModalClose = async () => {
-              if (secureModeModal.isOpen) {
-                setTimeout(await doOnModalClose, 200);
-              } else {
-                if (secureModeModal.userPressedCrypt) {
-                  this.plugin.settings.secureMode = value;
-                  await this.plugin.saveSettings();
-                }
+            await secureModeModal.waitForResolve;
+            if (secureModeModal.userPressedCrypt) {
+              this.plugin.settings.secureMode = value;
+              await this.plugin.saveSettings();
+              this.display();
+            }
 
-                toggle.setValue(this.plugin.settings.secureMode);
-                this.display(); // To update api-key values displayed to user (visual feedback).
-              }
-            };
-
-            await doOnModalClose();
+            toggle.setValue(this.plugin.settings.secureMode);
+            this.display();
           })
       );
   }
