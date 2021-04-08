@@ -4,12 +4,12 @@ import {
   DEFAULT_SETTINGS,
   NoteTweetSettings,
   NoteTweetSettingsTab,
-} from "./settings";
+} from "./Settings";
 import { TweetsPostedModal } from "./Modals/TweetsPostedModal/TweetsPostedModal";
-import { TweetErrorModal } from "./Modals/TweetErrorModal";
+import { TweetErrorModal } from "./Modals/TweetErrorModal/TweetErrorModal";
 import { SecureModeGetPasswordModal } from "./Modals/SecureModeGetPasswordModal/SecureModeGetPasswordModal";
 import { StatusesUpdate } from "twitter-api-client";
-import { PostTweetModal } from "./Modals/PostTweetModal";
+import { PostTweetModal } from "./Modals/PostTweetModal/PostTweetModal";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";

@@ -5,9 +5,9 @@
   "main": "src/main.js",
   "scripts": {
     "dev": "rollup --config rollup.config.js -w",
-    "build": "svelte-check && rollup --config rollup.config.js",
+    "build": "npm run lint && rollup -c",
     "format": "prettier --write src/**/*",
-    "lint": "prettier --check src/**/*"
+    "lint": "svelte-check"
   },
   "keywords": [
     "obsidian",
@@ -22,6 +22,9 @@
     "@rollup/plugin-typescript": "^6.0.0",
     "@tsconfig/svelte": "1.0.10",
     "@types/node": "^14.14.2",
+    "@typescript-eslint/eslint-plugin": "4.21.0",
+    "@typescript-eslint/parser": "4.21.0",
+    "eslint": "7.23.0",
     "obsidian": "https://github.com/obsidianmd/obsidian-api/tarball/master",
     "prettier": "2.2.1",
     "prettier-plugin-svelte": "2.2.0",
