@@ -5,7 +5,9 @@
 
     tweetStore.subscribe(value => tweets = value);
 
+    export let drafting: boolean;
     export let onAddTweet: (pos?: number) => void;
+    export let onToggleDrafting: (value: boolean) => void;
     export let onSubmit: any;
 
 </script>
@@ -24,7 +26,7 @@
         {#if tweets && tweets.length > 0}
             {#each tweets as tweet}
                 <label>
-                    <textarea class="tweetArea">{tweet}</textarea>
+                    <textarea bind:value={tweet} on:input={() => tweetStore.set(tweets)} class="tweetArea"></textarea>
                     {tweet.length} / 280 characters
                 </label>
             {/each}
@@ -32,7 +34,11 @@
     </div>
 
     <button on:click={onAddTweet(null)}>+</button>
-
     <button on:click={onSubmit}>Post!</button>
+
+    <label>
+        <input type="checkbox" bind:checked={drafting} on:click={() => onToggleDrafting(drafting)}>
+        Drafting
+    </label>
 
 </div>

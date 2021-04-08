@@ -8,29 +8,37 @@ import { tweetStore } from "../Stores";
 export class PostTweetModal extends Modal {
   private readonly twitterHandler: TwitterHandler;
   private readonly MAX_TWEET_LENGTH: number = 280;
+  private drafting: boolean;
 
-  private PostTweetModalContent: PostTweetModalContent;
+  private modalContent: PostTweetModalContent;
   private tweets: string[];
 
   constructor(
     app: App,
     twitterHandler: TwitterHandler,
+    drafting: boolean,
     selection?: { text: string; thread: boolean }
   ) {
     super(app);
     this.twitterHandler = twitterHandler;
+    this.drafting = drafting;
 
     tweetStore.subscribe((value) => (this.tweets = value));
 
-    this.PostTweetModalContent = new PostTweetModalContent({
+    this.modalContent = new PostTweetModalContent({
       target: this.contentEl,
       props: {
         onAddTweet: (pos?: number) => this.addEmptyTweet(pos),
+        drafting: this.drafting,
       },
     });
 
     if (selection) this.selectedTextHandler(selection);
-    else this.addEmptyTweet();
+    if (
+      (this.tweets.length <= 1 && this.tweets[0] == "") ||
+      this.tweets.length == 0
+    )
+      this.addEmptyTweet();
 
     this.open();
   }
@@ -95,9 +103,14 @@ export class PostTweetModal extends Modal {
     return joinedTextChunks;
   }
 
+  private setDrafting(value: boolean) {
+    this.drafting = value;
+  }
+
   onClose() {
-    let { contentEl } = this;
-    contentEl.empty();
+    super.onClose();
+    this.modalContent.$destroy();
+    if (!this.drafting) tweetStore.set([]);
   }
 
   private addEmptyTweet(pos?: number) {

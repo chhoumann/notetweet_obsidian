@@ -9,6 +9,7 @@ export interface NoteTweetSettings {
   accessTokenSecret: string;
   postTweetTag: string;
   secureMode: boolean;
+  draftMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: NoteTweetSettings = Object.freeze({
@@ -18,6 +19,7 @@ export const DEFAULT_SETTINGS: NoteTweetSettings = Object.freeze({
   accessTokenSecret: "",
   postTweetTag: "",
   secureMode: false,
+  draftMode: true,
 });
 
 export class NoteTweetSettingsTab extends PluginSettingTab {
@@ -51,6 +53,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     this.addAccessTokenSecretSetting();
     this.addTweetTagSetting();
     this.addSecureModeSetting();
+    this.addDraftSetting();
   }
 
   private addSecureModeSetting() {
@@ -92,6 +95,22 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.postTweetTag)
           .onChange(async (value) => {
             this.plugin.settings.postTweetTag = value;
+            await this.plugin.saveSettings();
+          })
+      );
+  }
+
+  private addDraftSetting() {
+    new Setting(this.containerEl)
+      .setName("Drafting")
+      .setDesc(
+        "Stores your 'Post Tweet' tweets until you post them, delete them, or close Obsidian."
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.draftMode)
+          .onChange(async (value) => {
+            this.plugin.settings.draftMode = value;
             await this.plugin.saveSettings();
           })
       );
