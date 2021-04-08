@@ -11,6 +11,7 @@
 .tweetArea {
     max-width: 35rem;
     width: 100%;
+    height: auto;
     display: inline-block;
     min-height: 7.5rem;
     overflow-y: hidden;

@@ -12,6 +12,7 @@ export class PostTweetModal extends Modal {
 
   private modalContent: PostTweetModalContent;
   private tweets: string[];
+  private tweetZone: HTMLDivElement;
 
   constructor(
     app: App,
@@ -29,15 +30,15 @@ export class PostTweetModal extends Modal {
       target: this.contentEl,
       props: {
         onAddTweet: (pos?: number) => this.addEmptyTweet(pos),
+        onToggleDrafting: (value: boolean) => this.setDrafting(value),
         drafting: this.drafting,
+        onTweetShortcut: (key: any, element: HTMLTextAreaElement) =>
+          this.shortcutHandler(key, element),
       },
     });
 
     if (selection) this.selectedTextHandler(selection);
-    if (
-      (this.tweets.length <= 1 && this.tweets[0] == "") ||
-      this.tweets.length == 0
-    )
+    if ((this.tweets.length <= 1 && this.tweets[0]) || this.tweets.length == 0)
       this.addEmptyTweet();
 
     this.open();
@@ -57,22 +58,6 @@ export class PostTweetModal extends Modal {
   private createTweetsWithInput(inputStrings: string[], position: number) {
     this.tweets.splice(position, 0, ...inputStrings);
     tweetStore.set(this.tweets);
-
-    // inputStrings.forEach((chunk) => {
-    //   try {
-    //     let tempTextarea =
-    //       currentTextArea.value.trim() == ""
-    //         ? currentTextArea
-    //         : this.addEmptyTweet();
-    //     tempTextarea.setRangeText(chunk);
-    //     tempTextarea.dispatchEvent(new InputEvent("input"));
-    //
-    //     tempTextarea.style.height = tempTextarea.scrollHeight + "px";
-    //   } catch (e) {
-    //     new Notice(e);
-    //     return;
-    //   }
-    // });
   }
 
   // Separate lines by linebreaks. Add lines together, separated by linebreak, if they can fit within a tweet.
@@ -125,22 +110,6 @@ export class PostTweetModal extends Modal {
 
     tweetStore.set(this.tweets);
 
-    // let textarea = textZone.createEl("textarea");
-    // this.tweets.push(textarea);
-    // textarea.addClass("tweetArea");
-    //
-    // let lengthCheckerEl = textZone.createEl("p", {
-    //   text: "0 / 280 characters.",
-    // });
-    // lengthCheckerEl.addClass("ntLengthChecker");
-    //
-    // textarea.addEventListener("input", () =>
-    //   this.onTweetLengthHandler(textarea.textLength, lengthCheckerEl)
-    // );
-    // textarea.addEventListener(
-    //   "keydown",
-    //   this.onInput(textarea, textZone, lengthCheckerEl)
-    // );
     // textarea.addEventListener(
     //   "paste",
     //   this.onPasteMaxLengthHandler(textarea, textZone)
@@ -164,136 +133,109 @@ export class PostTweetModal extends Modal {
   //   };
   // }
 
-  // private onInput(
-  //   textarea: HTMLTextAreaElement,
-  //   textZone: HTMLDivElement,
-  //   lengthCheckerEl: HTMLElement
-  // ) {
-  //   return (key: any) => {
-  //     if (
-  //       key.code == "Backspace" &&
-  //       textarea.textLength == 0 &&
-  //       this.textAreas.length > 1
-  //     ) {
-  //       key.preventDefault();
-  //       this.deleteTweet(textarea, textZone, lengthCheckerEl);
-  //     }
-  //
-  //     if (key.code == "Enter" && textarea.textLength >= this.MAX_TWEET_LENGTH) {
-  //       key.preventDefault();
-  //       try {
-  //         this.createTextarea(textZone);
-  //       } catch (e) {
-  //         new Notice(e);
-  //         return;
-  //       }
-  //     }
-  //
-  //     if ((key.code == "Enter" || key.code == "NumpadEnter") && key.altKey) {
-  //       key.preventDefault();
-  //       try {
-  //         this.createTextarea(textZone);
-  //       } catch (e) {
-  //         new Notice(e);
-  //         return;
-  //       }
-  //     }
-  //
-  //     if (key.code == "Enter" && key.shiftKey) {
-  //       key.preventDefault();
-  //       this.insertTweetAbove(textarea, textZone);
-  //     }
-  //
-  //     if (key.code == "Enter" && key.ctrlKey) {
-  //       key.preventDefault();
-  //       this.insertTweetBelow(textarea, textZone);
-  //     }
-  //
-  //     if (key.code == "ArrowUp" && key.ctrlKey && !key.shiftKey) {
-  //       let currentTweetIndex = this.textAreas.findIndex(
-  //         (tweet) => tweet.value == textarea.value
-  //       );
-  //       if (currentTweetIndex > 0)
-  //         this.textAreas[currentTweetIndex - 1].focus();
-  //     }
-  //
-  //     if (key.code == "ArrowDown" && key.ctrlKey && !key.shiftKey) {
-  //       let currentTweetIndex = this.textAreas.findIndex(
-  //         (tweet) => tweet.value == textarea.value
-  //       );
-  //       if (currentTweetIndex < this.textAreas.length - 1)
-  //         this.textAreas[currentTweetIndex + 1].focus();
-  //     }
-  //
-  //     if (key.code == "ArrowDown" && key.ctrlKey && key.shiftKey) {
-  //       let tweetIndex = this.textAreas.findIndex(
-  //         (ta) => ta.value == textarea.value
-  //       );
-  //       if (tweetIndex != this.textAreas.length - 1) {
-  //         key.preventDefault();
-  //         this.switchTweets(textarea, this.textAreas[tweetIndex + 1]);
-  //         this.textAreas[tweetIndex + 1].focus();
-  //       }
-  //     }
-  //
-  //     if (key.code == "ArrowUp" && key.ctrlKey && key.shiftKey) {
-  //       let tweetIndex = this.textAreas.findIndex(
-  //         (ta) => ta.value == textarea.value
-  //       );
-  //       if (tweetIndex != 0) {
-  //         key.preventDefault();
-  //         this.switchTweets(textarea, this.textAreas[tweetIndex - 1]);
-  //         this.textAreas[tweetIndex - 1].focus();
-  //       }
-  //     }
-  //
-  //     if (key.code == "Delete" && key.ctrlKey && key.shiftKey) {
-  //       key.preventDefault();
-  //       if (this.textAreas.length == 1) textarea.value = "";
-  //       else this.deleteTweet(textarea, textZone, lengthCheckerEl);
-  //     }
-  //
-  //     textarea.style.height = "auto";
-  //     textarea.style.height = textarea.scrollHeight + "px";
-  //   };
-  // }
-
-  private switchStrings(
-    string1: string,
-    string2: string
-  ): { string1: string; string2: string } {
-    let temp: string = string1;
-    string1 = string2;
-    string2 = temp;
-
-    return { string1, string2 };
+  private findTweetIndex(tweet: string): number {
+    return this.tweets.findIndex((t) => t == tweet);
   }
 
-  // private deleteTweet(
-  //   textarea: HTMLTextAreaElement,
-  //   textZone: HTMLDivElement,
-  //   lengthCheckerEl: HTMLElement
-  // ) {
-  //   let i = this.textAreas.findIndex((ele) => ele === textarea);
-  //   this.textAreas.remove(textarea);
-  //   textZone.removeChild(textarea);
-  //   textZone.removeChild(lengthCheckerEl);
-  //   this.textAreas[i == 0 ? i : i - 1].focus();
-  // }
-
-  private onTweetLengthHandler(strlen: Number, lengthCheckerEl: HTMLElement) {
-    const WARN1: number = this.MAX_TWEET_LENGTH - 50;
-    const WARN2: number = this.MAX_TWEET_LENGTH - 25;
-    const DEFAULT_COLOR = "#339900";
-
-    lengthCheckerEl.innerText = `${strlen} / 280 characters.`;
-
-    if (strlen <= WARN1) lengthCheckerEl.style.color = DEFAULT_COLOR;
-    if (strlen > WARN1) lengthCheckerEl.style.color = "#ffcc00";
-    if (strlen > WARN2) lengthCheckerEl.style.color = "#ff9966";
-    if (strlen >= this.MAX_TWEET_LENGTH) {
-      lengthCheckerEl.style.color = "#cc3300";
+  private shortcutHandler(key: any, textarea: HTMLTextAreaElement) {
+    // TODO: Unsure
+    if (
+      key.code == "Backspace" &&
+      textarea.textLength == 0 &&
+      this.tweets.length > 1
+    ) {
+      key.preventDefault();
+      this.deleteTweet(this.findTweetIndex(textarea.textContent));
     }
+
+    // TODO: Unsure
+    if (key.code == "Enter" && textarea.textLength >= this.MAX_TWEET_LENGTH) {
+      key.preventDefault();
+      try {
+        this.addEmptyTweet();
+      } catch (e) {
+        new Notice(e);
+        return;
+      }
+    }
+
+    if ((key.code == "Enter" || key.code == "NumpadEnter") && key.altKey) {
+      key.preventDefault();
+      try {
+        this.addEmptyTweet();
+      } catch (e) {
+        new Notice(e);
+        return;
+      }
+    }
+
+    if (key.code == "Enter" && key.shiftKey) {
+      key.preventDefault();
+      let currentIndex: number = this.findTweetIndex(textarea.value);
+      this.insertTweetAbove(currentIndex);
+    }
+
+    if (key.code == "Enter" && key.ctrlKey) {
+      key.preventDefault();
+      this.insertTweetBelow(this.findTweetIndex(textarea.value));
+    }
+
+    // if (key.code == "ArrowUp" && key.ctrlKey && !key.shiftKey) {
+    //   let currentTweetIndex = this.tweets.findIndex(
+    //     (tweet) => tweet == textarea.value
+    //   );
+    //   if (currentTweetIndex > 0)
+    //     this.textAreas[currentTweetIndex - 1].focus();
+    // }
+    //
+    // if (key.code == "ArrowDown" && key.ctrlKey && !key.shiftKey) {
+    //   let currentTweetIndex = this.textAreas.findIndex(
+    //     (tweet) => tweet.value == textarea.value
+    //   );
+    //   if (currentTweetIndex < this.textAreas.length - 1)
+    //     this.textAreas[currentTweetIndex + 1].focus();
+    // }
+    //
+    // if (key.code == "ArrowDown" && key.ctrlKey && key.shiftKey) {
+    //   let tweetIndex = this.textAreas.findIndex(
+    //     (ta) => ta.value == textarea.value
+    //   );
+    //   if (tweetIndex != this.textAreas.length - 1) {
+    //     key.preventDefault();
+    //     this.switchTweets(textarea, this.textAreas[tweetIndex + 1]);
+    //     this.textAreas[tweetIndex + 1].focus();
+    //   }
+    // }
+    //
+    // if (key.code == "ArrowUp" && key.ctrlKey && key.shiftKey) {
+    //   let tweetIndex = this.textAreas.findIndex(
+    //     (ta) => ta.value == textarea.value
+    //   );
+    //   if (tweetIndex != 0) {
+    //     key.preventDefault();
+    //     this.switchTweets(textarea, this.textAreas[tweetIndex - 1]);
+    //     this.textAreas[tweetIndex - 1].focus();
+    //   }
+    // }
+
+    if (key.code == "Delete" && key.ctrlKey && key.shiftKey) {
+      key.preventDefault();
+      if (this.tweets.length == 1) {
+        this.tweets[0] = "";
+        tweetStore.set(this.tweets);
+      } else this.deleteTweet(this.findTweetIndex(textarea.value));
+    }
+  }
+
+  private switchTweets(index1: number, index2: number) {
+    let temp: string = this.tweets[index1];
+    this.tweets[index1] = this.tweets[index2];
+    this.tweets[index2] = temp;
+  }
+
+  private deleteTweet(position: number) {
+    this.tweets.splice(position, 1);
+    tweetStore.set(this.tweets);
   }
 
   // private postTweets() {
@@ -325,51 +267,24 @@ export class PostTweetModal extends Modal {
   //   };
   // }
 
-  // private insertTweetAbove(
-  //   textarea: HTMLTextAreaElement,
-  //   textZone: HTMLDivElement
-  // ) {
-  //   let insertAboveIndex = this.textAreas.findIndex(
-  //     (area) => area.value == textarea.value
-  //   );
-  //
-  //   try {
-  //     let insertedTweet = this.createTextarea(textZone);
-  //     this.shiftTweetsDownFromIndex(insertAboveIndex);
-  //
-  //     return { tweet: insertedTweet, index: insertAboveIndex };
-  //   } catch (e) {
-  //     new Notice(e);
-  //     return;
-  //   }
-  // }
+  private insertTweetAbove(position: number) {
+    try {
+      this.addEmptyTweet(position);
+      this.switchTweets(position, position + 1);
+      tweetStore.set(this.tweets);
+    } catch (e) {
+      new Notice(e);
+      return;
+    }
+  }
 
-  // private insertTweetBelow(
-  //   textarea: HTMLTextAreaElement,
-  //   textZone: HTMLDivElement
-  // ) {
-  //   let insertBelowIndex = this.textAreas.findIndex(
-  //     (area) => area.value == textarea.value
-  //   );
-  //   let fromIndex = insertBelowIndex + 1;
-  //
-  //   try {
-  //     let insertedTextarea = this.createTextarea(textZone);
-  //     this.shiftTweetsDownFromIndex(fromIndex);
-  //
-  //     return insertedTextarea;
-  //   } catch (e) {
-  //     new Notice(e);
-  //   }
-  // }
-
-  // private shiftTweetsDownFromIndex(insertedIndex: number) {
-  //   for (let i = this.textAreas.length - 1; i > insertedIndex; i--) {
-  //     this.textAreas[i].value = this.textAreas[i - 1].value;
-  //     this.textAreas[i].dispatchEvent(new InputEvent("input"));
-  //   }
-  //
-  //   this.textAreas[insertedIndex].value = "";
-  //   this.textAreas[insertedIndex].focus();
-  // }
+  private insertTweetBelow(position: number) {
+    try {
+      this.addEmptyTweet(position);
+      this.switchTweets(position + 1, position);
+      tweetStore.set(this.tweets);
+    } catch (e) {
+      new Notice(e);
+    }
+  }
 }

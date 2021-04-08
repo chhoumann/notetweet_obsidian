@@ -4,7 +4,7 @@
   "description": "Post tweets from Obsidian",
   "main": "src/main.js",
   "scripts": {
-    "dev": "rollup --config rollup.config.js -w",
+    "dev": "npm run lint && rollup -c -w",
     "build": "npm run lint && rollup -c",
     "format": "prettier --write src/**/*",
     "lint": "svelte-check"
