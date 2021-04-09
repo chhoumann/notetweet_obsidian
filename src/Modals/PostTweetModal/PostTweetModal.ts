@@ -29,17 +29,12 @@ export class PostTweetModal extends Modal {
     this.modalContent = new PostTweetModalContent({
       target: this.contentEl,
       props: {
-        onAddTweet: (pos?: number) => this.addEmptyTweet(pos),
         onToggleDrafting: (value: boolean) => this.setDrafting(value),
         drafting: this.drafting,
-        onTweetShortcut: (key: any, element: HTMLTextAreaElement) =>
-          this.shortcutHandler(key, element),
       },
     });
 
-    if (selection) this.selectedTextHandler(selection);
-    if ((this.tweets.length <= 1 && this.tweets[0]) || this.tweets.length == 0)
-      this.addEmptyTweet();
+    /*if (selection) this.selectedTextHandler(selection);*/
 
     this.open();
   }
@@ -98,27 +93,6 @@ export class PostTweetModal extends Modal {
     if (!this.drafting) tweetStore.set([]);
   }
 
-  private addEmptyTweet(pos?: number) {
-    if (this.tweets.find((tweet) => tweet.length == 0)) {
-      throw new Error(
-        "You cannot add a new tweet when there are empty tweets."
-      );
-    }
-
-    if (pos == null) this.tweets.push("");
-    else this.tweets.splice(pos, 0, "");
-
-    tweetStore.set(this.tweets);
-
-    // textarea.addEventListener(
-    //   "paste",
-    //   this.onPasteMaxLengthHandler(textarea, textZone)
-    // );
-    //
-    // textarea.focus();
-    // return textarea;
-  }
-
   // private onPasteMaxLengthHandler(
   //   textarea: HTMLTextAreaElement,
   //   textZone: HTMLDivElement
@@ -137,7 +111,7 @@ export class PostTweetModal extends Modal {
     return this.tweets.findIndex((t) => t == tweet);
   }
 
-  private shortcutHandler(key: any, textarea: HTMLTextAreaElement) {
+  /*private shortcutHandler(key: any, textarea: HTMLTextAreaElement) {
     // TODO: Unsure
     if (
       key.code == "Backspace" &&
@@ -225,17 +199,12 @@ export class PostTweetModal extends Modal {
         tweetStore.set(this.tweets);
       } else this.deleteTweet(this.findTweetIndex(textarea.value));
     }
-  }
+  }*/
 
   private switchTweets(index1: number, index2: number) {
     let temp: string = this.tweets[index1];
     this.tweets[index1] = this.tweets[index2];
     this.tweets[index2] = temp;
-  }
-
-  private deleteTweet(position: number) {
-    this.tweets.splice(position, 1);
-    tweetStore.set(this.tweets);
   }
 
   // private postTweets() {
@@ -267,24 +236,24 @@ export class PostTweetModal extends Modal {
   //   };
   // }
 
-  private insertTweetAbove(position: number) {
-    try {
-      this.addEmptyTweet(position);
-      this.switchTweets(position, position + 1);
-      tweetStore.set(this.tweets);
-    } catch (e) {
-      new Notice(e);
-      return;
-    }
-  }
-
-  private insertTweetBelow(position: number) {
-    try {
-      this.addEmptyTweet(position);
-      this.switchTweets(position + 1, position);
-      tweetStore.set(this.tweets);
-    } catch (e) {
-      new Notice(e);
-    }
-  }
+  // private insertTweetAbove(position: number) {
+  //   try {
+  //     this.addEmptyTweet(position);
+  //     this.switchTweets(position, position + 1);
+  //     tweetStore.set(this.tweets);
+  //   } catch (e) {
+  //     new Notice(e);
+  //     return;
+  //   }
+  // }
+  //
+  // private insertTweetBelow(position: number) {
+  //   try {
+  //     this.addEmptyTweet(position);
+  //     this.switchTweets(position + 1, position);
+  //     tweetStore.set(this.tweets);
+  //   } catch (e) {
+  //     new Notice(e);
+  //   }
+  // }
 }
