@@ -58,3 +58,14 @@ textarea:focus {
     font-size: 14px;
     font-weight: bold;
 }
+
+.redWarningButton {
+    background-color: #ff4b4b !important;
+    color: white !important;
+    margin: 1rem !important;
+}
+
+.greenSuccessButton {
+    background-color: #4BB543 !important;
+    color: white !important;
+}
