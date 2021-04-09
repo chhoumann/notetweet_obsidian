@@ -3,7 +3,6 @@ import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import svelte from "rollup-plugin-svelte";
 import autoPreprocess from "svelte-preprocess";
-import copy from "rollup-plugin-copy";
 
 const path = ".";
 export default {
