@@ -22,17 +22,5 @@ export default {
     typescript(),
     resolve({ browser: true, dedupe: ["svelte"] }),
     commonjs({ include: "node_modules/**" }),
-    copy({
-      targets: [
-        {
-          src: "manifest.json",
-          dest: path,
-        },
-        {
-          src: "styles.css",
-          dest: path,
-        },
-      ],
-    }),
   ],
 };
