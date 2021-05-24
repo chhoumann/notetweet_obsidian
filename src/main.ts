@@ -1,15 +1,10 @@
-import { App, MarkdownView, Plugin, Notice } from "obsidian";
-import { TwitterHandler } from "./TwitterHandler";
-import {
-  DEFAULT_SETTINGS,
-  NoteTweetSettings,
-  NoteTweetSettingsTab,
-} from "./settings";
-import { TweetsPostedModal } from "./Modals/TweetsPostedModal/TweetsPostedModal";
-import { TweetErrorModal } from "./Modals/TweetErrorModal";
-import { SecureModeGetPasswordModal } from "./Modals/SecureModeGetPasswordModal/SecureModeGetPasswordModal";
-import { StatusesUpdate } from "twitter-api-client";
-import { PostTweetModal } from "./Modals/PostTweetModal";
+import {MarkdownView, Notice, Plugin, TFile} from "obsidian";
+import {TwitterHandler} from "./TwitterHandler";
+import {DEFAULT_SETTINGS, NoteTweetSettings, NoteTweetSettingsTab,} from "./settings";
+import {TweetsPostedModal} from "./Modals/TweetsPostedModal/TweetsPostedModal";
+import {TweetErrorModal} from "./Modals/TweetErrorModal";
+import {SecureModeGetPasswordModal} from "./Modals/SecureModeGetPasswordModal/SecureModeGetPasswordModal";
+import {PostTweetModal} from "./Modals/PostTweetModal";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
@@ -81,6 +76,17 @@ export default class NoteTweet extends Plugin {
       },
     });
 
+    /*START.DEVCMD*/
+    this.addCommand({
+      id: 'reloadNoteTweet',
+      name: 'Reload NoteTweet (dev)',
+      callback: () => { // @ts-ignore - for this.app.plugins
+        const id: string = this.manifest.id, plugins = this.app.plugins;
+        plugins.disablePlugin(id).then(() => plugins.enablePlugin(id));
+      },
+    });
+    /*END.DEVCMD*/
+
     this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
   }
 
@@ -123,7 +129,8 @@ export default class NoteTweet extends Plugin {
   }
 
   private async postThreadInFile() {
-    let content = this.getCurrentDocumentContent(this.app);
+    const file = this.app.workspace.getActiveFile();
+    let content = await this.getFileContent(file);
     let threadContent: string[];
     try {
       threadContent = this.parseThreadFromText(content);
@@ -207,12 +214,10 @@ export default class NoteTweet extends Plugin {
     await this.saveData(this.settings);
   }
 
-  getCurrentDocumentContent(app: App) {
-    let active_view = app.workspace.getActiveViewOfType(MarkdownView);
-    let editor = active_view.sourceMode.cmEditor;
-    let doc = editor.getDoc();
+  async getFileContent(file: TFile): Promise<string> {
+    if (file.extension != "md") return null;
 
-    return doc.getValue();
+    return await this.app.vault.read(file);
   }
 
   // All threads start with THREAD START and ends with THREAD END. To separate tweets in a thread,
@@ -239,21 +244,15 @@ export default class NoteTweet extends Plugin {
     return content.map((txt) => txt.trim());
   }
 
-  private appendPostTweetTag(selection: string) {
-    let editor = this.app.workspace.getActiveViewOfType(MarkdownView).sourceMode
-      .cmEditor;
-    let doc = editor.getDoc();
-    let pageContent = this.getCurrentDocumentContent(this.app);
+  private async appendPostTweetTag(selection: string) {
+    const currentFile = this.app.workspace.getActiveFile();
+    let pageContent = await this.getFileContent(currentFile);
 
     pageContent = pageContent.replace(
       selection.trim(),
       `${selection.trim()} ${this.settings.postTweetTag}`
     );
 
-    let scrollInfo = editor.getScrollerElement();
-    doc.setValue(pageContent);
-    editor.scrollTo(scrollInfo.offsetWidth, scrollInfo.offsetHeight);
-
-    editor.focus();
+    await this.app.vault.modify(currentFile, pageContent);
   }
 }

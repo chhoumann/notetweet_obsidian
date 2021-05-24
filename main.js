@@ -7,7 +7,6 @@ var https = require('https');
 var URL = require('url');
 var querystring = require('querystring');
 var require$$0 = require('buffer');
-var TweetsPostedModalContent = require('src/Modals/TweetsPostedModal/TweetsPostedModalContent.svelte');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
@@ -17,7 +16,6 @@ var https__default = /*#__PURE__*/_interopDefaultLegacy(https);
 var URL__default = /*#__PURE__*/_interopDefaultLegacy(URL);
 var querystring__default = /*#__PURE__*/_interopDefaultLegacy(querystring);
 var require$$0__default = /*#__PURE__*/_interopDefaultLegacy(require$$0);
-var TweetsPostedModalContent__default = /*#__PURE__*/_interopDefaultLegacy(TweetsPostedModalContent);
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -1062,7 +1060,7 @@ var OAuth = oauth.OAuth;
 var OAuthEcho = oauth.OAuthEcho;
 var OAuth2 = oauth2.OAuth2;
 
-var D__Mapper_Tools_Dev_Projects_obsidian_plugin_node_modules_oauth = {
+var C__Mapper_Dev_Projects_NoteTweet_node_modules_oauth = {
 	OAuth: OAuth,
 	OAuthEcho: OAuthEcho,
 	OAuth2: OAuth2
@@ -1366,7 +1364,7 @@ var __importDefault = (commonjsGlobal && commonjsGlobal.__importDefault) || func
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var oauth_1 = __importDefault(D__Mapper_Tools_Dev_Projects_obsidian_plugin_node_modules_oauth);
+var oauth_1 = __importDefault(C__Mapper_Dev_Projects_NoteTweet_node_modules_oauth);
 var Cache_1$1 = __importDefault(Cache_1);
 
 var Transport = /** @class */ (function () {
@@ -3910,6 +3908,491 @@ class TwitterHandler {
     }
 }
 
+function noop() { }
+function run(fn) {
+    return fn();
+}
+function blank_object() {
+    return Object.create(null);
+}
+function run_all(fns) {
+    fns.forEach(run);
+}
+function is_function(thing) {
+    return typeof thing === 'function';
+}
+function safe_not_equal(a, b) {
+    return a != a ? b == b : a !== b || ((a && typeof a === 'object') || typeof a === 'function');
+}
+function is_empty(obj) {
+    return Object.keys(obj).length === 0;
+}
+
+function append(target, node) {
+    target.appendChild(node);
+}
+function insert(target, node, anchor) {
+    target.insertBefore(node, anchor || null);
+}
+function detach(node) {
+    node.parentNode.removeChild(node);
+}
+function destroy_each(iterations, detaching) {
+    for (let i = 0; i < iterations.length; i += 1) {
+        if (iterations[i])
+            iterations[i].d(detaching);
+    }
+}
+function element(name) {
+    return document.createElement(name);
+}
+function text(data) {
+    return document.createTextNode(data);
+}
+function space() {
+    return text(' ');
+}
+function listen(node, event, handler, options) {
+    node.addEventListener(event, handler, options);
+    return () => node.removeEventListener(event, handler, options);
+}
+function attr(node, attribute, value) {
+    if (value == null)
+        node.removeAttribute(attribute);
+    else if (node.getAttribute(attribute) !== value)
+        node.setAttribute(attribute, value);
+}
+function children(element) {
+    return Array.from(element.childNodes);
+}
+function set_data(text, data) {
+    data = '' + data;
+    if (text.wholeText !== data)
+        text.data = data;
+}
+function set_input_value(input, value) {
+    input.value = value == null ? '' : value;
+}
+function set_style(node, key, value, important) {
+    node.style.setProperty(key, value, important ? 'important' : '');
+}
+
+let current_component;
+function set_current_component(component) {
+    current_component = component;
+}
+
+const dirty_components = [];
+const binding_callbacks = [];
+const render_callbacks = [];
+const flush_callbacks = [];
+const resolved_promise = Promise.resolve();
+let update_scheduled = false;
+function schedule_update() {
+    if (!update_scheduled) {
+        update_scheduled = true;
+        resolved_promise.then(flush);
+    }
+}
+function add_render_callback(fn) {
+    render_callbacks.push(fn);
+}
+let flushing = false;
+const seen_callbacks = new Set();
+function flush() {
+    if (flushing)
+        return;
+    flushing = true;
+    do {
+        // first, call beforeUpdate functions
+        // and update components
+        for (let i = 0; i < dirty_components.length; i += 1) {
+            const component = dirty_components[i];
+            set_current_component(component);
+            update(component.$$);
+        }
+        set_current_component(null);
+        dirty_components.length = 0;
+        while (binding_callbacks.length)
+            binding_callbacks.pop()();
+        // then, once components are updated, call
+        // afterUpdate functions. This may cause
+        // subsequent updates...
+        for (let i = 0; i < render_callbacks.length; i += 1) {
+            const callback = render_callbacks[i];
+            if (!seen_callbacks.has(callback)) {
+                // ...so guard against infinite loops
+                seen_callbacks.add(callback);
+                callback();
+            }
+        }
+        render_callbacks.length = 0;
+    } while (dirty_components.length);
+    while (flush_callbacks.length) {
+        flush_callbacks.pop()();
+    }
+    update_scheduled = false;
+    flushing = false;
+    seen_callbacks.clear();
+}
+function update($$) {
+    if ($$.fragment !== null) {
+        $$.update();
+        run_all($$.before_update);
+        const dirty = $$.dirty;
+        $$.dirty = [-1];
+        $$.fragment && $$.fragment.p($$.ctx, dirty);
+        $$.after_update.forEach(add_render_callback);
+    }
+}
+const outroing = new Set();
+function transition_in(block, local) {
+    if (block && block.i) {
+        outroing.delete(block);
+        block.i(local);
+    }
+}
+function mount_component(component, target, anchor, customElement) {
+    const { fragment, on_mount, on_destroy, after_update } = component.$$;
+    fragment && fragment.m(target, anchor);
+    if (!customElement) {
+        // onMount happens before the initial afterUpdate
+        add_render_callback(() => {
+            const new_on_destroy = on_mount.map(run).filter(is_function);
+            if (on_destroy) {
+                on_destroy.push(...new_on_destroy);
+            }
+            else {
+                // Edge case - component was destroyed immediately,
+                // most likely as a result of a binding initialising
+                run_all(new_on_destroy);
+            }
+            component.$$.on_mount = [];
+        });
+    }
+    after_update.forEach(add_render_callback);
+}
+function destroy_component(component, detaching) {
+    const $$ = component.$$;
+    if ($$.fragment !== null) {
+        run_all($$.on_destroy);
+        $$.fragment && $$.fragment.d(detaching);
+        // TODO null out other refs, including component.$$ (but need to
+        // preserve final state?)
+        $$.on_destroy = $$.fragment = null;
+        $$.ctx = [];
+    }
+}
+function make_dirty(component, i) {
+    if (component.$$.dirty[0] === -1) {
+        dirty_components.push(component);
+        schedule_update();
+        component.$$.dirty.fill(0);
+    }
+    component.$$.dirty[(i / 31) | 0] |= (1 << (i % 31));
+}
+function init(component, options, instance, create_fragment, not_equal, props, dirty = [-1]) {
+    const parent_component = current_component;
+    set_current_component(component);
+    const $$ = component.$$ = {
+        fragment: null,
+        ctx: null,
+        // state
+        props,
+        update: noop,
+        not_equal,
+        bound: blank_object(),
+        // lifecycle
+        on_mount: [],
+        on_destroy: [],
+        on_disconnect: [],
+        before_update: [],
+        after_update: [],
+        context: new Map(parent_component ? parent_component.$$.context : options.context || []),
+        // everything else
+        callbacks: blank_object(),
+        dirty,
+        skip_bound: false
+    };
+    let ready = false;
+    $$.ctx = instance
+        ? instance(component, options.props || {}, (i, ret, ...rest) => {
+            const value = rest.length ? rest[0] : ret;
+            if ($$.ctx && not_equal($$.ctx[i], $$.ctx[i] = value)) {
+                if (!$$.skip_bound && $$.bound[i])
+                    $$.bound[i](value);
+                if (ready)
+                    make_dirty(component, i);
+            }
+            return ret;
+        })
+        : [];
+    $$.update();
+    ready = true;
+    run_all($$.before_update);
+    // `false` as a special case of no DOM component
+    $$.fragment = create_fragment ? create_fragment($$.ctx) : false;
+    if (options.target) {
+        if (options.hydrate) {
+            const nodes = children(options.target);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            $$.fragment && $$.fragment.l(nodes);
+            nodes.forEach(detach);
+        }
+        else {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            $$.fragment && $$.fragment.c();
+        }
+        if (options.intro)
+            transition_in(component.$$.fragment);
+        mount_component(component, options.target, options.anchor, options.customElement);
+        flush();
+    }
+    set_current_component(parent_component);
+}
+/**
+ * Base class for Svelte components. Used when dev=false.
+ */
+class SvelteComponent {
+    $destroy() {
+        destroy_component(this, 1);
+        this.$destroy = noop;
+    }
+    $on(type, callback) {
+        const callbacks = (this.$$.callbacks[type] || (this.$$.callbacks[type] = []));
+        callbacks.push(callback);
+        return () => {
+            const index = callbacks.indexOf(callback);
+            if (index !== -1)
+                callbacks.splice(index, 1);
+        };
+    }
+    $set($$props) {
+        if (this.$$set && !is_empty($$props)) {
+            this.$$.skip_bound = true;
+            this.$$set($$props);
+            this.$$.skip_bound = false;
+        }
+    }
+}
+
+/* src\Modals\TweetsPostedModal\TweetsPostedModalContent.svelte generated by Svelte v3.37.0 */
+
+function get_each_context(ctx, list, i) {
+	const child_ctx = ctx.slice();
+	child_ctx[4] = list[i];
+	return child_ctx;
+}
+
+// (11:4) {:else}
+function create_else_block(ctx) {
+	let h2;
+
+	return {
+		c() {
+			h2 = element("h2");
+			h2.textContent = "Your tweet is live! Check it out here:";
+		},
+		m(target, anchor) {
+			insert(target, h2, anchor);
+		},
+		d(detaching) {
+			if (detaching) detach(h2);
+		}
+	};
+}
+
+// (9:4) {#if multiplePosts}
+function create_if_block(ctx) {
+	let h2;
+
+	return {
+		c() {
+			h2 = element("h2");
+			h2.textContent = "Your tweets are live! Check them out here:";
+		},
+		m(target, anchor) {
+			insert(target, h2, anchor);
+		},
+		d(detaching) {
+			if (detaching) detach(h2);
+		}
+	};
+}
+
+// (15:4) {#each posts as post}
+function create_each_block(ctx) {
+	let a;
+	let t0_value = /*post*/ ctx[4].text + "";
+	let t0;
+	let a_href_value;
+	let t1;
+	let br;
+
+	return {
+		c() {
+			a = element("a");
+			t0 = text(t0_value);
+			t1 = space();
+			br = element("br");
+			attr(a, "href", a_href_value = "https://twitter.com/" + /*post*/ ctx[4].user.screen_name + "/status/" + /*post*/ ctx[4].id_str);
+		},
+		m(target, anchor) {
+			insert(target, a, anchor);
+			append(a, t0);
+			insert(target, t1, anchor);
+			insert(target, br, anchor);
+		},
+		p(ctx, dirty) {
+			if (dirty & /*posts*/ 1 && t0_value !== (t0_value = /*post*/ ctx[4].text + "")) set_data(t0, t0_value);
+
+			if (dirty & /*posts*/ 1 && a_href_value !== (a_href_value = "https://twitter.com/" + /*post*/ ctx[4].user.screen_name + "/status/" + /*post*/ ctx[4].id_str)) {
+				attr(a, "href", a_href_value);
+			}
+		},
+		d(detaching) {
+			if (detaching) detach(a);
+			if (detaching) detach(t1);
+			if (detaching) detach(br);
+		}
+	};
+}
+
+function create_fragment$2(ctx) {
+	let div;
+	let t0;
+	let t1;
+	let button0;
+	let t3;
+	let button1;
+	let mounted;
+	let dispose;
+
+	function select_block_type(ctx, dirty) {
+		if (/*multiplePosts*/ ctx[3]) return create_if_block;
+		return create_else_block;
+	}
+
+	let current_block_type = select_block_type(ctx);
+	let if_block = current_block_type(ctx);
+	let each_value = /*posts*/ ctx[0];
+	let each_blocks = [];
+
+	for (let i = 0; i < each_value.length; i += 1) {
+		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+	}
+
+	return {
+		c() {
+			div = element("div");
+			if_block.c();
+			t0 = space();
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				each_blocks[i].c();
+			}
+
+			t1 = space();
+			button0 = element("button");
+			button0.textContent = "Great!";
+			t3 = space();
+			button1 = element("button");
+			button1.textContent = "Delete";
+			attr(button0, "class", "greenSuccessButton");
+			set_style(button0, "float", "right");
+			set_style(button0, "margin-top", "1rem");
+			attr(button1, "class", "redWarningButton");
+			set_style(button1, "float", "right");
+			set_style(button1, "margin", "1rem");
+		},
+		m(target, anchor) {
+			insert(target, div, anchor);
+			if_block.m(div, null);
+			append(div, t0);
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				each_blocks[i].m(div, null);
+			}
+
+			append(div, t1);
+			append(div, button0);
+			append(div, t3);
+			append(div, button1);
+
+			if (!mounted) {
+				dispose = [
+					listen(button0, "click", function () {
+						if (is_function(/*onAccept*/ ctx[2]())) /*onAccept*/ ctx[2]().apply(this, arguments);
+					}),
+					listen(button1, "click", function () {
+						if (is_function(/*onDelete*/ ctx[1]())) /*onDelete*/ ctx[1]().apply(this, arguments);
+					})
+				];
+
+				mounted = true;
+			}
+		},
+		p(new_ctx, [dirty]) {
+			ctx = new_ctx;
+
+			if (dirty & /*posts*/ 1) {
+				each_value = /*posts*/ ctx[0];
+				let i;
+
+				for (i = 0; i < each_value.length; i += 1) {
+					const child_ctx = get_each_context(ctx, each_value, i);
+
+					if (each_blocks[i]) {
+						each_blocks[i].p(child_ctx, dirty);
+					} else {
+						each_blocks[i] = create_each_block(child_ctx);
+						each_blocks[i].c();
+						each_blocks[i].m(div, t1);
+					}
+				}
+
+				for (; i < each_blocks.length; i += 1) {
+					each_blocks[i].d(1);
+				}
+
+				each_blocks.length = each_value.length;
+			}
+		},
+		i: noop,
+		o: noop,
+		d(detaching) {
+			if (detaching) detach(div);
+			if_block.d();
+			destroy_each(each_blocks, detaching);
+			mounted = false;
+			run_all(dispose);
+		}
+	};
+}
+
+function instance$2($$self, $$props, $$invalidate) {
+	
+	let { posts } = $$props;
+	let { onDelete } = $$props;
+	let { onAccept } = $$props;
+	let multiplePosts = posts.length > 1;
+
+	$$self.$$set = $$props => {
+		if ("posts" in $$props) $$invalidate(0, posts = $$props.posts);
+		if ("onDelete" in $$props) $$invalidate(1, onDelete = $$props.onDelete);
+		if ("onAccept" in $$props) $$invalidate(2, onAccept = $$props.onAccept);
+	};
+
+	return [posts, onDelete, onAccept, multiplePosts];
+}
+
+class TweetsPostedModalContent extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$2, create_fragment$2, safe_not_equal, { posts: 0, onDelete: 1, onAccept: 2 });
+	}
+}
+
 class TweetsPostedModal extends obsidian.Modal {
     constructor(app, post, twitterHandler) {
         super(app);
@@ -3917,7 +4400,7 @@ class TweetsPostedModal extends obsidian.Modal {
         this.posts = post;
         this.twitterHandler = twitterHandler;
         this.waitForClose = new Promise((resolve) => (this.resolvePromise = resolve));
-        this.modalContent = new TweetsPostedModalContent__default['default']({
+        this.modalContent = new TweetsPostedModalContent({
             target: this.contentEl,
             props: {
                 posts: this.posts,
@@ -3925,6 +4408,7 @@ class TweetsPostedModal extends obsidian.Modal {
                 onAccept: () => this.close(),
             },
         });
+        this.open();
     }
     deleteTweets() {
         return async () => {
@@ -3932,15 +4416,13 @@ class TweetsPostedModal extends obsidian.Modal {
             if (didDeleteTweets) {
                 this.userDeletedTweets = true;
                 this.close();
-                new obsidian.Notice(`${this.posts.length} tweets deleted.`);
+                new obsidian.Notice(`${this.posts.length} tweet${this.posts.length > 1 ? "s" : ""} deleted.`);
             }
             else
                 new obsidian.Notice(`Could not delete tweet(s)`);
         };
     }
     onClose() {
-        let { contentEl } = this;
-        contentEl.empty();
         super.onClose();
         this.modalContent.$destroy();
         this.resolvePromise();
@@ -4956,11 +5438,11 @@ const Base64 = {
 };
 
 // Constants table
-const T = [];
+const T$1 = [];
 
 // Compute constants
 for (let i = 0; i < 64; i += 1) {
-  T[i] = (Math.abs(Math.sin(i + 1)) * 0x100000000) | 0;
+  T$1[i] = (Math.abs(Math.sin(i + 1)) * 0x100000000) | 0;
 }
 
 const FF = (a, b, c, d, x, s, t) => {
@@ -5038,73 +5520,73 @@ class MD5Algo extends Hasher {
     let d = H[3];
 
     // Computation
-    a = FF(a, b, c, d, M_offset_0, 7, T[0]);
-    d = FF(d, a, b, c, M_offset_1, 12, T[1]);
-    c = FF(c, d, a, b, M_offset_2, 17, T[2]);
-    b = FF(b, c, d, a, M_offset_3, 22, T[3]);
-    a = FF(a, b, c, d, M_offset_4, 7, T[4]);
-    d = FF(d, a, b, c, M_offset_5, 12, T[5]);
-    c = FF(c, d, a, b, M_offset_6, 17, T[6]);
-    b = FF(b, c, d, a, M_offset_7, 22, T[7]);
-    a = FF(a, b, c, d, M_offset_8, 7, T[8]);
-    d = FF(d, a, b, c, M_offset_9, 12, T[9]);
-    c = FF(c, d, a, b, M_offset_10, 17, T[10]);
-    b = FF(b, c, d, a, M_offset_11, 22, T[11]);
-    a = FF(a, b, c, d, M_offset_12, 7, T[12]);
-    d = FF(d, a, b, c, M_offset_13, 12, T[13]);
-    c = FF(c, d, a, b, M_offset_14, 17, T[14]);
-    b = FF(b, c, d, a, M_offset_15, 22, T[15]);
+    a = FF(a, b, c, d, M_offset_0, 7, T$1[0]);
+    d = FF(d, a, b, c, M_offset_1, 12, T$1[1]);
+    c = FF(c, d, a, b, M_offset_2, 17, T$1[2]);
+    b = FF(b, c, d, a, M_offset_3, 22, T$1[3]);
+    a = FF(a, b, c, d, M_offset_4, 7, T$1[4]);
+    d = FF(d, a, b, c, M_offset_5, 12, T$1[5]);
+    c = FF(c, d, a, b, M_offset_6, 17, T$1[6]);
+    b = FF(b, c, d, a, M_offset_7, 22, T$1[7]);
+    a = FF(a, b, c, d, M_offset_8, 7, T$1[8]);
+    d = FF(d, a, b, c, M_offset_9, 12, T$1[9]);
+    c = FF(c, d, a, b, M_offset_10, 17, T$1[10]);
+    b = FF(b, c, d, a, M_offset_11, 22, T$1[11]);
+    a = FF(a, b, c, d, M_offset_12, 7, T$1[12]);
+    d = FF(d, a, b, c, M_offset_13, 12, T$1[13]);
+    c = FF(c, d, a, b, M_offset_14, 17, T$1[14]);
+    b = FF(b, c, d, a, M_offset_15, 22, T$1[15]);
 
-    a = GG(a, b, c, d, M_offset_1, 5, T[16]);
-    d = GG(d, a, b, c, M_offset_6, 9, T[17]);
-    c = GG(c, d, a, b, M_offset_11, 14, T[18]);
-    b = GG(b, c, d, a, M_offset_0, 20, T[19]);
-    a = GG(a, b, c, d, M_offset_5, 5, T[20]);
-    d = GG(d, a, b, c, M_offset_10, 9, T[21]);
-    c = GG(c, d, a, b, M_offset_15, 14, T[22]);
-    b = GG(b, c, d, a, M_offset_4, 20, T[23]);
-    a = GG(a, b, c, d, M_offset_9, 5, T[24]);
-    d = GG(d, a, b, c, M_offset_14, 9, T[25]);
-    c = GG(c, d, a, b, M_offset_3, 14, T[26]);
-    b = GG(b, c, d, a, M_offset_8, 20, T[27]);
-    a = GG(a, b, c, d, M_offset_13, 5, T[28]);
-    d = GG(d, a, b, c, M_offset_2, 9, T[29]);
-    c = GG(c, d, a, b, M_offset_7, 14, T[30]);
-    b = GG(b, c, d, a, M_offset_12, 20, T[31]);
+    a = GG(a, b, c, d, M_offset_1, 5, T$1[16]);
+    d = GG(d, a, b, c, M_offset_6, 9, T$1[17]);
+    c = GG(c, d, a, b, M_offset_11, 14, T$1[18]);
+    b = GG(b, c, d, a, M_offset_0, 20, T$1[19]);
+    a = GG(a, b, c, d, M_offset_5, 5, T$1[20]);
+    d = GG(d, a, b, c, M_offset_10, 9, T$1[21]);
+    c = GG(c, d, a, b, M_offset_15, 14, T$1[22]);
+    b = GG(b, c, d, a, M_offset_4, 20, T$1[23]);
+    a = GG(a, b, c, d, M_offset_9, 5, T$1[24]);
+    d = GG(d, a, b, c, M_offset_14, 9, T$1[25]);
+    c = GG(c, d, a, b, M_offset_3, 14, T$1[26]);
+    b = GG(b, c, d, a, M_offset_8, 20, T$1[27]);
+    a = GG(a, b, c, d, M_offset_13, 5, T$1[28]);
+    d = GG(d, a, b, c, M_offset_2, 9, T$1[29]);
+    c = GG(c, d, a, b, M_offset_7, 14, T$1[30]);
+    b = GG(b, c, d, a, M_offset_12, 20, T$1[31]);
 
-    a = HH(a, b, c, d, M_offset_5, 4, T[32]);
-    d = HH(d, a, b, c, M_offset_8, 11, T[33]);
-    c = HH(c, d, a, b, M_offset_11, 16, T[34]);
-    b = HH(b, c, d, a, M_offset_14, 23, T[35]);
-    a = HH(a, b, c, d, M_offset_1, 4, T[36]);
-    d = HH(d, a, b, c, M_offset_4, 11, T[37]);
-    c = HH(c, d, a, b, M_offset_7, 16, T[38]);
-    b = HH(b, c, d, a, M_offset_10, 23, T[39]);
-    a = HH(a, b, c, d, M_offset_13, 4, T[40]);
-    d = HH(d, a, b, c, M_offset_0, 11, T[41]);
-    c = HH(c, d, a, b, M_offset_3, 16, T[42]);
-    b = HH(b, c, d, a, M_offset_6, 23, T[43]);
-    a = HH(a, b, c, d, M_offset_9, 4, T[44]);
-    d = HH(d, a, b, c, M_offset_12, 11, T[45]);
-    c = HH(c, d, a, b, M_offset_15, 16, T[46]);
-    b = HH(b, c, d, a, M_offset_2, 23, T[47]);
+    a = HH(a, b, c, d, M_offset_5, 4, T$1[32]);
+    d = HH(d, a, b, c, M_offset_8, 11, T$1[33]);
+    c = HH(c, d, a, b, M_offset_11, 16, T$1[34]);
+    b = HH(b, c, d, a, M_offset_14, 23, T$1[35]);
+    a = HH(a, b, c, d, M_offset_1, 4, T$1[36]);
+    d = HH(d, a, b, c, M_offset_4, 11, T$1[37]);
+    c = HH(c, d, a, b, M_offset_7, 16, T$1[38]);
+    b = HH(b, c, d, a, M_offset_10, 23, T$1[39]);
+    a = HH(a, b, c, d, M_offset_13, 4, T$1[40]);
+    d = HH(d, a, b, c, M_offset_0, 11, T$1[41]);
+    c = HH(c, d, a, b, M_offset_3, 16, T$1[42]);
+    b = HH(b, c, d, a, M_offset_6, 23, T$1[43]);
+    a = HH(a, b, c, d, M_offset_9, 4, T$1[44]);
+    d = HH(d, a, b, c, M_offset_12, 11, T$1[45]);
+    c = HH(c, d, a, b, M_offset_15, 16, T$1[46]);
+    b = HH(b, c, d, a, M_offset_2, 23, T$1[47]);
 
-    a = II(a, b, c, d, M_offset_0, 6, T[48]);
-    d = II(d, a, b, c, M_offset_7, 10, T[49]);
-    c = II(c, d, a, b, M_offset_14, 15, T[50]);
-    b = II(b, c, d, a, M_offset_5, 21, T[51]);
-    a = II(a, b, c, d, M_offset_12, 6, T[52]);
-    d = II(d, a, b, c, M_offset_3, 10, T[53]);
-    c = II(c, d, a, b, M_offset_10, 15, T[54]);
-    b = II(b, c, d, a, M_offset_1, 21, T[55]);
-    a = II(a, b, c, d, M_offset_8, 6, T[56]);
-    d = II(d, a, b, c, M_offset_15, 10, T[57]);
-    c = II(c, d, a, b, M_offset_6, 15, T[58]);
-    b = II(b, c, d, a, M_offset_13, 21, T[59]);
-    a = II(a, b, c, d, M_offset_4, 6, T[60]);
-    d = II(d, a, b, c, M_offset_11, 10, T[61]);
-    c = II(c, d, a, b, M_offset_2, 15, T[62]);
-    b = II(b, c, d, a, M_offset_9, 21, T[63]);
+    a = II(a, b, c, d, M_offset_0, 6, T$1[48]);
+    d = II(d, a, b, c, M_offset_7, 10, T$1[49]);
+    c = II(c, d, a, b, M_offset_14, 15, T$1[50]);
+    b = II(b, c, d, a, M_offset_5, 21, T$1[51]);
+    a = II(a, b, c, d, M_offset_12, 6, T$1[52]);
+    d = II(d, a, b, c, M_offset_3, 10, T$1[53]);
+    c = II(c, d, a, b, M_offset_10, 15, T$1[54]);
+    b = II(b, c, d, a, M_offset_1, 21, T$1[55]);
+    a = II(a, b, c, d, M_offset_8, 6, T$1[56]);
+    d = II(d, a, b, c, M_offset_15, 10, T$1[57]);
+    c = II(c, d, a, b, M_offset_6, 15, T$1[58]);
+    b = II(b, c, d, a, M_offset_13, 21, T$1[59]);
+    a = II(a, b, c, d, M_offset_4, 6, T$1[60]);
+    d = II(d, a, b, c, M_offset_11, 10, T$1[61]);
+    c = II(c, d, a, b, M_offset_2, 15, T$1[62]);
+    b = II(b, c, d, a, M_offset_9, 21, T$1[63]);
 
     // Intermediate hash value
     H[0] = (H[0] + a) | 0;
@@ -6295,7 +6777,7 @@ const Utf16LE = {
 };
 
 // Reusable object
-const W = [];
+const W$2 = [];
 
 /**
  * SHA-1 hash algorithm.
@@ -6325,13 +6807,13 @@ class SHA1Algo extends Hasher {
     // Computation
     for (let i = 0; i < 80; i += 1) {
       if (i < 16) {
-        W[i] = M[offset + i] | 0;
+        W$2[i] = M[offset + i] | 0;
       } else {
-        const n = W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16];
-        W[i] = (n << 1) | (n >>> 31);
+        const n = W$2[i - 3] ^ W$2[i - 8] ^ W$2[i - 14] ^ W$2[i - 16];
+        W$2[i] = (n << 1) | (n >>> 31);
       }
 
-      let t = ((a << 5) | (a >>> 27)) + e + W[i];
+      let t = ((a << 5) | (a >>> 27)) + e + W$2[i];
       if (i < 20) {
         t += ((b & c) | (~b & d)) + 0x5a827999;
       } else if (i < 40) {
@@ -6420,7 +6902,7 @@ const HmacSHA1 = Hasher._createHmacHelper(SHA1Algo);
 
 // Initialization and round constants tables
 const H = [];
-const K = [];
+const K$1 = [];
 
 // Compute constants
 const isPrime = (n) => {
@@ -6443,7 +6925,7 @@ while (nPrime < 64) {
     if (nPrime < 8) {
       H[nPrime] = getFractionalBits(n ** (1 / 2));
     }
-    K[nPrime] = getFractionalBits(n ** (1 / 3));
+    K$1[nPrime] = getFractionalBits(n ** (1 / 3));
 
     nPrime += 1;
   }
@@ -6500,7 +6982,7 @@ class SHA256Algo extends Hasher {
       const sigma0 = ((a << 30) | (a >>> 2)) ^ ((a << 19) | (a >>> 13)) ^ ((a << 10) | (a >>> 22));
       const sigma1 = ((e << 26) | (e >>> 6)) ^ ((e << 21) | (e >>> 11)) ^ ((e << 7) | (e >>> 25));
 
-      const t1 = h + sigma1 + ch + K[i] + W$1[i];
+      const t1 = h + sigma1 + ch + K$1[i] + W$1[i];
       const t2 = sigma0 + maj;
 
       h = g;
@@ -6644,7 +7126,7 @@ const SHA224 = SHA256Algo._createHelper(SHA224Algo);
 const HmacSHA224 = SHA256Algo._createHmacHelper(SHA224Algo);
 
 // Constants
-const K$1 = [
+const K = [
   new X64Word(0x428a2f98, 0xd728ae22),
   new X64Word(0x71374491, 0x23ef65cd),
   new X64Word(0xb5c0fbcf, 0xec4d3b2f),
@@ -6728,9 +7210,9 @@ const K$1 = [
 ];
 
 // Reusable objects
-const W$2 = [];
+const W = [];
 for (let i = 0; i < 80; i += 1) {
-  W$2[i] = new X64Word();
+  W[i] = new X64Word();
 }
 
 /**
@@ -6810,7 +7292,7 @@ class SHA512Algo extends Hasher {
       let Wih;
 
       // Shortcut
-      const Wi = W$2[i];
+      const Wi = W[i];
 
       // Extend message
       if (i < 16) {
@@ -6820,7 +7302,7 @@ class SHA512Algo extends Hasher {
         Wil = Wi.low;
       } else {
         // Gamma0
-        const gamma0x = W$2[i - 15];
+        const gamma0x = W[i - 15];
         const gamma0xh = gamma0x.high;
         const gamma0xl = gamma0x.low;
         const gamma0h = ((gamma0xh >>> 1) | (gamma0xl << 31))
@@ -6831,7 +7313,7 @@ class SHA512Algo extends Hasher {
           ^ ((gamma0xl >>> 7) | (gamma0xh << 25));
 
         // Gamma1
-        const gamma1x = W$2[i - 2];
+        const gamma1x = W[i - 2];
         const gamma1xh = gamma1x.high;
         const gamma1xl = gamma1x.low;
         const gamma1h = ((gamma1xh >>> 19) | (gamma1xl << 13))
@@ -6842,11 +7324,11 @@ class SHA512Algo extends Hasher {
           ^ ((gamma1xl >>> 6) | (gamma1xh << 26));
 
         // W[i] = gamma0 + W[i - 7] + gamma1 + W[i - 16]
-        const Wi7 = W$2[i - 7];
+        const Wi7 = W[i - 7];
         const Wi7h = Wi7.high;
         const Wi7l = Wi7.low;
 
-        const Wi16 = W$2[i - 16];
+        const Wi16 = W[i - 16];
         const Wi16h = Wi16.high;
         const Wi16l = Wi16.low;
 
@@ -6880,7 +7362,7 @@ class SHA512Algo extends Hasher {
         ^ ((el << 23) | (eh >>> 9));
 
       // t1 = h + sigma1 + ch + K[i] + W[i]
-      const Ki = K$1[i];
+      const Ki = K[i];
       const Kih = Ki.high;
       const Kil = Ki.low;
 
@@ -7119,9 +7601,9 @@ for (let i = 0; i < 24; i += 1) {
 }
 
 // Reusable objects for temporary values
-const T$1 = [];
+const T = [];
 for (let i = 0; i < 25; i += 1) {
-  T$1[i] = X64Word.create();
+  T[i] = X64Word.create();
 }
 
 /**
@@ -7190,14 +7672,14 @@ class SHA3Algo extends Hasher {
         }
 
         // Temporary values
-        const Tx = T$1[x];
+        const Tx = T[x];
         Tx.high = tMsw;
         Tx.low = tLsw;
       }
       for (let x = 0; x < 5; x += 1) {
         // Shortcuts
-        const Tx4 = T$1[(x + 4) % 5];
-        const Tx1 = T$1[(x + 1) % 5];
+        const Tx4 = T[(x + 4) % 5];
+        const Tx1 = T[(x + 1) % 5];
         const Tx1Msw = Tx1.high;
         const Tx1Lsw = Tx1.low;
 
@@ -7232,13 +7714,13 @@ class SHA3Algo extends Hasher {
         }
 
         // Transpose lanes
-        const TPiLane = T$1[PI_INDEXES[laneIndex]];
+        const TPiLane = T[PI_INDEXES[laneIndex]];
         TPiLane.high = tMsw;
         TPiLane.low = tLsw;
       }
 
       // Rho pi at x = y = 0
-      const T0 = T$1[0];
+      const T0 = T[0];
       const state0 = state[0];
       T0.high = state0.high;
       T0.low = state0.low;
@@ -7249,9 +7731,9 @@ class SHA3Algo extends Hasher {
           // Shortcuts
           const laneIndex = x + 5 * y;
           const lane = state[laneIndex];
-          const TLane = T$1[laneIndex];
-          const Tx1Lane = T$1[((x + 1) % 5) + 5 * y];
-          const Tx2Lane = T$1[((x + 2) % 5) + 5 * y];
+          const TLane = T[laneIndex];
+          const Tx1Lane = T[((x + 1) % 5) + 5 * y];
+          const Tx2Lane = T[((x + 2) % 5) + 5 * y];
 
           // Mix rows
           lane.high = TLane.high ^ (~Tx1Lane.high & Tx2Lane.high);
@@ -8737,180 +9219,6 @@ TripleDESAlgo.blockSize = 64 / 32;
 const TripleDES = BlockCipher._createHelper(TripleDESAlgo);
 
 // Reusable objects
-const S = [];
-const C_ = [];
-const G = [];
-
-function nextState() {
-  // Shortcuts
-  const X = this._X;
-  const C = this._C;
-
-  // Save old counter values
-  for (let i = 0; i < 8; i += 1) {
-    C_[i] = C[i];
-  }
-
-  // Calculate new counter values
-  C[0] = (C[0] + 0x4d34d34d + this._b) | 0;
-  C[1] = (C[1] + 0xd34d34d3 + ((C[0] >>> 0) < (C_[0] >>> 0) ? 1 : 0)) | 0;
-  C[2] = (C[2] + 0x34d34d34 + ((C[1] >>> 0) < (C_[1] >>> 0) ? 1 : 0)) | 0;
-  C[3] = (C[3] + 0x4d34d34d + ((C[2] >>> 0) < (C_[2] >>> 0) ? 1 : 0)) | 0;
-  C[4] = (C[4] + 0xd34d34d3 + ((C[3] >>> 0) < (C_[3] >>> 0) ? 1 : 0)) | 0;
-  C[5] = (C[5] + 0x34d34d34 + ((C[4] >>> 0) < (C_[4] >>> 0) ? 1 : 0)) | 0;
-  C[6] = (C[6] + 0x4d34d34d + ((C[5] >>> 0) < (C_[5] >>> 0) ? 1 : 0)) | 0;
-  C[7] = (C[7] + 0xd34d34d3 + ((C[6] >>> 0) < (C_[6] >>> 0) ? 1 : 0)) | 0;
-  this._b = (C[7] >>> 0) < (C_[7] >>> 0) ? 1 : 0;
-
-  // Calculate the g-values
-  for (let i = 0; i < 8; i += 1) {
-    const gx = X[i] + C[i];
-
-    // Construct high and low argument for squaring
-    const ga = gx & 0xffff;
-    const gb = gx >>> 16;
-
-    // Calculate high and low result of squaring
-    const gh = ((((ga * ga) >>> 17) + ga * gb) >>> 15) + gb * gb;
-    const gl = (((gx & 0xffff0000) * gx) | 0) + (((gx & 0x0000ffff) * gx) | 0);
-
-    // High XOR low
-    G[i] = gh ^ gl;
-  }
-
-  // Calculate new state values
-  X[0] = (G[0] + ((G[7] << 16) | (G[7] >>> 16)) + ((G[6] << 16) | (G[6] >>> 16))) | 0;
-  X[1] = (G[1] + ((G[0] << 8) | (G[0] >>> 24)) + G[7]) | 0;
-  X[2] = (G[2] + ((G[1] << 16) | (G[1] >>> 16)) + ((G[0] << 16) | (G[0] >>> 16))) | 0;
-  X[3] = (G[3] + ((G[2] << 8) | (G[2] >>> 24)) + G[1]) | 0;
-  X[4] = (G[4] + ((G[3] << 16) | (G[3] >>> 16)) + ((G[2] << 16) | (G[2] >>> 16))) | 0;
-  X[5] = (G[5] + ((G[4] << 8) | (G[4] >>> 24)) + G[3]) | 0;
-  X[6] = (G[6] + ((G[5] << 16) | (G[5] >>> 16)) + ((G[4] << 16) | (G[4] >>> 16))) | 0;
-  X[7] = (G[7] + ((G[6] << 8) | (G[6] >>> 24)) + G[5]) | 0;
-}
-
-/**
- * Rabbit stream cipher algorithm
- */
-class RabbitAlgo extends StreamCipher {
-  constructor(...args) {
-    super(...args);
-
-    this.blockSize = 128 / 32;
-    this.ivSize = 64 / 32;
-  }
-
-  _doReset() {
-    // Shortcuts
-    const K = this._key.words;
-    const { iv } = this.cfg;
-
-    // Swap endian
-    for (let i = 0; i < 4; i += 1) {
-      K[i] = (((K[i] << 8) | (K[i] >>> 24)) & 0x00ff00ff)
-        | (((K[i] << 24) | (K[i] >>> 8)) & 0xff00ff00);
-    }
-
-    // Generate initial state values
-    this._X = [
-      K[0], (K[3] << 16) | (K[2] >>> 16),
-      K[1], (K[0] << 16) | (K[3] >>> 16),
-      K[2], (K[1] << 16) | (K[0] >>> 16),
-      K[3], (K[2] << 16) | (K[1] >>> 16),
-    ];
-    const X = this._X;
-
-    // Generate initial counter values
-    this._C = [
-      (K[2] << 16) | (K[2] >>> 16), (K[0] & 0xffff0000) | (K[1] & 0x0000ffff),
-      (K[3] << 16) | (K[3] >>> 16), (K[1] & 0xffff0000) | (K[2] & 0x0000ffff),
-      (K[0] << 16) | (K[0] >>> 16), (K[2] & 0xffff0000) | (K[3] & 0x0000ffff),
-      (K[1] << 16) | (K[1] >>> 16), (K[3] & 0xffff0000) | (K[0] & 0x0000ffff),
-    ];
-    const C = this._C;
-
-    // Carry bit
-    this._b = 0;
-
-    // Iterate the system four times
-    for (let i = 0; i < 4; i += 1) {
-      nextState.call(this);
-    }
-
-    // Modify the counters
-    for (let i = 0; i < 8; i += 1) {
-      C[i] ^= X[(i + 4) & 7];
-    }
-
-    // IV setup
-    if (iv) {
-      // Shortcuts
-      const IV = iv.words;
-      const IV_0 = IV[0];
-      const IV_1 = IV[1];
-
-      // Generate four subvectors
-      const i0 = (((IV_0 << 8) | (IV_0 >>> 24)) & 0x00ff00ff)
-        | (((IV_0 << 24) | (IV_0 >>> 8)) & 0xff00ff00);
-      const i2 = (((IV_1 << 8) | (IV_1 >>> 24)) & 0x00ff00ff)
-        | (((IV_1 << 24) | (IV_1 >>> 8)) & 0xff00ff00);
-      const i1 = (i0 >>> 16) | (i2 & 0xffff0000);
-      const i3 = (i2 << 16) | (i0 & 0x0000ffff);
-
-      // Modify counter values
-      C[0] ^= i0;
-      C[1] ^= i1;
-      C[2] ^= i2;
-      C[3] ^= i3;
-      C[4] ^= i0;
-      C[5] ^= i1;
-      C[6] ^= i2;
-      C[7] ^= i3;
-
-      // Iterate the system four times
-      for (let i = 0; i < 4; i += 1) {
-        nextState.call(this);
-      }
-    }
-  }
-
-  _doProcessBlock(M, offset) {
-    const _M = M;
-
-    // Shortcut
-    const X = this._X;
-
-    // Iterate the system
-    nextState.call(this);
-
-    // Generate four keystream words
-    S[0] = X[0] ^ (X[5] >>> 16) ^ (X[3] << 16);
-    S[1] = X[2] ^ (X[7] >>> 16) ^ (X[5] << 16);
-    S[2] = X[4] ^ (X[1] >>> 16) ^ (X[7] << 16);
-    S[3] = X[6] ^ (X[3] >>> 16) ^ (X[1] << 16);
-
-    for (let i = 0; i < 4; i += 1) {
-      // Swap endian
-      S[i] = (((S[i] << 8) | (S[i] >>> 24)) & 0x00ff00ff)
-        | (((S[i] << 24) | (S[i] >>> 8)) & 0xff00ff00);
-
-      // Encrypt
-      _M[offset + i] ^= S[i];
-    }
-  }
-}
-
-/**
- * Shortcut functions to the cipher's object interface.
- *
- * @example
- *
- *     var ciphertext = CryptoJS.Rabbit.encrypt(message, key, cfg);
- *     var plaintext  = CryptoJS.Rabbit.decrypt(ciphertext, key, cfg);
- */
-const Rabbit = StreamCipher._createHelper(RabbitAlgo);
-
-// Reusable objects
 const S$1 = [];
 const C_$1 = [];
 const G$1 = [];
@@ -8964,13 +9272,9 @@ function nextState$1() {
 }
 
 /**
- * Rabbit stream cipher algorithm.
- *
- * This is a legacy version that neglected to convert the key to little-endian.
- * This error doesn't affect the cipher's security,
- * but it does affect its compatibility with other implementations.
+ * Rabbit stream cipher algorithm
  */
-class RabbitLegacyAlgo extends StreamCipher {
+class RabbitAlgo extends StreamCipher {
   constructor(...args) {
     super(...args);
 
@@ -8982,6 +9286,12 @@ class RabbitLegacyAlgo extends StreamCipher {
     // Shortcuts
     const K = this._key.words;
     const { iv } = this.cfg;
+
+    // Swap endian
+    for (let i = 0; i < 4; i += 1) {
+      K[i] = (((K[i] << 8) | (K[i] >>> 24)) & 0x00ff00ff)
+        | (((K[i] << 24) | (K[i] >>> 8)) & 0xff00ff00);
+    }
 
     // Generate initial state values
     this._X = [
@@ -9068,6 +9378,178 @@ class RabbitLegacyAlgo extends StreamCipher {
 
       // Encrypt
       _M[offset + i] ^= S$1[i];
+    }
+  }
+}
+
+/**
+ * Shortcut functions to the cipher's object interface.
+ *
+ * @example
+ *
+ *     var ciphertext = CryptoJS.Rabbit.encrypt(message, key, cfg);
+ *     var plaintext  = CryptoJS.Rabbit.decrypt(ciphertext, key, cfg);
+ */
+const Rabbit = StreamCipher._createHelper(RabbitAlgo);
+
+// Reusable objects
+const S = [];
+const C_ = [];
+const G = [];
+
+function nextState() {
+  // Shortcuts
+  const X = this._X;
+  const C = this._C;
+
+  // Save old counter values
+  for (let i = 0; i < 8; i += 1) {
+    C_[i] = C[i];
+  }
+
+  // Calculate new counter values
+  C[0] = (C[0] + 0x4d34d34d + this._b) | 0;
+  C[1] = (C[1] + 0xd34d34d3 + ((C[0] >>> 0) < (C_[0] >>> 0) ? 1 : 0)) | 0;
+  C[2] = (C[2] + 0x34d34d34 + ((C[1] >>> 0) < (C_[1] >>> 0) ? 1 : 0)) | 0;
+  C[3] = (C[3] + 0x4d34d34d + ((C[2] >>> 0) < (C_[2] >>> 0) ? 1 : 0)) | 0;
+  C[4] = (C[4] + 0xd34d34d3 + ((C[3] >>> 0) < (C_[3] >>> 0) ? 1 : 0)) | 0;
+  C[5] = (C[5] + 0x34d34d34 + ((C[4] >>> 0) < (C_[4] >>> 0) ? 1 : 0)) | 0;
+  C[6] = (C[6] + 0x4d34d34d + ((C[5] >>> 0) < (C_[5] >>> 0) ? 1 : 0)) | 0;
+  C[7] = (C[7] + 0xd34d34d3 + ((C[6] >>> 0) < (C_[6] >>> 0) ? 1 : 0)) | 0;
+  this._b = (C[7] >>> 0) < (C_[7] >>> 0) ? 1 : 0;
+
+  // Calculate the g-values
+  for (let i = 0; i < 8; i += 1) {
+    const gx = X[i] + C[i];
+
+    // Construct high and low argument for squaring
+    const ga = gx & 0xffff;
+    const gb = gx >>> 16;
+
+    // Calculate high and low result of squaring
+    const gh = ((((ga * ga) >>> 17) + ga * gb) >>> 15) + gb * gb;
+    const gl = (((gx & 0xffff0000) * gx) | 0) + (((gx & 0x0000ffff) * gx) | 0);
+
+    // High XOR low
+    G[i] = gh ^ gl;
+  }
+
+  // Calculate new state values
+  X[0] = (G[0] + ((G[7] << 16) | (G[7] >>> 16)) + ((G[6] << 16) | (G[6] >>> 16))) | 0;
+  X[1] = (G[1] + ((G[0] << 8) | (G[0] >>> 24)) + G[7]) | 0;
+  X[2] = (G[2] + ((G[1] << 16) | (G[1] >>> 16)) + ((G[0] << 16) | (G[0] >>> 16))) | 0;
+  X[3] = (G[3] + ((G[2] << 8) | (G[2] >>> 24)) + G[1]) | 0;
+  X[4] = (G[4] + ((G[3] << 16) | (G[3] >>> 16)) + ((G[2] << 16) | (G[2] >>> 16))) | 0;
+  X[5] = (G[5] + ((G[4] << 8) | (G[4] >>> 24)) + G[3]) | 0;
+  X[6] = (G[6] + ((G[5] << 16) | (G[5] >>> 16)) + ((G[4] << 16) | (G[4] >>> 16))) | 0;
+  X[7] = (G[7] + ((G[6] << 8) | (G[6] >>> 24)) + G[5]) | 0;
+}
+
+/**
+ * Rabbit stream cipher algorithm.
+ *
+ * This is a legacy version that neglected to convert the key to little-endian.
+ * This error doesn't affect the cipher's security,
+ * but it does affect its compatibility with other implementations.
+ */
+class RabbitLegacyAlgo extends StreamCipher {
+  constructor(...args) {
+    super(...args);
+
+    this.blockSize = 128 / 32;
+    this.ivSize = 64 / 32;
+  }
+
+  _doReset() {
+    // Shortcuts
+    const K = this._key.words;
+    const { iv } = this.cfg;
+
+    // Generate initial state values
+    this._X = [
+      K[0], (K[3] << 16) | (K[2] >>> 16),
+      K[1], (K[0] << 16) | (K[3] >>> 16),
+      K[2], (K[1] << 16) | (K[0] >>> 16),
+      K[3], (K[2] << 16) | (K[1] >>> 16),
+    ];
+    const X = this._X;
+
+    // Generate initial counter values
+    this._C = [
+      (K[2] << 16) | (K[2] >>> 16), (K[0] & 0xffff0000) | (K[1] & 0x0000ffff),
+      (K[3] << 16) | (K[3] >>> 16), (K[1] & 0xffff0000) | (K[2] & 0x0000ffff),
+      (K[0] << 16) | (K[0] >>> 16), (K[2] & 0xffff0000) | (K[3] & 0x0000ffff),
+      (K[1] << 16) | (K[1] >>> 16), (K[3] & 0xffff0000) | (K[0] & 0x0000ffff),
+    ];
+    const C = this._C;
+
+    // Carry bit
+    this._b = 0;
+
+    // Iterate the system four times
+    for (let i = 0; i < 4; i += 1) {
+      nextState.call(this);
+    }
+
+    // Modify the counters
+    for (let i = 0; i < 8; i += 1) {
+      C[i] ^= X[(i + 4) & 7];
+    }
+
+    // IV setup
+    if (iv) {
+      // Shortcuts
+      const IV = iv.words;
+      const IV_0 = IV[0];
+      const IV_1 = IV[1];
+
+      // Generate four subvectors
+      const i0 = (((IV_0 << 8) | (IV_0 >>> 24)) & 0x00ff00ff)
+        | (((IV_0 << 24) | (IV_0 >>> 8)) & 0xff00ff00);
+      const i2 = (((IV_1 << 8) | (IV_1 >>> 24)) & 0x00ff00ff)
+        | (((IV_1 << 24) | (IV_1 >>> 8)) & 0xff00ff00);
+      const i1 = (i0 >>> 16) | (i2 & 0xffff0000);
+      const i3 = (i2 << 16) | (i0 & 0x0000ffff);
+
+      // Modify counter values
+      C[0] ^= i0;
+      C[1] ^= i1;
+      C[2] ^= i2;
+      C[3] ^= i3;
+      C[4] ^= i0;
+      C[5] ^= i1;
+      C[6] ^= i2;
+      C[7] ^= i3;
+
+      // Iterate the system four times
+      for (let i = 0; i < 4; i += 1) {
+        nextState.call(this);
+      }
+    }
+  }
+
+  _doProcessBlock(M, offset) {
+    const _M = M;
+
+    // Shortcut
+    const X = this._X;
+
+    // Iterate the system
+    nextState.call(this);
+
+    // Generate four keystream words
+    S[0] = X[0] ^ (X[5] >>> 16) ^ (X[3] << 16);
+    S[1] = X[2] ^ (X[7] >>> 16) ^ (X[5] << 16);
+    S[2] = X[4] ^ (X[1] >>> 16) ^ (X[7] << 16);
+    S[3] = X[6] ^ (X[3] >>> 16) ^ (X[1] << 16);
+
+    for (let i = 0; i < 4; i += 1) {
+      // Swap endian
+      S[i] = (((S[i] << 8) | (S[i] >>> 24)) & 0x00ff00ff)
+        | (((S[i] << 24) | (S[i] >>> 8)) & 0xff00ff00);
+
+      // Encrypt
+      _M[offset + i] ^= S[i];
     }
   }
 }
@@ -9709,42 +10191,128 @@ class SecureModeCrypt {
     }
 }
 
+/* src\Modals\SecureModeGetPasswordModal\SecureModeGetPasswordModalContent.svelte generated by Svelte v3.37.0 */
+
+function create_fragment$1(ctx) {
+	let div;
+	let h2;
+	let t1;
+	let p;
+	let t3;
+	let label;
+	let input;
+	let t4;
+	let button;
+	let mounted;
+	let dispose;
+
+	return {
+		c() {
+			div = element("div");
+			h2 = element("h2");
+			h2.textContent = "Secure Mode";
+			t1 = space();
+			p = element("p");
+			p.textContent = "Please enter your password to continue.";
+			t3 = space();
+			label = element("label");
+			input = element("input");
+			t4 = space();
+			button = element("button");
+			button.textContent = "Submit";
+			attr(input, "type", "password");
+			set_style(button, "margin-left", "1rem");
+		},
+		m(target, anchor) {
+			insert(target, div, anchor);
+			append(div, h2);
+			append(div, t1);
+			append(div, p);
+			append(div, t3);
+			append(div, label);
+			append(label, input);
+			/*input_binding*/ ctx[2](input);
+			append(div, t4);
+			append(div, button);
+
+			if (!mounted) {
+				dispose = listen(button, "click", /*click_handler*/ ctx[3]);
+				mounted = true;
+			}
+		},
+		p: noop,
+		i: noop,
+		o: noop,
+		d(detaching) {
+			if (detaching) detach(div);
+			/*input_binding*/ ctx[2](null);
+			mounted = false;
+			dispose();
+		}
+	};
+}
+
+function instance$1($$self, $$props, $$invalidate) {
+	let passwordInput;
+	let { onSubmit } = $$props;
+
+	function input_binding($$value) {
+		binding_callbacks[$$value ? "unshift" : "push"](() => {
+			passwordInput = $$value;
+			$$invalidate(1, passwordInput);
+		});
+	}
+
+	const click_handler = () => onSubmit(passwordInput.value);
+
+	$$self.$$set = $$props => {
+		if ("onSubmit" in $$props) $$invalidate(0, onSubmit = $$props.onSubmit);
+	};
+
+	return [onSubmit, passwordInput, input_binding, click_handler];
+}
+
+class SecureModeGetPasswordModalContent extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$1, create_fragment$1, safe_not_equal, { onSubmit: 0 });
+	}
+}
+
 class SecureModeGetPasswordModal extends obsidian.Modal {
     constructor(app, plugin) {
         super(app);
         this._plugin = plugin;
+        this.waitForClose = new Promise((resolve) => (this.resolvePromise = resolve));
+        this.modalContent = new SecureModeGetPasswordModalContent({
+            target: this.contentEl,
+            props: {
+                onSubmit: (value) => this.onSubmit(value),
+            },
+        });
+        this.open();
     }
-    onOpen() {
-        let { contentEl } = this;
-        this.isOpen = true;
-        contentEl.createEl("h2", { text: "Secure Mode" });
-        contentEl.createEl("p", {
-            text: "Please enter your password to continue:",
-        });
-        let passwordInput = contentEl.createEl("input", { type: "password" });
-        let submitButton = contentEl.createEl("button", { text: "Submit" });
-        submitButton.addEventListener("click", () => {
-            if (passwordInput.value === "")
-                return;
-            try {
-                this.secureModeLogin(passwordInput.value);
-            }
-            catch (e) {
-                new obsidian.Notice("Wrong password.");
-            }
-            if (this._plugin.twitterHandler.isConnectedToTwitter) {
-                new obsidian.Notice("Successfully authenticated with Twitter!");
-                this.close();
-            }
-        });
+    onClose() {
+        super.onClose();
+        this.modalContent.$destroy();
+        this.resolvePromise();
+    }
+    onSubmit(value) {
+        if (value === "")
+            return;
+        try {
+            this.secureModeLogin(value);
+        }
+        catch (e) {
+            new obsidian.Notice("Wrong password.");
+        }
+        if (this._plugin.twitterHandler.isConnectedToTwitter) {
+            new obsidian.Notice("Successfully authenticated with Twitter!");
+            this.close();
+        }
     }
     secureModeLogin(password) {
         this._plugin.twitterHandler.connectToTwitter(SecureModeCrypt.decryptString(this._plugin.settings.apiKey, password), SecureModeCrypt.decryptString(this._plugin.settings.apiSecret, password), SecureModeCrypt.decryptString(this._plugin.settings.accessToken, password), SecureModeCrypt.decryptString(this._plugin.settings.accessTokenSecret, password));
-    }
-    onClose() {
-        let { contentEl } = this;
-        contentEl.empty();
-        this.isOpen = false;
     }
 }
 
@@ -10025,62 +10593,165 @@ class PostTweetModal extends obsidian.Modal {
     }
 }
 
+/* src\Modals\SecureModeSettingModal\SecureModeSettingModalContent.svelte generated by Svelte v3.37.0 */
+
+function create_fragment(ctx) {
+	let div1;
+	let h1;
+	let t1;
+	let p;
+	let t3;
+	let div0;
+	let t9;
+	let label;
+	let input;
+	let t10;
+	let button;
+	let t11_value = (/*enable*/ ctx[0] ? "Encrypt!" : "Decrypt!") + "";
+	let t11;
+	let mounted;
+	let dispose;
+
+	return {
+		c() {
+			div1 = element("div");
+			h1 = element("h1");
+			h1.textContent = "Secure Mode Settings";
+			t1 = space();
+			p = element("p");
+			p.textContent = "Please enter your password below and then click the button below.";
+			t3 = space();
+			div0 = element("div");
+
+			div0.innerHTML = `Help
+        <span class="tweetTooltipBody">Secure Mode enables you to encrypt your API keys with a password.
+            The password will be required to use the plugin while Secure Mode is enabled.<br/>
+            Your API keys will remain stored, but will be overwritten with the encrypted keys.
+            This means they will be unintelligible to anyone who doesn&#39;t know your password.<br/> 
+            <strong>Please do note that this plugin cannot check if your passwords decrypts your keys correctly!
+            This means you might have to re-enter your keys if the wrong password is entered.</strong></span>`;
+
+			t9 = space();
+			label = element("label");
+			input = element("input");
+			t10 = space();
+			button = element("button");
+			t11 = text(t11_value);
+			attr(div0, "class", "tweetTooltip");
+			set_style(div0, "float", "right");
+			attr(input, "type", "password");
+			set_style(button, "margin-left", "1rem");
+		},
+		m(target, anchor) {
+			insert(target, div1, anchor);
+			append(div1, h1);
+			append(div1, t1);
+			append(div1, p);
+			append(div1, t3);
+			append(div1, div0);
+			append(div1, t9);
+			append(div1, label);
+			append(label, input);
+			set_input_value(input, /*passwordInput*/ ctx[2]);
+			append(div1, t10);
+			append(div1, button);
+			append(button, t11);
+
+			if (!mounted) {
+				dispose = [
+					listen(input, "input", /*input_input_handler*/ ctx[3]),
+					listen(button, "click", /*click_handler*/ ctx[4])
+				];
+
+				mounted = true;
+			}
+		},
+		p(ctx, [dirty]) {
+			if (dirty & /*passwordInput*/ 4 && input.value !== /*passwordInput*/ ctx[2]) {
+				set_input_value(input, /*passwordInput*/ ctx[2]);
+			}
+
+			if (dirty & /*enable*/ 1 && t11_value !== (t11_value = (/*enable*/ ctx[0] ? "Encrypt!" : "Decrypt!") + "")) set_data(t11, t11_value);
+		},
+		i: noop,
+		o: noop,
+		d(detaching) {
+			if (detaching) detach(div1);
+			mounted = false;
+			run_all(dispose);
+		}
+	};
+}
+
+function instance($$self, $$props, $$invalidate) {
+	let { enable } = $$props;
+	let { onSubmit } = $$props;
+	let passwordInput;
+
+	function input_input_handler() {
+		passwordInput = this.value;
+		$$invalidate(2, passwordInput);
+	}
+
+	const click_handler = () => onSubmit(passwordInput);
+
+	$$self.$$set = $$props => {
+		if ("enable" in $$props) $$invalidate(0, enable = $$props.enable);
+		if ("onSubmit" in $$props) $$invalidate(1, onSubmit = $$props.onSubmit);
+	};
+
+	return [enable, onSubmit, passwordInput, input_input_handler, click_handler];
+}
+
+class SecureModeSettingModalContent extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance, create_fragment, safe_not_equal, { enable: 0, onSubmit: 1 });
+	}
+}
+
 class SecureModeModal extends obsidian.Modal {
     constructor(app, plugin, enable) {
         super(app);
         this.userPressedCrypt = false;
-        this._plugin = plugin;
-        this._enable = enable;
+        this.plugin = plugin;
+        this.enable = enable;
+        this.waitForResolve = new Promise((resolve) => (this.resolvePromise = resolve));
+        this.secureModeSettingModalContent = new SecureModeSettingModalContent({
+            target: this.contentEl,
+            props: {
+                enable: this.enable,
+                userPressedCrypt: this.userPressedCrypt,
+                onSubmit: (value) => this.onSubmit(value),
+            },
+        });
+        this.open();
     }
-    onOpen() {
-        let { contentEl } = this;
-        this.isOpen = true;
-        contentEl.createEl("h1", { text: "Secure Mode Settings" });
-        contentEl.createEl("p", {
-            text: "Please enter your password below and then click the button below.",
-        });
-        let passwordInput = contentEl.createEl("input", { type: "password" });
-        let hashButton = contentEl.createEl("button", {
-            text: `${this._enable ? "Encrypt!" : "Decrypt!"}`,
-        });
-        hashButton.style.marginLeft = "1rem";
-        hashButton.addEventListener("click", async () => {
-            let password = passwordInput.value;
-            this._enable
-                ? await this.encryptKeysWithPassword(password)
-                : await this.decryptKeysWithPassword(password);
-            this.userPressedCrypt = true;
-            this.close();
-        });
-        contentEl.createEl("h2", { text: "What is this?" }).style.marginBottom =
-            "0.5rem";
-        let explanation = contentEl.createEl("p");
-        explanation.innerHTML =
-            `Secure Mode enables you to encrypt your API keys with a password.<br>` +
-                `The password will be required to use the plugin - until you disable Secure Mode.<br>` +
-                `Your API keys will remain stored - but encrypted.<br>` +
-                `That means they will be unintelligible to anyone who doesn't know your password.<br>` +
-                `<strong>Please do note that this plugin cannot check if your passwords decrypts your keys correctly!</strong><br>` +
-                `<strong>This means you might have to re-enter your keys if they decrypt incorrectly.</strong>`;
+    async onSubmit(value) {
+        this.enable
+            ? await this.encryptKeysWithPassword(value)
+            : await this.decryptKeysWithPassword(value);
+        this.userPressedCrypt = true;
+        this.close();
     }
     onClose() {
-        let { contentEl } = this;
-        contentEl.empty();
-        this.isOpen = false;
+        super.onClose();
+        this.secureModeSettingModalContent.$destroy();
+        this.resolvePromise();
     }
     async encryptKeysWithPassword(password) {
-        this._plugin.settings.apiKey = SecureModeCrypt.encryptString(this._plugin.settings.apiKey, password);
-        this._plugin.settings.apiSecret = SecureModeCrypt.encryptString(this._plugin.settings.apiSecret, password);
-        this._plugin.settings.accessToken = SecureModeCrypt.encryptString(this._plugin.settings.accessToken, password);
-        this._plugin.settings.accessTokenSecret = SecureModeCrypt.encryptString(this._plugin.settings.accessTokenSecret, password);
-        await this._plugin.saveSettings();
+        this.plugin.settings.apiKey = SecureModeCrypt.encryptString(this.plugin.settings.apiKey, password);
+        this.plugin.settings.apiSecret = SecureModeCrypt.encryptString(this.plugin.settings.apiSecret, password);
+        this.plugin.settings.accessToken = SecureModeCrypt.encryptString(this.plugin.settings.accessToken, password);
+        this.plugin.settings.accessTokenSecret = SecureModeCrypt.encryptString(this.plugin.settings.accessTokenSecret, password);
+        await this.plugin.saveSettings();
     }
     async decryptKeysWithPassword(password) {
-        this._plugin.settings.apiKey = SecureModeCrypt.decryptString(this._plugin.settings.apiKey, password);
-        this._plugin.settings.apiSecret = SecureModeCrypt.decryptString(this._plugin.settings.apiSecret, password);
-        this._plugin.settings.accessToken = SecureModeCrypt.decryptString(this._plugin.settings.accessToken, password);
-        this._plugin.settings.accessTokenSecret = SecureModeCrypt.decryptString(this._plugin.settings.accessTokenSecret, password);
-        await this._plugin.saveSettings();
+        this.plugin.settings.apiKey = SecureModeCrypt.decryptString(this.plugin.settings.apiKey, password);
+        this.plugin.settings.apiSecret = SecureModeCrypt.decryptString(this.plugin.settings.apiSecret, password);
+        this.plugin.settings.accessToken = SecureModeCrypt.decryptString(this.plugin.settings.accessToken, password);
+        this.plugin.settings.accessTokenSecret = SecureModeCrypt.decryptString(this.plugin.settings.accessTokenSecret, password);
+        await this.plugin.saveSettings();
     }
 }
 
@@ -10126,21 +10797,14 @@ class NoteTweetSettingsTab extends obsidian.PluginSettingTab {
             if (value == this.plugin.settings.secureMode)
                 return;
             let secureModeModal = new SecureModeModal(this.app, this.plugin, value);
-            secureModeModal.open();
-            let doOnModalClose = async () => {
-                if (secureModeModal.isOpen) {
-                    setTimeout(await doOnModalClose, 200);
-                }
-                else {
-                    if (secureModeModal.userPressedCrypt) {
-                        this.plugin.settings.secureMode = value;
-                        await this.plugin.saveSettings();
-                    }
-                    toggle.setValue(this.plugin.settings.secureMode);
-                    this.display(); // To update api-key values displayed to user (visual feedback).
-                }
-            };
-            await doOnModalClose();
+            await secureModeModal.waitForResolve;
+            if (secureModeModal.userPressedCrypt) {
+                this.plugin.settings.secureMode = value;
+                await this.plugin.saveSettings();
+                this.display();
+            }
+            toggle.setValue(this.plugin.settings.secureMode);
+            this.display();
         }));
     }
     addTweetTagSetting() {
@@ -10272,6 +10936,16 @@ class NoteTweet extends obsidian.Plugin {
                 }
             },
         });
+        /*START.DEVCMD*/
+        this.addCommand({
+            id: 'reloadNoteTweet',
+            name: 'Reload NoteTweet (dev)',
+            callback: () => {
+                const id = this.manifest.id, plugins = this.app.plugins;
+                plugins.disablePlugin(id).then(() => plugins.enablePlugin(id));
+            },
+        });
+        /*END.DEVCMD*/
         this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
     }
     postTweetMode() {
@@ -10306,7 +10980,8 @@ class NoteTweet extends obsidian.Plugin {
         }
     }
     async postThreadInFile() {
-        let content = this.getCurrentDocumentContent(this.app);
+        const file = this.app.workspace.getActiveFile();
+        let content = await this.getFileContent(file);
         let threadContent;
         try {
             threadContent = this.parseThreadFromText(content);
@@ -10318,8 +10993,10 @@ class NoteTweet extends obsidian.Plugin {
         try {
             let postedTweets = await this.twitterHandler.postThread(threadContent);
             let postedModal = new TweetsPostedModal(this.app, postedTweets, this.twitterHandler);
-            postedModal.open();
-            await this.appendTagOnModalClose(postedTweets, postedModal);
+            await postedModal.waitForClose;
+            if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
+                postedTweets.forEach((tweet) => this.appendPostTweetTag(tweet.text));
+            }
         }
         catch (e) {
             new TweetErrorModal(this.app, e.data || e).open();
@@ -10333,8 +11010,10 @@ class NoteTweet extends obsidian.Plugin {
             try {
                 let tweet = await this.twitterHandler.postTweet(selection);
                 let postedModal = new TweetsPostedModal(this.app, [tweet], this.twitterHandler);
-                postedModal.open();
-                await this.appendTagOnModalClose([tweet], postedModal);
+                await postedModal.waitForClose;
+                if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
+                    this.appendPostTweetTag(tweet.text);
+                }
             }
             catch (e) {
                 new TweetErrorModal(this.app, e.data || e).open();
@@ -10344,31 +11023,21 @@ class NoteTweet extends obsidian.Plugin {
             new TweetErrorModal(this.app, "nothing selected.").open();
         }
     }
-    async appendTagOnModalClose(postedTweets, postedModal) {
-        let doOnModalClose = async () => {
-            if (postedModal.waitForClose) {
-                setTimeout(await doOnModalClose, 200);
-            }
-            else if (!postedModal.waitForClose) {
-                if (!postedModal.userDeletedTweets && this.settings.postTweetTag)
-                    postedTweets.forEach((tweet) => this.appendPostTweetTag(tweet.text));
-            }
-        };
-        await doOnModalClose();
-    }
     async secureModeProxy(callback) {
         if (!(this.settings.secureMode && !this.twitterHandler.isConnectedToTwitter))
             return;
         let modal = new SecureModeGetPasswordModal(this.app, this);
-        modal.open();
-        let retryConnection = async () => {
-            if (!this.twitterHandler.isConnectedToTwitter && modal.isOpen)
-                setTimeout(async () => await retryConnection(), 200);
-            // Duration was arbitrarily selected.
-            else if (this.twitterHandler.isConnectedToTwitter)
+        modal.waitForClose
+            .then(async () => {
+            if (this.twitterHandler.isConnectedToTwitter)
                 await callback();
-        };
-        await retryConnection();
+            else
+                new obsidian.Notice("Could not connect to Twitter");
+        })
+            .catch(() => {
+            modal.close();
+            new obsidian.Notice("Could not connect to Twitter.");
+        });
     }
     onunload() {
         console.log(UNLOAD_MESSAGE);
@@ -10379,11 +11048,10 @@ class NoteTweet extends obsidian.Plugin {
     async saveSettings() {
         await this.saveData(this.settings);
     }
-    getCurrentDocumentContent(app) {
-        let active_view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        let editor = active_view.sourceMode.cmEditor;
-        let doc = editor.getDoc();
-        return doc.getValue();
+    async getFileContent(file) {
+        if (file.extension != "md")
+            return null;
+        return await this.app.vault.read(file);
     }
     // All threads start with THREAD START and ends with THREAD END. To separate tweets in a thread,
     // one should use use a newline and '---' (this prevents markdown from believing the above tweet is a heading).
@@ -10405,14 +11073,11 @@ class NoteTweet extends obsidian.Plugin {
         }
         return content.map((txt) => txt.trim());
     }
-    appendPostTweetTag(selection) {
-        let editor = this.app.workspace.getActiveViewOfType(obsidian.MarkdownView).sourceMode
-            .cmEditor;
-        let doc = editor.getDoc();
-        let pageContent = this.getCurrentDocumentContent(this.app);
+    async appendPostTweetTag(selection) {
+        const currentFile = this.app.workspace.getActiveFile();
+        let pageContent = await this.getFileContent(currentFile);
         pageContent = pageContent.replace(selection.trim(), `${selection.trim()} ${this.settings.postTweetTag}`);
-        doc.setValue(pageContent);
-        editor.focus();
+        await this.app.vault.modify(currentFile, pageContent);
     }
 }
 
