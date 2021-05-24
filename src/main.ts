@@ -87,6 +87,10 @@ export default class NoteTweet extends Plugin {
     });
     /*END.DEVCMD*/
 
+    this.registerObsidianProtocolHandler("notetweet", params => {
+      console.log(params);
+    })
+
     this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
   }
 
