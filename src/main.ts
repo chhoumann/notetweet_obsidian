@@ -91,8 +91,14 @@ export default class NoteTweet extends Plugin {
   }
 
   private postTweetMode() {
-    let view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    let editor = view.sourceMode.cmEditor;
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    let editor;
+
+    if (view instanceof MarkdownView) {
+      editor = view.editor;
+    } else {
+      return;
+    }
 
     if (editor.somethingSelected()) {
       let selection = editor.getSelection();
@@ -157,8 +163,14 @@ export default class NoteTweet extends Plugin {
   }
 
   private async postSelectedTweet() {
-    let view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    let editor = view.sourceMode.cmEditor;
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    let editor;
+
+    if (view instanceof MarkdownView) {
+      editor = view.editor;
+    } else {
+      return;
+    }
 
     if (editor.somethingSelected()) {
       let selection: string = editor.getSelection();
@@ -173,7 +185,7 @@ export default class NoteTweet extends Plugin {
 
         await postedModal.waitForClose;
         if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
-          this.appendPostTweetTag(tweet.text);
+          await this.appendPostTweetTag(tweet.text);
         }
       } catch (e) {
         new TweetErrorModal(this.app, e.data || e).open();

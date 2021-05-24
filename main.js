@@ -10949,8 +10949,14 @@ class NoteTweet extends obsidian.Plugin {
         this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
     }
     postTweetMode() {
-        let view = this.app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        let editor = view.sourceMode.cmEditor;
+        const view = this.app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        let editor;
+        if (view instanceof obsidian.MarkdownView) {
+            editor = view.editor;
+        }
+        else {
+            return;
+        }
         if (editor.somethingSelected()) {
             let selection = editor.getSelection();
             try {
@@ -11003,8 +11009,14 @@ class NoteTweet extends obsidian.Plugin {
         }
     }
     async postSelectedTweet() {
-        let view = this.app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        let editor = view.sourceMode.cmEditor;
+        const view = this.app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        let editor;
+        if (view instanceof obsidian.MarkdownView) {
+            editor = view.editor;
+        }
+        else {
+            return;
+        }
         if (editor.somethingSelected()) {
             let selection = editor.getSelection();
             try {
@@ -11012,7 +11024,7 @@ class NoteTweet extends obsidian.Plugin {
                 let postedModal = new TweetsPostedModal(this.app, [tweet], this.twitterHandler);
                 await postedModal.waitForClose;
                 if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
-                    this.appendPostTweetTag(tweet.text);
+                    await this.appendPostTweetTag(tweet.text);
                 }
             }
             catch (e) {
