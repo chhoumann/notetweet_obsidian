@@ -1,11 +1,11 @@
 {
   "name": "notetweet",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Post tweets from Obsidian",
   "main": "src/main.js",
   "scripts": {
     "dev": "rollup --config rollup.config.js -w",
-    "build": "svelte-check && rollup --config rollup.config.js",
+    "build": "svelte-check && rollup --config rollup.config.js --environment BUILD:production",
     "format": "prettier --write src/**/*",
     "lint": "prettier --check src/**/*"
   },
@@ -27,6 +27,7 @@
     "prettier-plugin-svelte": "2.2.0",
     "rollup": "^2.32.1",
     "rollup-plugin-copy": "3.4.0",
+    "rollup-plugin-strip-code": "0.2.7",
     "rollup-plugin-svelte": "7.1.0",
     "standard-version": "9.1.1",
     "svelte": "3.37.0",

@@ -3,6 +3,7 @@ import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import svelte from "rollup-plugin-svelte";
 import autoPreprocess from "svelte-preprocess";
+import stripCode from "rollup-plugin-strip-code";
 
 const path = ".";
 export default {
@@ -21,5 +22,9 @@ export default {
     typescript(),
     resolve({ browser: true, dedupe: ["svelte"] }),
     commonjs({ include: "node_modules/**" }),
+    process.env["BUILD"] ? stripCode({
+      start_comment: 'START.DEVCMD',
+      end_comment: 'END.DEVCMD'
+    }) : null
   ],
 };
