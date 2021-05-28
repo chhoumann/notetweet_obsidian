@@ -18,7 +18,7 @@ export default class NoteTweet extends Plugin {
     console.log(WELCOME_MESSAGE);
 
     await this.loadSettings();
-    this.twitterHandler = new TwitterHandler();
+    this.twitterHandler = new TwitterHandler(this);
     this.connectToTwitterWithPlainSettings();
 
     this.addCommand({
