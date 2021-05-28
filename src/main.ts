@@ -18,7 +18,7 @@ export default class NoteTweet extends Plugin {
     console.log(WELCOME_MESSAGE);
 
     await this.loadSettings();
-    this.twitterHandler = new TwitterHandler();
+    this.twitterHandler = new TwitterHandler(this);
     this.connectToTwitterWithPlainSettings();
 
     this.addCommand({
@@ -86,6 +86,10 @@ export default class NoteTweet extends Plugin {
       },
     });
     /*END.DEVCMD*/
+
+    this.registerObsidianProtocolHandler("notetweet", params => {
+      console.log(params);
+    })
 
     this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
   }
