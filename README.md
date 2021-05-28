@@ -10,7 +10,8 @@ This plugin allows you to post tweets directly from Obsidian.
 - Automatically appends a tag to your tweet (to keep track of what you've posted)
 - **Secure mode** - encrypts your API keys such that they can only be accessed with a password.
 - Delete tweet/thread that was just posted (undo)
-- Post Tweet Mode
+- Post Tweet Mode - a modal dedicated to writing tweets and threads.
+- Images are supported - just include a `[[link]]` to your images!
 
 
 Feel free to recommend features!
