@@ -11,7 +11,7 @@ export class TweetErrorModal extends Modal {
   onOpen() {
     let { contentEl } = this;
 
-    contentEl.setText(`Post failed: ${this.errorMessage}`);
+    contentEl.setText(`NoteTweet: ${this.errorMessage}`);
   }
 
   onClose() {

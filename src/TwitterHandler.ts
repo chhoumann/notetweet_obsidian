@@ -1,5 +1,6 @@
 import { StatusesUpdate, TwitterClient } from "twitter-api-client";
 import NoteTweet from "./main";
+import {log} from "./ErrorModule/logManager";
 
 export class TwitterHandler {
   private twitterClient: TwitterClient;
@@ -76,6 +77,8 @@ export class TwitterHandler {
       if (media_id) {
         media_ids.push(media_id.media_id_string);
         processedTweet = processedTweet.replace(this.IMAGE_REGEX, "");
+      } else {
+        log.logWarning(`image '${fileName}' found but could not upload it to Twitter. Data is null/undefined: ${!!media_data}.`);
       }
     }
 
@@ -90,7 +93,8 @@ export class TwitterHandler {
         });
 
       return true;
-    } catch {
+    } catch(e) {
+      log.logError(`error in deleting tweets. ${e}`);
       return false;
     }
   }

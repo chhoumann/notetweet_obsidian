@@ -147,7 +147,7 @@ export default class NoteTweet extends Plugin {
     try {
       threadContent = this.parseThreadFromText(content);
     } catch (e) {
-      new TweetErrorModal(this.app, e).open();
+      log.logError(`error in parsing thread in file ${file?.name}. ${e}`);
       return;
     }
 
@@ -164,7 +164,7 @@ export default class NoteTweet extends Plugin {
         postedTweets.forEach((tweet) => this.appendPostTweetTag(tweet.text));
       }
     } catch (e) {
-      new TweetErrorModal(this.app, e.data || e).open();
+      log.logError(`failed attempted to post tweets. ${e}`);
     }
   }
 
@@ -194,10 +194,10 @@ export default class NoteTweet extends Plugin {
           await this.appendPostTweetTag(tweet.text);
         }
       } catch (e) {
-        new TweetErrorModal(this.app, e.data || e).open();
+        log.logError(`failed attempt to post selected. ${e}`);
       }
     } else {
-      new TweetErrorModal(this.app, "nothing selected.").open();
+      log.logWarning(`tried to post selected but nothing was selected.`)
     }
   }
 
@@ -212,11 +212,11 @@ export default class NoteTweet extends Plugin {
     modal.waitForClose
       .then(async () => {
         if (this.twitterHandler.isConnectedToTwitter) await callback();
-        else new Notice("Could not connect to Twitter");
+        else log.logWarning("could not connect to Twitter");
       })
       .catch(() => {
         modal.close();
-        new Notice("Could not connect to Twitter.");
+        log.logWarning("could not connect to Twitter.");
       });
   }
 

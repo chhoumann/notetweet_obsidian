@@ -2,6 +2,7 @@ import { App, Modal, Notice } from "obsidian";
 import { TwitterHandler } from "../TwitterHandler";
 import { TweetsPostedModal } from "./TweetsPostedModal/TweetsPostedModal";
 import { TweetErrorModal } from "./TweetErrorModal";
+import {log} from "../ErrorModule/logManager";
 
 export class PostTweetModal extends Modal {
   private readonly twitterHandler: TwitterHandler;
@@ -42,7 +43,7 @@ export class PostTweetModal extends Modal {
 
       this.createTweetButton(contentEl);
     } catch (e) {
-      new Notice(e);
+      log.logWarning(e);
       this.close();
       return;
     }
@@ -78,7 +79,7 @@ export class PostTweetModal extends Modal {
 
         tempTextarea.style.height = tempTextarea.scrollHeight + "px";
       } catch (e) {
-        new Notice(e);
+        log.logWarning(e);
         return;
       }
     });
@@ -192,7 +193,7 @@ export class PostTweetModal extends Modal {
         try {
           this.createTextarea(textZone);
         } catch (e) {
-          new Notice(e);
+          log.logWarning(e);
           return;
         }
       }
@@ -202,7 +203,7 @@ export class PostTweetModal extends Modal {
         try {
           this.createTextarea(textZone);
         } catch (e) {
-          new Notice(e);
+          log.logWarning(e);
           return;
         }
       }
@@ -320,7 +321,7 @@ export class PostTweetModal extends Modal {
           (txt) => txt.length > this.MAX_TWEET_LENGTH || txt == ""
         ) != null
       ) {
-        new Notice("At least one of your tweets is too long or empty.");
+        log.logWarning("At least one of your tweets is too long or empty.");
         return;
       }
 
@@ -333,7 +334,7 @@ export class PostTweetModal extends Modal {
         );
         postedModal.open();
       } catch (e) {
-        new TweetErrorModal(this.app, e.data || e).open();
+        log.logError(`unable to post tweet. ${e}`);
       }
 
       this.close();
@@ -354,7 +355,7 @@ export class PostTweetModal extends Modal {
 
       return { tweet: insertedTweet, index: insertAboveIndex };
     } catch (e) {
-      new Notice(e);
+      log.logWarning(e);
       return;
     }
   }
@@ -374,7 +375,7 @@ export class PostTweetModal extends Modal {
 
       return insertedTextarea;
     } catch (e) {
-      new Notice(e);
+      log.logWarning(e);
     }
   }
 
@@ -387,28 +388,4 @@ export class PostTweetModal extends Modal {
     this.textAreas[insertedIndex].value = "";
     this.textAreas[insertedIndex].focus();
   }
-
-  /*    private insertTweetBelowWithText(textarea: HTMLTextAreaElement, textZone: HTMLDivElement, insertText: string){
-        // Insert tweet, assign to var. Pass that var in again.
-        // It'll be reverse order if I don't insert below each one. For inserting above, you can just insert as you normally would.
-        if (insertText.length > this.MAX_TWEET_LENGTH) {
-            let sliced = this.textInputHandler(insertText); // First, make sure the text is sized correctly.
-            let tweet: HTMLTextAreaElement = textarea;
-
-            let tweetIndex = this.insertTweetBelow(tweet, textZone);
-            tweet = this.textAreas[tweetIndex];
-            this.insertTweetBelowWithText(tweet, textZone, sliced.slice(1).join());
-
-            // sliced.forEach(chunk => {
-            //     console.log("!!!!")
-            //     let x = this.insertTweetBelow(tweet, textZone);
-            //     tweet = x.insertedTweet;
-            //     tweet.value = chunk;
-            // });
-        }
-        else {
-            let {insertedTweet, insertedIndex} = this.insertTweetBelow(textarea, textZone);
-            this.textAreas[insertedIndex].value = insertText;
-        }
-    }*/
 }
