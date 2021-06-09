@@ -5,6 +5,9 @@ import {TweetsPostedModal} from "./Modals/TweetsPostedModal/TweetsPostedModal";
 import {TweetErrorModal} from "./Modals/TweetErrorModal";
 import {SecureModeGetPasswordModal} from "./Modals/SecureModeGetPasswordModal/SecureModeGetPasswordModal";
 import {PostTweetModal} from "./Modals/PostTweetModal";
+import {log} from "./ErrorModule/logManager";
+import {ConsoleErrorLogger} from "./ErrorModule/consoleErrorLogger";
+import {GuiLogger} from "./ErrorModule/guiLogger";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
@@ -87,9 +90,8 @@ export default class NoteTweet extends Plugin {
     });
     /*END.DEVCMD*/
 
-    this.registerObsidianProtocolHandler("notetweet", params => {
-      console.log(params);
-    })
+    log.register(new ConsoleErrorLogger())
+        .register(new GuiLogger(this));
 
     this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
   }
