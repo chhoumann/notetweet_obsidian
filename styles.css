@@ -69,3 +69,23 @@ textarea:focus {
     background-color: #4BB543 !important;
     color: white !important;
 }
+
+.cronStringRow {
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.scheduledTweetsContainer {
+    display: grid;
+}
+
+.scheduledTweet {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: space-between;
+    padding-bottom: 1em;
+    padding-top: 1em;
+    border-bottom: 1px solid black;
+}

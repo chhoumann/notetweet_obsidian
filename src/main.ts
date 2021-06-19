@@ -1,4 +1,4 @@
-import {MarkdownView, Notice, Plugin, TFile} from "obsidian";
+import {debounce, Editor, MarkdownView, Notice, Plugin, TFile} from "obsidian";
 import {TwitterHandler} from "./TwitterHandler";
 import {DEFAULT_SETTINGS, NoteTweetSettings, NoteTweetSettingsTab,} from "./settings";
 import {TweetsPostedModal} from "./Modals/TweetsPostedModal/TweetsPostedModal";
@@ -8,12 +8,15 @@ import {PostTweetModal} from "./Modals/PostTweetModal";
 import {log} from "./ErrorModule/logManager";
 import {ConsoleErrorLogger} from "./ErrorModule/consoleErrorLogger";
 import {GuiLogger} from "./ErrorModule/guiLogger";
+import {NoteTweetScheduler} from "./scheduling/NoteTweetScheduler";
+import {SelfHostedScheduler} from "./scheduling/SelfHostedScheduler";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
 
 export default class NoteTweet extends Plugin {
   settings: NoteTweetSettings;
+  scheduler: NoteTweetScheduler;
 
   public twitterHandler: TwitterHandler;
 
@@ -94,35 +97,37 @@ export default class NoteTweet extends Plugin {
         .register(new GuiLogger(this));
 
     this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
+
+    if (this.settings.scheduling.enabled) {
+      this.scheduler = new SelfHostedScheduler(this.settings.scheduling.url, this.settings.scheduling.password);
+    }
   }
 
   private postTweetMode() {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    let editor;
+    let editor: Editor;
 
     if (view instanceof MarkdownView) {
       editor = view.editor;
-    } else {
-      return;
     }
 
-    if (editor.somethingSelected()) {
+    if (editor?.somethingSelected()) {
       let selection = editor.getSelection();
 
       try {
         selection = this.parseThreadFromText(selection).join("--nt_sep--");
-        new PostTweetModal(this.app, this.twitterHandler, {
+        new PostTweetModal(this.app, this.twitterHandler, this.scheduler, {
           text: selection,
           thread: true,
         }).open();
       } catch {
-        new PostTweetModal(this.app, this.twitterHandler, {
+        new PostTweetModal(this.app, this.twitterHandler, this.scheduler, {
           text: selection,
           thread: false,
         }).open();
       } // Intentionally suppressing exceptions. They're expected.
     } else {
-      new PostTweetModal(this.app, this.twitterHandler).open();
+      new PostTweetModal(this.app, this.twitterHandler, this.scheduler).open();
     }
   }
 
@@ -230,7 +235,15 @@ export default class NoteTweet extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+
+    if (this.settings.scheduling.enabled) {
+        await this.updateSchedulerSettings();
+    }
   }
+
+  private updateSchedulerSettings: () => void = debounce(async () => {
+    await this.scheduler.updateSchedule(this.settings.scheduling.cronStrings);
+  }, 10000, true);
 
   async getFileContent(file: TFile): Promise<string> {
     if (file.extension != "md") return null;

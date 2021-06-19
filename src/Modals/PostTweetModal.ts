@@ -1,11 +1,14 @@
-import { App, Modal, Notice } from "obsidian";
+import {App, Modal, Notice} from "obsidian";
 import { TwitterHandler } from "../TwitterHandler";
 import { TweetsPostedModal } from "./TweetsPostedModal/TweetsPostedModal";
-import { TweetErrorModal } from "./TweetErrorModal";
 import {log} from "../ErrorModule/logManager";
+import {NoteTweetScheduler} from "../scheduling/NoteTweetScheduler";
+import {ITweet} from "../Types/ITweet";
+import {Tweet} from "../Types/Tweet";
 
 export class PostTweetModal extends Modal {
   private readonly twitterHandler: TwitterHandler;
+  private readonly scheduler: NoteTweetScheduler;
   private readonly selectedText: { text: string; thread: boolean };
   private textAreas: HTMLTextAreaElement[] = [];
   private readonly MAX_TWEET_LENGTH: number = 280;
@@ -16,11 +19,13 @@ export class PostTweetModal extends Modal {
   constructor(
     app: App,
     twitterHandler: TwitterHandler,
-    selection?: { text: string; thread: boolean }
+    scheduler: NoteTweetScheduler,
+    selection?: { text: string; thread: boolean },
   ) {
     super(app);
     this.selectedText = selection ?? { text: "", thread: false };
     this.twitterHandler = twitterHandler;
+    this.scheduler = scheduler;
   }
 
   onOpen() {
@@ -42,6 +47,7 @@ export class PostTweetModal extends Modal {
       );
 
       this.createTweetButton(contentEl);
+      this.createScheduleButton(contentEl);
     } catch (e) {
       log.logWarning(e);
       this.close();
@@ -312,6 +318,13 @@ export class PostTweetModal extends Modal {
     postButton.addEventListener("click", this.postTweets());
   }
 
+  private createScheduleButton(contentEl: HTMLElement) {
+    const scheduleButton = contentEl.createEl('button', {text: 'Schedule'});
+    scheduleButton.addClass("postTweetButton");
+
+    scheduleButton.addEventListener('click', this.scheduleTweets());
+  }
+
   private postTweets() {
     return async () => {
       let threadContent = this.textAreas.map((textarea) => textarea.value);
@@ -339,6 +352,31 @@ export class PostTweetModal extends Modal {
 
       this.close();
     };
+  }
+
+  scheduleTweets() {
+    return async () => {
+      let threadContent = this.textAreas.map((textarea) => textarea.value);
+
+      if (
+        threadContent.find(
+          (txt) => txt.length > this.MAX_TWEET_LENGTH || txt == ""
+        ) != null
+      ) {
+        log.logWarning("At least one of your tweets is too long or empty.");
+        return;
+      }
+
+      try {
+        const tweet: ITweet = new Tweet(threadContent);
+        let postedTweets = await this.scheduler.scheduleTweet(tweet);
+        new Notice(`Scheduled ${tweet.content.length} tweets.`);
+      } catch (e) {
+        log.logError(`unable to schedule tweet. ${e}`);
+      }
+
+      this.close();
+    }
   }
 
   private insertTweetAbove(

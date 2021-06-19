@@ -1,6 +1,7 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import {App, ButtonComponent, PluginSettingTab, Setting, TextComponent} from "obsidian";
 import NoteTweet from "./main";
 import { SecureModeModal } from "./Modals/SecureModeSettingModal/SecureModeModal";
+import {ScheduledTweetsModal} from "./Modals/ScheduledTweetsModal";
 
 export interface NoteTweetSettings {
   apiKey: string;
@@ -9,6 +10,7 @@ export interface NoteTweetSettings {
   accessTokenSecret: string;
   postTweetTag: string;
   secureMode: boolean;
+  scheduling: {enabled: boolean, url: string, password: string, cronStrings: string[]};
 }
 
 export const DEFAULT_SETTINGS: NoteTweetSettings = Object.freeze({
@@ -18,6 +20,7 @@ export const DEFAULT_SETTINGS: NoteTweetSettings = Object.freeze({
   accessTokenSecret: "",
   postTweetTag: "",
   secureMode: false,
+  scheduling: {enabled: false, url: "", password: "", cronStrings: []},
 });
 
 export class NoteTweetSettingsTab extends PluginSettingTab {
@@ -51,6 +54,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     this.addAccessTokenSecretSetting();
     this.addTweetTagSetting();
     this.addSecureModeSetting();
+    this.addSchedulerSetting();
   }
 
   private addSecureModeSetting() {
@@ -168,4 +172,90 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
           })
       );
   }
+
+    private addSchedulerSetting() {
+        new Setting(this.containerEl)
+            .setName("Scheduling")
+            .setDesc("Enable scheduling tweets. This will require some setup!")
+            .addToggle(toggle =>
+                toggle.setTooltip('Toggle tweet scheduling')
+                    .setValue(this.plugin.settings?.scheduling.enabled)
+                    .onChange(async value => {
+                        this.plugin.settings.scheduling.enabled = value;
+                        await this.plugin.saveSettings();
+                        this.display();
+                    })
+            );
+
+        new Setting(this.containerEl)
+            .setName('Scheduled tweets')
+            .addButton(button => button
+                .setButtonText("Open")
+                .onClick(async () => {
+                    new ScheduledTweetsModal(this.app, this.plugin.scheduler).open();
+                }));
+
+        if (this.plugin.settings?.scheduling.enabled) {
+            new Setting(this.containerEl)
+            .setName("Scheduler URL")
+            .setDesc("Endpoint URL")
+            .addText(text =>
+                text.setPlaceholder("Scheduler URL")
+                    .setValue(this.plugin.settings?.scheduling.url)
+                    .onChange(async value => {
+                        this.plugin.settings.scheduling.url = value;
+                        await this.plugin.saveSettings();
+                    })
+            );
+
+            new Setting(this.containerEl)
+                .setName("Scheduler password")
+                .setDesc("Password set for the scheduler")
+                .addText(text =>
+                    text.setPlaceholder('Password')
+                        .setValue(this.plugin.settings?.scheduling.password)
+                        .onChange(async value => {
+                            this.plugin.settings.scheduling.password = value;
+                            await this.plugin.saveSettings();
+                        })
+                );
+
+            const cronStringDiv: HTMLDivElement = this.containerEl.createDiv('cronStringContainer');
+            cronStringDiv.createEl('h3', {text: "Cron Strings - Schedule"});
+            const helperSpan = cronStringDiv.createEl('span');
+            helperSpan.innerHTML = "Cron strings can be confusing. Take this: <a href='https://crontab.guru'>Crontab.guru</a>!";
+            this.plugin.settings?.scheduling?.cronStrings.forEach((cronString, index) => {
+                this.spawnCronStringRowSetting(cronString, index, cronStringDiv);
+            });
+
+            const addCronStringButton: ButtonComponent = new ButtonComponent(this.containerEl);
+            addCronStringButton.setButtonText("Add Cron String")
+                .onClick(async () => {
+                    this.plugin.settings?.scheduling.cronStrings.push("");
+                    await this.plugin.saveSettings();
+
+                    this.display();
+                });
+            addCronStringButton.buttonEl.style.float = "right";
+        }
+    }
+
+    private spawnCronStringRowSetting(cronString: string, index: number, container: HTMLDivElement) {
+        const rowContainer: HTMLDivElement = container.createDiv('cronStringRow');
+        const textComponent: TextComponent = new TextComponent(rowContainer)
+            .setPlaceholder('* * * * *')
+            .setValue(cronString)
+            .onChange(async value => {
+                this.plugin.settings.scheduling.cronStrings[index] = value;
+                await this.plugin.saveSettings();
+            });
+
+        const deleteButton: ButtonComponent = new ButtonComponent(rowContainer);
+        deleteButton.setButtonText("Delete")
+            .onClick(async () =>{
+               this.plugin.settings.scheduling.cronStrings.splice(index, 1);
+               await this.plugin.saveSettings();
+               this.display();
+            });
+    }
 }
