@@ -219,43 +219,6 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                             await this.plugin.saveSettings();
                         })
                 );
-
-            const cronStringDiv: HTMLDivElement = this.containerEl.createDiv('cronStringContainer');
-            cronStringDiv.createEl('h3', {text: "Cron Strings - Schedule"});
-            const helperSpan = cronStringDiv.createEl('span');
-            helperSpan.innerHTML = "Cron strings can be confusing. Take this: <a href='https://crontab.guru'>Crontab.guru</a>!";
-            this.plugin.settings?.scheduling?.cronStrings.forEach((cronString, index) => {
-                this.spawnCronStringRowSetting(cronString, index, cronStringDiv);
-            });
-
-            const addCronStringButton: ButtonComponent = new ButtonComponent(this.containerEl);
-            addCronStringButton.setButtonText("Add Cron String")
-                .onClick(async () => {
-                    this.plugin.settings?.scheduling.cronStrings.push("");
-                    await this.plugin.saveSettings();
-
-                    this.display();
-                });
-            addCronStringButton.buttonEl.style.float = "right";
         }
-    }
-
-    private spawnCronStringRowSetting(cronString: string, index: number, container: HTMLDivElement) {
-        const rowContainer: HTMLDivElement = container.createDiv('cronStringRow');
-        const textComponent: TextComponent = new TextComponent(rowContainer)
-            .setPlaceholder('* * * * *')
-            .setValue(cronString)
-            .onChange(async value => {
-                this.plugin.settings.scheduling.cronStrings[index] = value;
-                await this.plugin.saveSettings();
-            });
-
-        const deleteButton: ButtonComponent = new ButtonComponent(rowContainer);
-        deleteButton.setButtonText("Delete")
-            .onClick(async () =>{
-               this.plugin.settings.scheduling.cronStrings.splice(index, 1);
-               await this.plugin.saveSettings();
-               this.display();
-            });
     }
 }

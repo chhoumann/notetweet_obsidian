@@ -99,7 +99,7 @@ export default class NoteTweet extends Plugin {
     this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
 
     if (this.settings.scheduling.enabled) {
-      this.scheduler = new SelfHostedScheduler(this.settings.scheduling.url, this.settings.scheduling.password);
+      this.scheduler = new SelfHostedScheduler(this.app, this.settings.scheduling.url, this.settings.scheduling.password);
     }
   }
 

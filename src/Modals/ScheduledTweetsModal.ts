@@ -1,6 +1,7 @@
-import {App, ButtonComponent, Modal} from "obsidian";
+import {App, ButtonComponent, Modal, moment} from "obsidian";
 import {NoteTweetScheduler} from "../scheduling/NoteTweetScheduler";
 import {ITweet} from "../Types/ITweet";
+import {IScheduledTweet} from "../Types/IScheduledTweet";
 
 export class ScheduledTweetsModal extends Modal {
     private readonly scheduler: NoteTweetScheduler;
@@ -14,7 +15,7 @@ export class ScheduledTweetsModal extends Modal {
         this.contentEl.empty();
         this.contentEl.addClass('postTweetModal');
 
-        const scheduledTweets: ITweet[] = await this.scheduler.getScheduledTweets();
+        const scheduledTweets: IScheduledTweet[] = await this.scheduler.getScheduledTweets();
         this.contentEl.createEl('h2', {text: `Scheduled tweets (${scheduledTweets?.length ?? 0})`});
 
         if (scheduledTweets.length === 0) {
@@ -27,12 +28,16 @@ export class ScheduledTweetsModal extends Modal {
         }
     }
 
-    private addTweetRow(tweet: ITweet, container: HTMLDivElement): void {
+    private addTweetRow(tweet: IScheduledTweet, container: HTMLDivElement): void {
         const rowContainer: HTMLDivElement = container.createDiv('scheduledTweet');
         tweet.content.forEach((item, i) => {
             const tweetItem = rowContainer.createEl('p');
-            tweetItem.textContent = item;
+            tweetItem.innerHTML = item;
         });
+
+        const tweetPostAt = rowContainer.createEl('p');
+        tweetPostAt.textContent = `Scheduled for: ${window.moment(tweet.postat).format("DD-MM-YYYY HH:mm")}`
+        console.log(tweet.postat);
 
         const deleteButton: ButtonComponent = new ButtonComponent(rowContainer);
             deleteButton.setButtonText("Delete")
