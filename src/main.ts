@@ -235,15 +235,7 @@ export default class NoteTweet extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
-
-    if (this.settings.scheduling.enabled) {
-        await this.updateSchedulerSettings();
-    }
   }
-
-  private updateSchedulerSettings: () => void = debounce(async () => {
-    await this.scheduler.updateSchedule(this.settings.scheduling.cronStrings);
-  }, 10000, true);
 
   async getFileContent(file: TFile): Promise<string> {
     if (file.extension != "md") return null;

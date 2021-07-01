@@ -89,3 +89,10 @@ textarea:focus {
     padding-top: 1em;
     border-bottom: 1px solid black;
 }
+
+.tweetContainer {
+    border: black solid 1px;
+    border-radius: 5px;
+    padding: 1em;
+    margin-top: 1em;
+}

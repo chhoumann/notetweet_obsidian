@@ -51,14 +51,15 @@ export class SelfHostedScheduler extends NoteTweetScheduler {
         log.logMessage(`Schedule tweet: ${res.body}`);
     }
 
-    async updateSchedule(cronStrings: string[]): Promise<void> {
-        const res = await got.post(`${this.url}/addCronStrings`, {
+    async updateTweet(newTweet: IScheduledTweet): Promise<void> {
+        const res = await got.post(`${this.url}/updateTweet`, {
             json: {
-                cronStrings
+                tweet: newTweet,
+                postAt: newTweet.postat
             },
             password: this.password
         });
 
-        log.logMessage(`Update schedule: ${res.body}`);
+        log.logMessage(`Update tweet: ${res.body}`);
     }
 }
