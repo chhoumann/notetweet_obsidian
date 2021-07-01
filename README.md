@@ -12,6 +12,7 @@ This plugin allows you to post tweets directly from Obsidian.
 - Delete tweet/thread that was just posted (undo)
 - Post Tweet Mode - a modal dedicated to writing tweets and threads.
 - Images are supported - just include a `[[link]]` to your images!
+- Scheduling tweets - follow [this guide](./GuideToSettingUpScheduler.md) to set it up.
 
 
 Feel free to recommend features!
@@ -79,3 +80,7 @@ THREAD END
 ```
 
 Threads must start with `THREAD START` and end with `THREAD END`.
+
+
+## Scheduling Tweets
+Follow [this guide](./GuideToSettingUpScheduler.md).
