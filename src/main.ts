@@ -1,10 +1,9 @@
-import {debounce, Editor, MarkdownView, Notice, Plugin, TFile} from "obsidian";
+import {Editor, MarkdownView, Plugin, TFile} from "obsidian";
 import {TwitterHandler} from "./TwitterHandler";
 import {DEFAULT_SETTINGS, NoteTweetSettings, NoteTweetSettingsTab,} from "./settings";
 import {TweetsPostedModal} from "./Modals/TweetsPostedModal/TweetsPostedModal";
 import {TweetErrorModal} from "./Modals/TweetErrorModal";
 import {SecureModeGetPasswordModal} from "./Modals/SecureModeGetPasswordModal/SecureModeGetPasswordModal";
-import {PostTweetModal} from "./Modals/PostTweetModal";
 import {log} from "./ErrorModule/logManager";
 import {ConsoleErrorLogger} from "./ErrorModule/consoleErrorLogger";
 import {GuiLogger} from "./ErrorModule/guiLogger";
@@ -15,6 +14,7 @@ import {ITweet} from "./Types/ITweet";
 import {IScheduledTweet} from "./Types/IScheduledTweet";
 import {Tweet} from "./Types/Tweet";
 import {ScheduledTweet} from "./Types/ScheduledTweet";
+import {StatusesUpdate} from "twitter-api-client";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
@@ -74,15 +74,15 @@ export default class NoteTweet extends Plugin {
       id: "post-tweet",
       name: "Post Tweet",
       callback: async () => {
-        if (this.twitterHandler.isConnectedToTwitter) this.postTweetMode();
+        if (this.twitterHandler.isConnectedToTwitter) await this.postTweetMode();
         else if (this.settings.secureMode)
-          await this.secureModeProxy(() => this.postTweetMode());
+          await this.secureModeProxy(async () => await this.postTweetMode());
         else {
           this.connectToTwitterWithPlainSettings();
 
           if (!this.twitterHandler.isConnectedToTwitter)
             new TweetErrorModal(this.app, "Not connected to Twitter").open();
-          else this.postTweetMode();
+          else await this.postTweetMode();
         }
       },
     });
@@ -133,12 +133,11 @@ export default class NoteTweet extends Plugin {
         tweet = await NewTweetModal.PostTweet(this.app);
     }
 
-    if (tweet instanceof Tweet) {
-      await this.twitterHandler.postThread(tweet.content);
-    }
-
     if (tweet instanceof ScheduledTweet) {
       await this.scheduler.scheduleTweet(tweet);
+    } else if (tweet instanceof Tweet) {
+      const tweetsPosted: StatusesUpdate[] = await this.twitterHandler.postThread(tweet.content);
+      new TweetsPostedModal(this.app, tweetsPosted, this.twitterHandler).open();
     }
   }
 
