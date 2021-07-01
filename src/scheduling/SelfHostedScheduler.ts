@@ -4,8 +4,6 @@ import got from 'got';
 import {log} from "../ErrorModule/logManager";
 import {IScheduledTweet} from "../Types/IScheduledTweet";
 import {App} from "obsidian";
-import GenericInputPrompt from "../Modals/GenericInputPrompt";
-import {promptForDateTime} from "../utility";
 
 export class SelfHostedScheduler extends NoteTweetScheduler {
     constructor(private app: App, private url: string, private password: string) {
@@ -29,9 +27,6 @@ export class SelfHostedScheduler extends NoteTweetScheduler {
         });
 
         return JSON.parse(res.body);
-    }
-
-    async postTweetNow(tweetId: string): Promise<void> {
     }
 
     async scheduleTweet(tweet: IScheduledTweet): Promise<void> {
