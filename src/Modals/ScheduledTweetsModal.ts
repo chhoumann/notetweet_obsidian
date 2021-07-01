@@ -1,8 +1,8 @@
-import {App, ButtonComponent, Modal, moment} from "obsidian";
+import {App, ButtonComponent, Modal} from "obsidian";
 import {NoteTweetScheduler} from "../scheduling/NoteTweetScheduler";
-import {ITweet} from "../Types/ITweet";
 import {IScheduledTweet} from "../Types/IScheduledTweet";
-import GenericInputPrompt from "./GenericInputPrompt";
+import {promptForDateTime} from "../utility";
+import {UpdateScheduledTweetModal} from "./UpdateScheduledTweetModal";
 
 export class ScheduledTweetsModal extends Modal {
     private readonly scheduler: NoteTweetScheduler;
@@ -53,18 +53,22 @@ export class ScheduledTweetsModal extends Modal {
                 await this.display();
             });
 
-        const editButton: ButtonComponent = new ButtonComponent(buttonRowContainer);
-        editButton.setCta().setButtonText("Update scheduled time")
+        const updateScheduledTweetButtonsContainer: HTMLDivElement = buttonRowContainer.createDiv('updateScheduledTweetButtonsContainer');
+        const updateScheduledTimeButton: ButtonComponent = new ButtonComponent(updateScheduledTweetButtonsContainer);
+        updateScheduledTimeButton.setCta().setButtonText("Update scheduled time")
             .onClick(async () => {
-                const input: string = await GenericInputPrompt.Prompt(this.app, "Update scheduled time");
-                // @ts-ignore
-                const nld = this.app.plugins.plugins["nldates-obsidian"].parser.chrono.parseDate(input);
-                const nldparsed = Date.parse(nld);
-                const date = new Date(nldparsed);
-
-                tweet.postat = date.getTime();
+                tweet.postat = await promptForDateTime();
 
                 await this.scheduler.updateTweet(tweet);
+                await this.display();
+            });
+
+        const editTweetButton: ButtonComponent = new ButtonComponent(updateScheduledTweetButtonsContainer);
+        editTweetButton.setCta().setButtonText("Edit")
+            .onClick(async () => {
+                const updatedTweet: IScheduledTweet = await UpdateScheduledTweetModal.Update(this.app, tweet);
+
+                await this.scheduler.updateTweet(updatedTweet);
                 await this.display();
             })
     }

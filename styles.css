@@ -96,3 +96,9 @@ textarea:focus {
     padding: 1em;
     margin-top: 1em;
 }
+
+.updateScheduledTweetButtonsContainer {
+    display: flex;
+    align-content: center;
+    gap: 0.5em;
+}

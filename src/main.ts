@@ -10,6 +10,11 @@ import {ConsoleErrorLogger} from "./ErrorModule/consoleErrorLogger";
 import {GuiLogger} from "./ErrorModule/guiLogger";
 import {NoteTweetScheduler} from "./scheduling/NoteTweetScheduler";
 import {SelfHostedScheduler} from "./scheduling/SelfHostedScheduler";
+import {NewTweetModal} from "./Modals/NewTweetModal";
+import {ITweet} from "./Types/ITweet";
+import {IScheduledTweet} from "./Types/IScheduledTweet";
+import {Tweet} from "./Types/Tweet";
+import {ScheduledTweet} from "./Types/ScheduledTweet";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
@@ -103,7 +108,7 @@ export default class NoteTweet extends Plugin {
     }
   }
 
-  private postTweetMode() {
+  private async postTweetMode() {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     let editor: Editor;
 
@@ -111,23 +116,29 @@ export default class NoteTweet extends Plugin {
       editor = view.editor;
     }
 
+    let tweet: ITweet | IScheduledTweet;
+
     if (editor?.somethingSelected()) {
-      let selection = editor.getSelection();
+      let text = editor.getSelection();
 
       try {
-        selection = this.parseThreadFromText(selection).join("--nt_sep--");
-        new PostTweetModal(this.app, this.twitterHandler, this.scheduler, {
-          text: selection,
-          thread: true,
-        }).open();
+        text = this.parseThreadFromText(text).join("--nt_sep--");
+        const selection = {text, thread: true};
+        tweet = await NewTweetModal.PostTweet(this.app, selection);
       } catch {
-        new PostTweetModal(this.app, this.twitterHandler, this.scheduler, {
-          text: selection,
-          thread: false,
-        }).open();
+        const selection = {text, thread: false};
+        tweet = await NewTweetModal.PostTweet(this.app, selection);
       } // Intentionally suppressing exceptions. They're expected.
     } else {
-      new PostTweetModal(this.app, this.twitterHandler, this.scheduler).open();
+        tweet = await NewTweetModal.PostTweet(this.app);
+    }
+
+    if (tweet instanceof Tweet) {
+      await this.twitterHandler.postThread(tweet.content);
+    }
+
+    if (tweet instanceof ScheduledTweet) {
+      await this.scheduler.scheduleTweet(tweet);
     }
   }
 

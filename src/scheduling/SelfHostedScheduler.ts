@@ -5,6 +5,7 @@ import {log} from "../ErrorModule/logManager";
 import {IScheduledTweet} from "../Types/IScheduledTweet";
 import {App} from "obsidian";
 import GenericInputPrompt from "../Modals/GenericInputPrompt";
+import {promptForDateTime} from "../utility";
 
 export class SelfHostedScheduler extends NoteTweetScheduler {
     constructor(private app: App, private url: string, private password: string) {
@@ -33,17 +34,11 @@ export class SelfHostedScheduler extends NoteTweetScheduler {
     async postTweetNow(tweetId: string): Promise<void> {
     }
 
-    async scheduleTweet(tweet: ITweet): Promise<void> {
-        const input: string = await GenericInputPrompt.Prompt(this.app, "Schedule tweet");
-        // @ts-ignore
-        const nld = this.app.plugins.plugins["nldates-obsidian"].parser.chrono.parseDate(input);
-        const nldparsed = Date.parse(nld);
-        const date = new Date(nldparsed);
-
+    async scheduleTweet(tweet: IScheduledTweet): Promise<void> {
         const res = await got.post(`${this.url}/scheduleTweet`, {
             json: {
                 tweet,
-                postAt: date.getTime()
+                postAt: tweet.postat
             },
             password: this.password
         });

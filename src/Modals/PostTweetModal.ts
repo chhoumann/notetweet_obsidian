@@ -1,53 +1,49 @@
-import {App, Modal, Notice} from "obsidian";
-import { TwitterHandler } from "../TwitterHandler";
-import { TweetsPostedModal } from "./TweetsPostedModal/TweetsPostedModal";
+import {App, Modal} from "obsidian";
 import {log} from "../ErrorModule/logManager";
-import {NoteTweetScheduler} from "../scheduling/NoteTweetScheduler";
-import {ITweet} from "../Types/ITweet";
-import {Tweet} from "../Types/Tweet";
 
-export class PostTweetModal extends Modal {
-  private readonly twitterHandler: TwitterHandler;
-  private readonly scheduler: NoteTweetScheduler;
+export abstract class PostTweetModal<TPromise> extends Modal {
+  protected textAreas: HTMLTextAreaElement[] = [];
+  protected readonly MAX_TWEET_LENGTH: number = 280;
   private readonly selectedText: { text: string; thread: boolean };
-  private textAreas: HTMLTextAreaElement[] = [];
-  private readonly MAX_TWEET_LENGTH: number = 280;
   private readonly helpText: string = `Please read the documentation on the Github repository.
                         Click <a target="_blank" href="https://github.com/chhoumann/notetweet_obsidian">here</a> to go there.
                         There are lots of shortcuts and features to explore 😁`;
+  protected textZone: HTMLDivElement;
+  protected newTweet: Promise<TPromise>;
+  private resolved: boolean = false;
+  public reject: (reason: any) => void;
+  public resolve: (tweet: TPromise) => void;
 
-  constructor(
-    app: App,
-    twitterHandler: TwitterHandler,
-    scheduler: NoteTweetScheduler,
-    selection?: { text: string; thread: boolean },
-  ) {
+  protected constructor(app: App, selection?: { text: string; thread: boolean }) {
     super(app);
-    this.selectedText = selection ?? { text: "", thread: false };
-    this.twitterHandler = twitterHandler;
-    this.scheduler = scheduler;
+    this.selectedText = selection ?? {text: "", thread: false};
+
+    this.newTweet = new Promise(((resolve, reject) => {
+      this.resolve = (tweet => {
+        resolve(tweet);
+        this.resolved = true;
+      });
+      this.reject = reject;
+    }));
   }
 
   onOpen() {
-    let { contentEl } = this;
+    let {contentEl} = this;
     contentEl.addClass("postTweetModal");
 
     this.addTooltip("Help", this.helpText, contentEl);
 
-    let textZone = contentEl.createDiv();
+    this.textZone = contentEl.createDiv();
 
     try {
-      let textArea = this.createTextarea(textZone);
+      this.createFirstTextarea();
 
-      this.selectedTextHandler(textArea, textZone);
-
-      let addTweetButton = contentEl.createEl("button", { text: "+" });
+      let addTweetButton = contentEl.createEl("button", {text: "+"});
       addTweetButton.addEventListener("click", () =>
-        this.createTextarea(textZone)
+          this.createTextarea(this.textZone)
       );
 
-      this.createTweetButton(contentEl);
-      this.createScheduleButton(contentEl);
+      this.addActionButtons();
     } catch (e) {
       log.logWarning(e);
       this.close();
@@ -55,12 +51,14 @@ export class PostTweetModal extends Modal {
     }
   }
 
-  private selectedTextHandler(
-    textArea: HTMLTextAreaElement,
-    textZone: HTMLDivElement
-  ) {
-    if (this.selectedText.text.length == 0) return false;
+  protected createFirstTextarea() {
+    const textArea = this.createTextarea(this.textZone);
 
+    if (this.selectedText.text.length > 0)
+      this.insertTweetsFromSelectedText(textArea, this.textZone);
+  }
+
+  private insertTweetsFromSelectedText(textArea: HTMLTextAreaElement, textZone: HTMLDivElement) {
     let joinedTextChunks;
     if (this.selectedText.thread == false)
       joinedTextChunks = this.textInputHandler(this.selectedText.text);
@@ -69,19 +67,15 @@ export class PostTweetModal extends Modal {
     this.createTweetsWithInput(joinedTextChunks, textArea, textZone);
   }
 
-  private createTweetsWithInput(
-    inputStrings: string[],
-    currentTextArea: HTMLTextAreaElement,
-    textZone: HTMLDivElement
-  ) {
+  protected createTweetsWithInput(inputStrings: string[], currentTextArea: HTMLTextAreaElement, textZone: HTMLDivElement) {
     inputStrings.forEach((chunk) => {
       try {
         let tempTextarea =
-          currentTextArea.value.trim() == ""
-            ? currentTextArea
-            : this.createTextarea(textZone);
+            currentTextArea.value.trim() == ""
+                ? currentTextArea
+                : this.createTextarea(textZone);
         tempTextarea.setRangeText(chunk);
-        tempTextarea.dispatchEvent(new InputEvent("input"));
+        tempTextarea.trigger('input');
 
         tempTextarea.style.height = tempTextarea.scrollHeight + "px";
       } catch (e) {
@@ -96,12 +90,12 @@ export class PostTweetModal extends Modal {
   private textInputHandler(str: string) {
     let chunks: string[] = str.split("\n");
     let i = 0,
-      joinedTextChunks: string[] = [];
+        joinedTextChunks: string[] = [];
     chunks.forEach((chunk, j) => {
       if (joinedTextChunks[i] == null) joinedTextChunks[i] = "";
       if (
-        joinedTextChunks[i].length + chunk.length <=
-        this.MAX_TWEET_LENGTH - 1
+          joinedTextChunks[i].length + chunk.length <=
+          this.MAX_TWEET_LENGTH - 1
       ) {
         joinedTextChunks[i] = joinedTextChunks[i] + chunk;
         joinedTextChunks[i] += j == chunks.length - 1 ? "" : "\n";
@@ -109,7 +103,7 @@ export class PostTweetModal extends Modal {
         if (chunk.length > this.MAX_TWEET_LENGTH) {
           let x = chunk.split(/[.?!]\s/).join("\n");
           this.textInputHandler(x).forEach(
-            (split) => (joinedTextChunks[++i] = split)
+              (split) => (joinedTextChunks[++i] = split)
           );
         } else {
           joinedTextChunks[++i] = chunk;
@@ -120,14 +114,14 @@ export class PostTweetModal extends Modal {
   }
 
   onClose() {
-    let { contentEl } = this;
+    let {contentEl} = this;
     contentEl.empty();
   }
 
-  private createTextarea(textZone: HTMLDivElement) {
+  protected createTextarea(textZone: HTMLDivElement) {
     if (this.textAreas.find((ele) => ele.textLength == 0)) {
       throw new Error(
-        "You cannot add a new tweet when there are empty tweets."
+          "You cannot add a new tweet when there are empty tweets."
       );
     }
 
@@ -141,15 +135,15 @@ export class PostTweetModal extends Modal {
     lengthCheckerEl.addClass("ntLengthChecker");
 
     textarea.addEventListener("input", () =>
-      this.onTweetLengthHandler(textarea.textLength, lengthCheckerEl)
+        this.onTweetLengthHandler(textarea.textLength, lengthCheckerEl)
     );
     textarea.addEventListener(
-      "keydown",
-      this.onInput(textarea, textZone, lengthCheckerEl)
+        "keydown",
+        this.onInput(textarea, textZone, lengthCheckerEl)
     );
     textarea.addEventListener(
-      "paste",
-      this.onPasteMaxLengthHandler(textarea, textZone)
+        "paste",
+        this.onPasteMaxLengthHandler(textarea, textZone)
     );
 
     textarea.focus();
@@ -157,7 +151,7 @@ export class PostTweetModal extends Modal {
   }
 
   private addTooltip(title: string, body: string, root: HTMLElement) {
-    let tooltip = root.createEl("div", { text: title });
+    let tooltip = root.createEl("div", {text: title});
     let tooltipBody = tooltip.createEl("span");
     tooltipBody.innerHTML = body;
 
@@ -166,8 +160,8 @@ export class PostTweetModal extends Modal {
   }
 
   private onPasteMaxLengthHandler(
-    textarea: HTMLTextAreaElement,
-    textZone: HTMLDivElement
+      textarea: HTMLTextAreaElement,
+      textZone: HTMLDivElement
   ) {
     return (event: any) => {
       let pasted: string = event.clipboardData.getData("text");
@@ -180,15 +174,15 @@ export class PostTweetModal extends Modal {
   }
 
   private onInput(
-    textarea: HTMLTextAreaElement,
-    textZone: HTMLDivElement,
-    lengthCheckerEl: HTMLElement
+      textarea: HTMLTextAreaElement,
+      textZone: HTMLDivElement,
+      lengthCheckerEl: HTMLElement
   ) {
     return (key: any) => {
       if (
-        key.code == "Backspace" &&
-        textarea.textLength == 0 &&
-        this.textAreas.length > 1
+          key.code == "Backspace" &&
+          textarea.textLength == 0 &&
+          this.textAreas.length > 1
       ) {
         key.preventDefault();
         this.deleteTweet(textarea, textZone, lengthCheckerEl);
@@ -226,7 +220,7 @@ export class PostTweetModal extends Modal {
 
       if (key.code == "ArrowUp" && key.ctrlKey && !key.shiftKey) {
         let currentTweetIndex = this.textAreas.findIndex(
-          (tweet) => tweet.value == textarea.value
+            (tweet) => tweet.value == textarea.value
         );
         if (currentTweetIndex > 0)
           this.textAreas[currentTweetIndex - 1].focus();
@@ -234,7 +228,7 @@ export class PostTweetModal extends Modal {
 
       if (key.code == "ArrowDown" && key.ctrlKey && !key.shiftKey) {
         let currentTweetIndex = this.textAreas.findIndex(
-          (tweet) => tweet.value == textarea.value
+            (tweet) => tweet.value == textarea.value
         );
         if (currentTweetIndex < this.textAreas.length - 1)
           this.textAreas[currentTweetIndex + 1].focus();
@@ -242,7 +236,7 @@ export class PostTweetModal extends Modal {
 
       if (key.code == "ArrowDown" && key.ctrlKey && key.shiftKey) {
         let tweetIndex = this.textAreas.findIndex(
-          (ta) => ta.value == textarea.value
+            (ta) => ta.value == textarea.value
         );
         if (tweetIndex != this.textAreas.length - 1) {
           key.preventDefault();
@@ -253,7 +247,7 @@ export class PostTweetModal extends Modal {
 
       if (key.code == "ArrowUp" && key.ctrlKey && key.shiftKey) {
         let tweetIndex = this.textAreas.findIndex(
-          (ta) => ta.value == textarea.value
+            (ta) => ta.value == textarea.value
         );
         if (tweetIndex != 0) {
           key.preventDefault();
@@ -274,8 +268,8 @@ export class PostTweetModal extends Modal {
   }
 
   private switchTweets(
-    textarea1: HTMLTextAreaElement,
-    textarea2: HTMLTextAreaElement
+      textarea1: HTMLTextAreaElement,
+      textarea2: HTMLTextAreaElement
   ) {
     let temp: string = textarea1.value;
     textarea1.value = textarea2.value;
@@ -285,9 +279,9 @@ export class PostTweetModal extends Modal {
   }
 
   private deleteTweet(
-    textarea: HTMLTextAreaElement,
-    textZone: HTMLDivElement,
-    lengthCheckerEl: HTMLElement
+      textarea: HTMLTextAreaElement,
+      textZone: HTMLDivElement,
+      lengthCheckerEl: HTMLElement
   ) {
     let i = this.textAreas.findIndex((ele) => ele === textarea);
     this.textAreas.remove(textarea);
@@ -311,87 +305,19 @@ export class PostTweetModal extends Modal {
     }
   }
 
-  private createTweetButton(contentEl: HTMLElement) {
-    let postButton = contentEl.createEl("button", { text: "Post!" });
-    postButton.addClass("postTweetButton");
-
-    postButton.addEventListener("click", this.postTweets());
-  }
-
-  private createScheduleButton(contentEl: HTMLElement) {
-    const scheduleButton = contentEl.createEl('button', {text: 'Schedule'});
-    scheduleButton.addClass("postTweetButton");
-
-    scheduleButton.addEventListener('click', this.scheduleTweets());
-  }
-
-  private postTweets() {
-    return async () => {
-      let threadContent = this.textAreas.map((textarea) => textarea.value);
-
-      if (
-        threadContent.find(
-          (txt) => txt.length > this.MAX_TWEET_LENGTH || txt == ""
-        ) != null
-      ) {
-        log.logWarning("At least one of your tweets is too long or empty.");
-        return;
-      }
-
-      try {
-        let postedTweets = await this.twitterHandler.postThread(threadContent);
-        let postedModal = new TweetsPostedModal(
-          this.app,
-          postedTweets,
-          this.twitterHandler
-        );
-        postedModal.open();
-      } catch (e) {
-        log.logError(`unable to post tweet. ${e}`);
-      }
-
-      this.close();
-    };
-  }
-
-  scheduleTweets() {
-    return async () => {
-      let threadContent = this.textAreas.map((textarea) => textarea.value);
-
-      if (
-        threadContent.find(
-          (txt) => txt.length > this.MAX_TWEET_LENGTH || txt == ""
-        ) != null
-      ) {
-        log.logWarning("At least one of your tweets is too long or empty.");
-        return;
-      }
-
-      try {
-        const tweet: ITweet = new Tweet(threadContent);
-        let postedTweets = await this.scheduler.scheduleTweet(tweet);
-        new Notice(`Scheduled ${tweet.content.length} tweets.`);
-      } catch (e) {
-        log.logError(`unable to schedule tweet. ${e}`);
-      }
-
-      this.close();
-    }
-  }
-
   private insertTweetAbove(
-    textarea: HTMLTextAreaElement,
-    textZone: HTMLDivElement
+      textarea: HTMLTextAreaElement,
+      textZone: HTMLDivElement
   ) {
     let insertAboveIndex = this.textAreas.findIndex(
-      (area) => area.value == textarea.value
+        (area) => area.value == textarea.value
     );
 
     try {
       let insertedTweet = this.createTextarea(textZone);
       this.shiftTweetsDownFromIndex(insertAboveIndex);
 
-      return { tweet: insertedTweet, index: insertAboveIndex };
+      return {tweet: insertedTweet, index: insertAboveIndex};
     } catch (e) {
       log.logWarning(e);
       return;
@@ -399,11 +325,11 @@ export class PostTweetModal extends Modal {
   }
 
   private insertTweetBelow(
-    textarea: HTMLTextAreaElement,
-    textZone: HTMLDivElement
+      textarea: HTMLTextAreaElement,
+      textZone: HTMLDivElement
   ) {
     let insertBelowIndex = this.textAreas.findIndex(
-      (area) => area.value == textarea.value
+        (area) => area.value == textarea.value
     );
     let fromIndex = insertBelowIndex + 1;
 
@@ -426,4 +352,22 @@ export class PostTweetModal extends Modal {
     this.textAreas[insertedIndex].value = "";
     this.textAreas[insertedIndex].focus();
   }
+
+  protected getThreadContent(): string[] {
+    let threadContent = this.textAreas.map((textarea) => textarea.value);
+
+    if (
+        threadContent.find(
+            (txt) => txt.length > this.MAX_TWEET_LENGTH || txt == ""
+        ) != null
+    ) {
+      log.logWarning("At least one of your tweets is too long or empty.");
+      return null;
+    }
+
+    return threadContent;
+  }
+
+  protected abstract addActionButtons();
 }
+
