@@ -105,17 +105,19 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("Access Token Secret")
       .setDesc("Twitter Access Token Secret.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter your Access Token Secret")
-          .setValue(this.plugin.settings.accessTokenSecret)
-          .onChange(async (value) => {
-            this.plugin.settings.accessTokenSecret = value;
-            await this.plugin.saveSettings();
+      .addText((text) => {
+          this.setPasswordOnBlur(text.inputEl);
+          text
+              .setPlaceholder("Enter your Access Token Secret")
+              .setValue(this.plugin.settings.accessTokenSecret)
+              .onChange(async (value) => {
+                  this.plugin.settings.accessTokenSecret = value;
+                  await this.plugin.saveSettings();
 
-            this.plugin.connectToTwitterWithPlainSettings();
-            this.checkStatus();
-          })
+                  this.plugin.connectToTwitterWithPlainSettings();
+                  this.checkStatus();
+              })
+          }
       );
   }
 
@@ -123,17 +125,19 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("Access Token")
       .setDesc("Twitter Access Token.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter your Access Token")
-          .setValue(this.plugin.settings.accessToken)
-          .onChange(async (value) => {
-            this.plugin.settings.accessToken = value;
-            await this.plugin.saveSettings();
+      .addText((text) => {
+          this.setPasswordOnBlur(text.inputEl);
+          text
+              .setPlaceholder("Enter your Access Token")
+              .setValue(this.plugin.settings.accessToken)
+              .onChange(async (value) => {
+                  this.plugin.settings.accessToken = value;
+                  await this.plugin.saveSettings();
 
-            this.plugin.connectToTwitterWithPlainSettings();
-            this.checkStatus();
-          })
+                  this.plugin.connectToTwitterWithPlainSettings();
+                  this.checkStatus();
+              })
+          }
       );
   }
 
@@ -141,17 +145,19 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("API Secret")
       .setDesc("Twitter API Secret.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter your API Secret")
-          .setValue(this.plugin.settings.apiSecret)
-          .onChange(async (value) => {
-            this.plugin.settings.apiSecret = value;
-            await this.plugin.saveSettings();
+      .addText((text) => {
+          this.setPasswordOnBlur(text.inputEl);
+          text
+              .setPlaceholder("Enter your API Secret")
+              .setValue(this.plugin.settings.apiSecret)
+              .onChange(async (value) => {
+                  this.plugin.settings.apiSecret = value;
+                  await this.plugin.saveSettings();
 
-            this.plugin.connectToTwitterWithPlainSettings();
-            this.checkStatus();
-          })
+                  this.plugin.connectToTwitterWithPlainSettings();
+                  this.checkStatus();
+              })
+          }
       );
   }
 
@@ -159,17 +165,19 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("API Key")
       .setDesc("Twitter API key.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter your API key")
-          .setValue(this.plugin.settings.apiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.apiKey = value;
-            await this.plugin.saveSettings();
+      .addText((text) => {
+          this.setPasswordOnBlur(text.inputEl);
+          text
+              .setPlaceholder("Enter your API key")
+              .setValue(this.plugin.settings.apiKey)
+              .onChange(async (value) => {
+                  this.plugin.settings.apiKey = value;
+                  await this.plugin.saveSettings();
 
-            this.plugin.connectToTwitterWithPlainSettings();
-            this.checkStatus();
-          })
+                  this.plugin.connectToTwitterWithPlainSettings();
+                  this.checkStatus();
+              })
+          }
       );
   }
 
@@ -208,12 +216,11 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                     })
             );
 
-            let textComponent: TextComponent;
             new Setting(this.containerEl)
                 .setName("Scheduler password")
                 .setDesc("Password set for the scheduler")
                 .addText(text => {
-                    textComponent = text;
+                    this.setPasswordOnBlur(text.inputEl);
                     text.setPlaceholder('Password')
                         .setValue(this.plugin.settings?.scheduling.password)
                         .onChange(async value => {
@@ -223,15 +230,18 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                     }
                 );
 
-            textComponent.inputEl.addEventListener('focus', () => {
-                textComponent.inputEl.type = "text";
-            });
-
-            textComponent.inputEl.addEventListener('blur', () => {
-                textComponent.inputEl.type = "password";
-            });
-
-            textComponent.inputEl.type = "password";
         }
+    }
+
+    private setPasswordOnBlur(el: HTMLInputElement) {
+        el.addEventListener('focus', () => {
+            el.type = "text";
+        });
+
+        el.addEventListener('blur', () => {
+            el.type = "password";
+        });
+
+        el.type = "password";
     }
 }
