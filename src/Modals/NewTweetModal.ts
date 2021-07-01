@@ -34,7 +34,7 @@ export class NewTweetModal extends PostTweetModal<IScheduledTweet | ITweet> {
         const scheduleButton = contentEl.createEl('button', {text: 'Schedule'});
         scheduleButton.addClass("postTweetButton");
 
-        scheduleButton.addEventListener('click', this.scheduleTweets());
+        scheduleButton.addEventListener('click', this.scheduleTweets);
     }
 
     private postTweets() {
