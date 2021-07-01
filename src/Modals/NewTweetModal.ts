@@ -34,11 +34,12 @@ export class NewTweetModal extends PostTweetModal<IScheduledTweet | ITweet> {
         const scheduleButton = contentEl.createEl('button', {text: 'Schedule'});
         scheduleButton.addClass("postTweetButton");
 
-        scheduleButton.addEventListener('click', this.scheduleTweets);
+        scheduleButton.addEventListener('click', this.scheduleTweets());
     }
 
     private postTweets() {
         return async () => {
+            console.log("asd");
             const threadContent: string[] = this.getThreadContent();
             if (!threadContent) return;
 
@@ -53,7 +54,7 @@ export class NewTweetModal extends PostTweetModal<IScheduledTweet | ITweet> {
             const threadContent: string[] = this.getThreadContent();
             if (!threadContent) return;
 
-            const scheduledDateTime: number = await promptForDateTime();
+            const scheduledDateTime: number = await promptForDateTime(this.app);
             const tweet: IScheduledTweet = new ScheduledTweet(threadContent, scheduledDateTime)
             this.resolve(tweet);
             this.close();

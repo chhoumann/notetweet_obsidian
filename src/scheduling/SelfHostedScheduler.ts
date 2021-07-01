@@ -3,7 +3,7 @@ import {NoteTweetScheduler} from "./NoteTweetScheduler";
 import got from 'got';
 import {log} from "../ErrorModule/logManager";
 import {IScheduledTweet} from "../Types/IScheduledTweet";
-import {App} from "obsidian";
+import {App, moment, Notice} from "obsidian";
 
 export class SelfHostedScheduler extends NoteTweetScheduler {
     constructor(private app: App, private url: string, private password: string) {
@@ -39,6 +39,7 @@ export class SelfHostedScheduler extends NoteTweetScheduler {
         });
 
         log.logMessage(`Schedule tweet: ${res.body}`);
+        new Notice(`Scheduled tweet '${tweet.content[0].substr(0, 10)}...' for ${window.moment(new Date(tweet.postat)).format("DD-MM-YY HH:mm")}`);
     }
 
     async updateTweet(newTweet: IScheduledTweet): Promise<void> {

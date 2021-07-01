@@ -57,7 +57,7 @@ export class ScheduledTweetsModal extends Modal {
         const updateScheduledTimeButton: ButtonComponent = new ButtonComponent(updateScheduledTweetButtonsContainer);
         updateScheduledTimeButton.setCta().setButtonText("Update scheduled time")
             .onClick(async () => {
-                tweet.postat = await promptForDateTime();
+                tweet.postat = await promptForDateTime(this.app);
 
                 await this.scheduler.updateTweet(tweet);
                 await this.display();
