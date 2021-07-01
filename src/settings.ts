@@ -1,6 +1,7 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import {App, ButtonComponent, PluginSettingTab, Setting, TextComponent} from "obsidian";
 import NoteTweet from "./main";
 import { SecureModeModal } from "./Modals/SecureModeSettingModal/SecureModeModal";
+import {ScheduledTweetsModal} from "./Modals/ScheduledTweetsModal";
 
 export interface NoteTweetSettings {
   apiKey: string;
@@ -9,6 +10,7 @@ export interface NoteTweetSettings {
   accessTokenSecret: string;
   postTweetTag: string;
   secureMode: boolean;
+  scheduling: {enabled: boolean, url: string, password: string, cronStrings: string[]};
 }
 
 export const DEFAULT_SETTINGS: NoteTweetSettings = Object.freeze({
@@ -18,6 +20,7 @@ export const DEFAULT_SETTINGS: NoteTweetSettings = Object.freeze({
   accessTokenSecret: "",
   postTweetTag: "",
   secureMode: false,
+  scheduling: {enabled: false, url: "", password: "", cronStrings: []},
 });
 
 export class NoteTweetSettingsTab extends PluginSettingTab {
@@ -51,12 +54,13 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     this.addAccessTokenSecretSetting();
     this.addTweetTagSetting();
     this.addSecureModeSetting();
+    this.addSchedulerSetting();
   }
 
   private addSecureModeSetting() {
     new Setting(this.containerEl)
       .setName("Secure Mode")
-      .setDesc("Require password to unlock usage.")
+      .setDesc("Require password to unlock usage. Scheduler not supported.")
       .addToggle((toggle) =>
         toggle
           .setTooltip("Toggle Secure Mode")
@@ -101,17 +105,19 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("Access Token Secret")
       .setDesc("Twitter Access Token Secret.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter your Access Token Secret")
-          .setValue(this.plugin.settings.accessTokenSecret)
-          .onChange(async (value) => {
-            this.plugin.settings.accessTokenSecret = value;
-            await this.plugin.saveSettings();
+      .addText((text) => {
+          this.setPasswordOnBlur(text.inputEl);
+          text
+              .setPlaceholder("Enter your Access Token Secret")
+              .setValue(this.plugin.settings.accessTokenSecret)
+              .onChange(async (value) => {
+                  this.plugin.settings.accessTokenSecret = value;
+                  await this.plugin.saveSettings();
 
-            this.plugin.connectToTwitterWithPlainSettings();
-            this.checkStatus();
-          })
+                  this.plugin.connectToTwitterWithPlainSettings();
+                  this.checkStatus();
+              })
+          }
       );
   }
 
@@ -119,17 +125,19 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("Access Token")
       .setDesc("Twitter Access Token.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter your Access Token")
-          .setValue(this.plugin.settings.accessToken)
-          .onChange(async (value) => {
-            this.plugin.settings.accessToken = value;
-            await this.plugin.saveSettings();
+      .addText((text) => {
+          this.setPasswordOnBlur(text.inputEl);
+          text
+              .setPlaceholder("Enter your Access Token")
+              .setValue(this.plugin.settings.accessToken)
+              .onChange(async (value) => {
+                  this.plugin.settings.accessToken = value;
+                  await this.plugin.saveSettings();
 
-            this.plugin.connectToTwitterWithPlainSettings();
-            this.checkStatus();
-          })
+                  this.plugin.connectToTwitterWithPlainSettings();
+                  this.checkStatus();
+              })
+          }
       );
   }
 
@@ -137,17 +145,19 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("API Secret")
       .setDesc("Twitter API Secret.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter your API Secret")
-          .setValue(this.plugin.settings.apiSecret)
-          .onChange(async (value) => {
-            this.plugin.settings.apiSecret = value;
-            await this.plugin.saveSettings();
+      .addText((text) => {
+          this.setPasswordOnBlur(text.inputEl);
+          text
+              .setPlaceholder("Enter your API Secret")
+              .setValue(this.plugin.settings.apiSecret)
+              .onChange(async (value) => {
+                  this.plugin.settings.apiSecret = value;
+                  await this.plugin.saveSettings();
 
-            this.plugin.connectToTwitterWithPlainSettings();
-            this.checkStatus();
-          })
+                  this.plugin.connectToTwitterWithPlainSettings();
+                  this.checkStatus();
+              })
+          }
       );
   }
 
@@ -155,17 +165,83 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("API Key")
       .setDesc("Twitter API key.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter your API key")
-          .setValue(this.plugin.settings.apiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.apiKey = value;
-            await this.plugin.saveSettings();
+      .addText((text) => {
+          this.setPasswordOnBlur(text.inputEl);
+          text
+              .setPlaceholder("Enter your API key")
+              .setValue(this.plugin.settings.apiKey)
+              .onChange(async (value) => {
+                  this.plugin.settings.apiKey = value;
+                  await this.plugin.saveSettings();
 
-            this.plugin.connectToTwitterWithPlainSettings();
-            this.checkStatus();
-          })
+                  this.plugin.connectToTwitterWithPlainSettings();
+                  this.checkStatus();
+              })
+          }
       );
   }
+
+    private addSchedulerSetting() {
+        new Setting(this.containerEl)
+            .setName("Scheduling")
+            .setDesc("Enable scheduling tweets. This will require some setup!")
+            .addToggle(toggle =>
+                toggle.setTooltip('Toggle tweet scheduling')
+                    .setValue(this.plugin.settings?.scheduling.enabled)
+                    .onChange(async value => {
+                        this.plugin.settings.scheduling.enabled = value;
+                        await this.plugin.saveSettings();
+                        this.display();
+                    })
+            );
+
+        new Setting(this.containerEl)
+            .setName('Scheduled tweets')
+            .addButton(button => button
+                .setButtonText("Open")
+                .onClick(async () => {
+                    new ScheduledTweetsModal(this.app, this.plugin.scheduler).open();
+                }));
+
+        if (this.plugin.settings?.scheduling.enabled) {
+            new Setting(this.containerEl)
+            .setName("Scheduler URL")
+            .setDesc("Endpoint URL")
+            .addText(text =>
+                text.setPlaceholder("Scheduler URL")
+                    .setValue(this.plugin.settings?.scheduling.url)
+                    .onChange(async value => {
+                        this.plugin.settings.scheduling.url = value;
+                        await this.plugin.saveSettings();
+                    })
+            );
+
+            new Setting(this.containerEl)
+                .setName("Scheduler password")
+                .setDesc("Password set for the scheduler")
+                .addText(text => {
+                    this.setPasswordOnBlur(text.inputEl);
+                    text.setPlaceholder('Password')
+                        .setValue(this.plugin.settings?.scheduling.password)
+                        .onChange(async value => {
+                            this.plugin.settings.scheduling.password = value;
+                            await this.plugin.saveSettings();
+                        })
+                    }
+                );
+
+        }
+    }
+
+    private setPasswordOnBlur(el: HTMLInputElement) {
+        el.addEventListener('focus', () => {
+            el.type = "text";
+        });
+
+        el.addEventListener('blur', () => {
+            el.type = "password";
+        });
+
+        el.type = "password";
+    }
 }

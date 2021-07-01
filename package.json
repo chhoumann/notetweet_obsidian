@@ -1,6 +1,6 @@
 {
   "name": "notetweet",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Post tweets from Obsidian",
   "main": "src/main.js",
   "scripts": {
@@ -39,6 +39,8 @@
   },
   "dependencies": {
     "crypto-es": "1.2.7",
-    "twitter-api-client": "1.3.2"
+    "got": "11.8.2",
+    "twitter-api-client": "1.3.2",
+    "uuid": "8.3.2"
   }
 }

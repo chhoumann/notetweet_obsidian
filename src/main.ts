@@ -1,4 +1,4 @@
-import {MarkdownView, Notice, Plugin, TFile} from "obsidian";
+import {debounce, Editor, MarkdownView, Notice, Plugin, TFile} from "obsidian";
 import {TwitterHandler} from "./TwitterHandler";
 import {DEFAULT_SETTINGS, NoteTweetSettings, NoteTweetSettingsTab,} from "./settings";
 import {TweetsPostedModal} from "./Modals/TweetsPostedModal/TweetsPostedModal";
@@ -8,12 +8,20 @@ import {PostTweetModal} from "./Modals/PostTweetModal";
 import {log} from "./ErrorModule/logManager";
 import {ConsoleErrorLogger} from "./ErrorModule/consoleErrorLogger";
 import {GuiLogger} from "./ErrorModule/guiLogger";
+import {NoteTweetScheduler} from "./scheduling/NoteTweetScheduler";
+import {SelfHostedScheduler} from "./scheduling/SelfHostedScheduler";
+import {NewTweetModal} from "./Modals/NewTweetModal";
+import {ITweet} from "./Types/ITweet";
+import {IScheduledTweet} from "./Types/IScheduledTweet";
+import {Tweet} from "./Types/Tweet";
+import {ScheduledTweet} from "./Types/ScheduledTweet";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
 
 export default class NoteTweet extends Plugin {
   settings: NoteTweetSettings;
+  scheduler: NoteTweetScheduler;
 
   public twitterHandler: TwitterHandler;
 
@@ -94,35 +102,43 @@ export default class NoteTweet extends Plugin {
         .register(new GuiLogger(this));
 
     this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
+
+    if (this.settings.scheduling.enabled) {
+      this.scheduler = new SelfHostedScheduler(this.app, this.settings.scheduling.url, this.settings.scheduling.password);
+    }
   }
 
-  private postTweetMode() {
+  private async postTweetMode() {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    let editor;
+    let editor: Editor;
 
     if (view instanceof MarkdownView) {
       editor = view.editor;
-    } else {
-      return;
     }
 
-    if (editor.somethingSelected()) {
-      let selection = editor.getSelection();
+    let tweet: ITweet | IScheduledTweet;
+
+    if (editor?.somethingSelected()) {
+      let text = editor.getSelection();
 
       try {
-        selection = this.parseThreadFromText(selection).join("--nt_sep--");
-        new PostTweetModal(this.app, this.twitterHandler, {
-          text: selection,
-          thread: true,
-        }).open();
+        text = this.parseThreadFromText(text).join("--nt_sep--");
+        const selection = {text, thread: true};
+        tweet = await NewTweetModal.PostTweet(this.app, selection);
       } catch {
-        new PostTweetModal(this.app, this.twitterHandler, {
-          text: selection,
-          thread: false,
-        }).open();
+        const selection = {text, thread: false};
+        tweet = await NewTweetModal.PostTweet(this.app, selection);
       } // Intentionally suppressing exceptions. They're expected.
     } else {
-      new PostTweetModal(this.app, this.twitterHandler).open();
+        tweet = await NewTweetModal.PostTweet(this.app);
+    }
+
+    if (tweet instanceof Tweet) {
+      await this.twitterHandler.postThread(tweet.content);
+    }
+
+    if (tweet instanceof ScheduledTweet) {
+      await this.scheduler.scheduleTweet(tweet);
     }
   }
 
