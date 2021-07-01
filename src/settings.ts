@@ -60,7 +60,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
   private addSecureModeSetting() {
     new Setting(this.containerEl)
       .setName("Secure Mode")
-      .setDesc("Require password to unlock usage.")
+      .setDesc("Require password to unlock usage. Scheduler not supported.")
       .addToggle((toggle) =>
         toggle
           .setTooltip("Toggle Secure Mode")
