@@ -208,17 +208,30 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                     })
             );
 
+            let textComponent: TextComponent;
             new Setting(this.containerEl)
                 .setName("Scheduler password")
                 .setDesc("Password set for the scheduler")
-                .addText(text =>
+                .addText(text => {
+                    textComponent = text;
                     text.setPlaceholder('Password')
                         .setValue(this.plugin.settings?.scheduling.password)
                         .onChange(async value => {
                             this.plugin.settings.scheduling.password = value;
                             await this.plugin.saveSettings();
                         })
+                    }
                 );
+
+            textComponent.inputEl.addEventListener('focus', () => {
+                textComponent.inputEl.type = "text";
+            });
+
+            textComponent.inputEl.addEventListener('blur', () => {
+                textComponent.inputEl.type = "password";
+            });
+
+            textComponent.inputEl.type = "password";
         }
     }
 }
