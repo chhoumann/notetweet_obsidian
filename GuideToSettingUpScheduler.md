@@ -35,3 +35,5 @@ Now, go back into your NoteTweet settings. Here, you should
 2. Set `Scheduler password` to the password you specified in (5).
 
 Now you're ready to schedule tweets!
+
+As mentioned, we're leveraging [nldates-obsidian](https://github.com/argenos/nldates-obsidian) to set the dates. This means that you could write `today at 15:30` to post today at 15:30. You can always update this date, or unschedule the tweet, by going into NoteTweet settings and opening the Scheduled tweets menu.
