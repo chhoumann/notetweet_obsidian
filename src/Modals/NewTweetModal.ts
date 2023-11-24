@@ -39,7 +39,6 @@ export class NewTweetModal extends PostTweetModal<IScheduledTweet | ITweet> {
 
     private postTweets() {
         return async () => {
-            console.log("asd");
             const threadContent: string[] = this.getThreadContent();
             if (!threadContent) return;
 

@@ -15,7 +15,7 @@
     {/if}
 
     {#each posts as post}
-        <a href="https://twitter.com/{post.user.screen_name}/status/{post.id_str}">{post.text}</a>
+        <a href="https://twitter.com/twitter/status/{post.data.id}">{post.data.text}</a>
         <br>
     {/each}
 
