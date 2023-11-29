@@ -14,7 +14,7 @@ import {ITweet} from "./Types/ITweet";
 import {IScheduledTweet} from "./Types/IScheduledTweet";
 import {Tweet} from "./Types/Tweet";
 import {ScheduledTweet} from "./Types/ScheduledTweet";
-import {StatusesUpdate} from "twitter-api-client";
+import {TweetV2PostTweetResult} from "twitter-api-v2";
 
 const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
 const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
@@ -136,7 +136,7 @@ export default class NoteTweet extends Plugin {
     if (tweet instanceof ScheduledTweet) {
       await this.scheduler.scheduleTweet(tweet);
     } else if (tweet instanceof Tweet) {
-      const tweetsPosted: StatusesUpdate[] = await this.twitterHandler.postThread(tweet.content);
+      const tweetsPosted: TweetV2PostTweetResult[] = await this.twitterHandler.postThread(tweet.content);
       new TweetsPostedModal(this.app, tweetsPosted, this.twitterHandler).open();
     }
   }
@@ -176,7 +176,7 @@ export default class NoteTweet extends Plugin {
 
       await postedModal.waitForClose;
       if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
-        postedTweets.forEach((tweet) => this.appendPostTweetTag(tweet.text));
+        postedTweets.forEach((tweet) => this.appendPostTweetTag(tweet.data.text));
       }
     } catch (e) {
       log.logError(`failed attempted to post tweets. ${e}`);
@@ -206,7 +206,7 @@ export default class NoteTweet extends Plugin {
 
         await postedModal.waitForClose;
         if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
-          await this.appendPostTweetTag(tweet.text);
+          await this.appendPostTweetTag(tweet.data.text);
         }
       } catch (e) {
         log.logError(`failed attempt to post selected. ${e}`);

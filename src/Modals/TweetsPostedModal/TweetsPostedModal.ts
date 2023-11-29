@@ -1,10 +1,10 @@
 import { App, Modal, Notice } from "obsidian";
-import { StatusesUpdate } from "twitter-api-client";
+import { TweetV2PostTweetResult } from "twitter-api-v2";
 import { TwitterHandler } from "../../TwitterHandler";
 import TweetsPostedModalContent from "./TweetsPostedModalContent.svelte";
 
 export class TweetsPostedModal extends Modal {
-  private readonly posts: StatusesUpdate[];
+  private readonly posts: TweetV2PostTweetResult[];
   private readonly twitterHandler: TwitterHandler;
   private modalContent: TweetsPostedModalContent;
   private resolvePromise: () => void;
@@ -13,7 +13,7 @@ export class TweetsPostedModal extends Modal {
 
   constructor(
     app: App,
-    post: StatusesUpdate[],
+    post: TweetV2PostTweetResult[],
     twitterHandler: TwitterHandler
   ) {
     super(app);
@@ -37,7 +37,16 @@ export class TweetsPostedModal extends Modal {
 
   private deleteTweets() {
     return async () => {
-      let didDeleteTweets = await this.twitterHandler.deleteTweets(this.posts);
+      let tweetsToDelete = [];
+      for (const tweet of this.posts) {
+        tweetsToDelete.push({
+          id: tweet.data.id,
+          text: tweet.data.text,
+        });
+      }
+      let didDeleteTweets = await this.twitterHandler.deleteTweets(
+        tweetsToDelete
+      );
 
       if (didDeleteTweets) {
         this.userDeletedTweets = true;
