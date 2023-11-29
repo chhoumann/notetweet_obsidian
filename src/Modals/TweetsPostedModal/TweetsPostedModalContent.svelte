@@ -1,7 +1,5 @@
 <script lang="ts">
-    import type {StatusesUpdate} from "twitter-api-client";
-
-    export let posts: StatusesUpdate[];
+    export let posts: any[];
     export let onDelete: any;
     export let onAccept: any;
     let multiplePosts = posts.length > 1;
