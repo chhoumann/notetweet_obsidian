@@ -1,4 +1,5 @@
 import { SendTweetV2Params, TweetV2, TwitterApi } from "twitter-api-v2";
+import { getMimeType } from "twitter-api-v2/dist/esm/v1/media-helpers.v1";
 import NoteTweet from "./main";
 import { log } from "./ErrorModule/logManager";
 
@@ -61,7 +62,12 @@ export class TwitterHandler {
     while (this.IMAGE_REGEX.test(processedTweet)) {
       const match = this.IMAGE_REGEX.exec(processedTweet);
       const fileName: string = match[1];
-      const media_id = await this.twitterClient.v1.uploadMedia(fileName);
+
+      // TODO: correctly handle the source path
+      const file = this.plugin.app.metadataCache.getFirstLinkpathDest(fileName, "");
+      const mimeType = getMimeType(fileName);
+      const data = Buffer.from(await file.vault.readBinary(file));
+      const media_id = await this.twitterClient.v1.uploadMedia(data, { mimeType });
 
       if (media_id) {
         media_ids.push(media_id);
