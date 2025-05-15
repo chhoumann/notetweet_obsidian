@@ -308,17 +308,18 @@ export abstract class PostTweetModal<TPromise> extends Modal {
     const DEFAULT_COLOR = "#339900";
 
     // Show different message based on auto-split setting
-    if (strlen >= this.MAX_TWEET_LENGTH && !this.plugin?.settings?.autoSplitTweets) {
-      lengthCheckerEl.innerHTML = `<span style="color:#cc3300">${strlen} / 280 characters. </span><span style="color:#cc3300;font-style:italic">Tweet exceeds Twitter's limit!</span>`;
-    } else {
-      lengthCheckerEl.innerText = `${strlen} / 280 characters.`;
+    lengthCheckerEl.innerText = `${strlen} / 280 characters.`;
 
-      // Apply color changes based on length
-      if (strlen <= WARN1) lengthCheckerEl.style.color = DEFAULT_COLOR;
-      if (strlen > WARN1) lengthCheckerEl.style.color = "#ffcc00";
-      if (strlen > WARN2) lengthCheckerEl.style.color = "#ff9966";
-      if (strlen >= this.MAX_TWEET_LENGTH) {
-        lengthCheckerEl.style.color = "#cc3300";
+    // Apply color changes based on length
+    if (strlen <= WARN1) lengthCheckerEl.style.color = DEFAULT_COLOR;
+    if (strlen > WARN1) lengthCheckerEl.style.color = "#ffcc00";
+    if (strlen > WARN2) lengthCheckerEl.style.color = "#ff9966";
+    if (strlen >= this.MAX_TWEET_LENGTH) {
+      // Use yellow instead of red for when auto-split is disabled
+      if (!this.plugin?.settings?.autoSplitTweets) {
+        lengthCheckerEl.style.color = "#ffcc00"; // Yellow color (less alarming)
+      } else {
+        lengthCheckerEl.style.color = "#cc3300"; // Red color (original warning)
       }
     }
   }
