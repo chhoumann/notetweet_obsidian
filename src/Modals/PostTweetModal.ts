@@ -20,7 +20,7 @@ export abstract class PostTweetModal<TPromise> extends Modal {
     super(app);
     this.selectedText = selection ?? {text: "", thread: false};
     // Get the plugin instance from the app
-    this.plugin = (app as any).plugins.plugins["notetweet-obsidian"];
+    this.plugin = (app as any).plugins.plugins["notetweet"];
 
     this.newTweet = new Promise(((resolve, reject) => {
       this.resolve = (tweet => {
@@ -175,11 +175,17 @@ export abstract class PostTweetModal<TPromise> extends Modal {
   ) {
     return (event: any) => {
       let pasted: string = event.clipboardData.getData("text");
-      // Only auto-split pasted content if the setting is enabled
-      if (pasted.length + textarea.textLength > this.MAX_TWEET_LENGTH && this.plugin.settings.autoSplitTweets) {
-        event.preventDefault();
-        let splicedPaste = this.textInputHandler(pasted);
-        this.createTweetsWithInput(splicedPaste, textarea, textZone);
+      
+      // Check if the pasted content would exceed the character limit
+      if (pasted.length + textarea.textLength > this.MAX_TWEET_LENGTH) {
+        // If auto-split is enabled, we should process the paste
+        if (this.plugin?.settings?.autoSplitTweets) {
+          event.preventDefault();
+          let splicedPaste = this.textInputHandler(pasted);
+          this.createTweetsWithInput(splicedPaste, textarea, textZone);
+        }
+        // If auto-split is disabled, let the default paste happen
+        // The text will exceed the limit but that's what the user wants
       }
     };
   }
@@ -308,18 +314,18 @@ export abstract class PostTweetModal<TPromise> extends Modal {
     const DEFAULT_COLOR = "#339900";
 
     // Show different message based on auto-split setting
-    lengthCheckerEl.innerText = `${strlen} / 280 characters.`;
+    if (strlen >= this.MAX_TWEET_LENGTH && !this.plugin?.settings?.autoSplitTweets) {
+      lengthCheckerEl.innerText = `${strlen} / 280 characters.`;
+      lengthCheckerEl.style.color = "#ffcc00"; // Yellow color
+    } else {
+      lengthCheckerEl.innerText = `${strlen} / 280 characters.`;
 
-    // Apply color changes based on length
-    if (strlen <= WARN1) lengthCheckerEl.style.color = DEFAULT_COLOR;
-    if (strlen > WARN1) lengthCheckerEl.style.color = "#ffcc00";
-    if (strlen > WARN2) lengthCheckerEl.style.color = "#ff9966";
-    if (strlen >= this.MAX_TWEET_LENGTH) {
-      // Use yellow instead of red for when auto-split is disabled
-      if (!this.plugin?.settings?.autoSplitTweets) {
-        lengthCheckerEl.style.color = "#ffcc00"; // Yellow color (less alarming)
-      } else {
-        lengthCheckerEl.style.color = "#cc3300"; // Red color (original warning)
+      // Apply color changes based on length
+      if (strlen <= WARN1) lengthCheckerEl.style.color = DEFAULT_COLOR;
+      if (strlen > WARN1) lengthCheckerEl.style.color = "#ffcc00";
+      if (strlen > WARN2) lengthCheckerEl.style.color = "#ff9966";
+      if (strlen >= this.MAX_TWEET_LENGTH) {
+        lengthCheckerEl.style.color = "#cc3300";
       }
     }
   }
