@@ -1,10 +1,12 @@
 import {App, Modal} from "obsidian";
 import {log} from "../ErrorModule/logManager";
+import NoteTweet from "../main";
 
 export abstract class PostTweetModal<TPromise> extends Modal {
   protected textAreas: HTMLTextAreaElement[] = [];
   protected readonly MAX_TWEET_LENGTH: number = 280;
   private readonly selectedText: { text: string; thread: boolean };
+  protected plugin: NoteTweet;
   private readonly helpText: string = `Please read the documentation on the Github repository.
                         Click <a target="_blank" href="https://github.com/chhoumann/notetweet_obsidian">here</a> to go there.
                         There are lots of shortcuts and features to explore 😁`;
@@ -17,6 +19,8 @@ export abstract class PostTweetModal<TPromise> extends Modal {
   protected constructor(app: App, selection?: { text: string; thread: boolean }) {
     super(app);
     this.selectedText = selection ?? {text: "", thread: false};
+    // Get the plugin instance from the app
+    this.plugin = (app as any).plugins.plugins["notetweet-obsidian"];
 
     this.newTweet = new Promise(((resolve, reject) => {
       this.resolve = (tweet => {
@@ -88,6 +92,12 @@ export abstract class PostTweetModal<TPromise> extends Modal {
   // Separate lines by linebreaks. Add lines together, separated by linebreak, if they can fit within a tweet.
   // Repeat this until all separated lines are joined into tweets with proper sizes.
   private textInputHandler(str: string) {
+    // If auto-split is disabled, return the original string as a single chunk
+    if (!this.plugin?.settings?.autoSplitTweets) {
+      return [str];
+    }
+    
+    // Otherwise, perform the normal splitting logic
     let chunks: string[] = str.split("\n");
     let i = 0,
         joinedTextChunks: string[] = [];
@@ -165,7 +175,8 @@ export abstract class PostTweetModal<TPromise> extends Modal {
   ) {
     return (event: any) => {
       let pasted: string = event.clipboardData.getData("text");
-      if (pasted.length + textarea.textLength > this.MAX_TWEET_LENGTH) {
+      // Only auto-split pasted content if the setting is enabled
+      if (pasted.length + textarea.textLength > this.MAX_TWEET_LENGTH && this.plugin.settings.autoSplitTweets) {
         event.preventDefault();
         let splicedPaste = this.textInputHandler(pasted);
         this.createTweetsWithInput(splicedPaste, textarea, textZone);
@@ -188,7 +199,8 @@ export abstract class PostTweetModal<TPromise> extends Modal {
         this.deleteTweet(textarea, textZone, lengthCheckerEl);
       }
 
-      if (key.code == "Enter" && textarea.textLength >= this.MAX_TWEET_LENGTH) {
+      // Only auto-split tweets if the setting is enabled
+      if (key.code == "Enter" && textarea.textLength >= this.MAX_TWEET_LENGTH && this.plugin.settings.autoSplitTweets) {
         key.preventDefault();
         try {
           this.createTextarea(textZone);
@@ -295,13 +307,19 @@ export abstract class PostTweetModal<TPromise> extends Modal {
     const WARN2: number = this.MAX_TWEET_LENGTH - 25;
     const DEFAULT_COLOR = "#339900";
 
-    lengthCheckerEl.innerText = `${strlen} / 280 characters.`;
+    // Show different message based on auto-split setting
+    if (strlen >= this.MAX_TWEET_LENGTH && !this.plugin?.settings?.autoSplitTweets) {
+      lengthCheckerEl.innerHTML = `<span style="color:#cc3300">${strlen} / 280 characters. </span><span style="color:#cc3300;font-style:italic">Tweet exceeds Twitter's limit!</span>`;
+    } else {
+      lengthCheckerEl.innerText = `${strlen} / 280 characters.`;
 
-    if (strlen <= WARN1) lengthCheckerEl.style.color = DEFAULT_COLOR;
-    if (strlen > WARN1) lengthCheckerEl.style.color = "#ffcc00";
-    if (strlen > WARN2) lengthCheckerEl.style.color = "#ff9966";
-    if (strlen >= this.MAX_TWEET_LENGTH) {
-      lengthCheckerEl.style.color = "#cc3300";
+      // Apply color changes based on length
+      if (strlen <= WARN1) lengthCheckerEl.style.color = DEFAULT_COLOR;
+      if (strlen > WARN1) lengthCheckerEl.style.color = "#ffcc00";
+      if (strlen > WARN2) lengthCheckerEl.style.color = "#ff9966";
+      if (strlen >= this.MAX_TWEET_LENGTH) {
+        lengthCheckerEl.style.color = "#cc3300";
+      }
     }
   }
 
@@ -356,13 +374,23 @@ export abstract class PostTweetModal<TPromise> extends Modal {
   protected getThreadContent(): string[] {
     let threadContent = this.textAreas.map((textarea) => textarea.value);
 
-    if (
-        threadContent.find(
-            (txt) => txt.length > this.MAX_TWEET_LENGTH || txt == ""
-        ) != null
-    ) {
-      log.logWarning("At least one of your tweets is too long or empty.");
-      return null;
+    // If auto-split is disabled, we still need to check for empty tweets
+    // but allow tweets that exceed the length limit
+    if (this.plugin?.settings?.autoSplitTweets) {
+      if (
+          threadContent.find(
+              (txt) => txt.length > this.MAX_TWEET_LENGTH || txt == ""
+          ) != null
+      ) {
+        log.logWarning("At least one of your tweets is too long or empty.");
+        return null;
+      }
+    } else {
+      // Just check for empty tweets when auto-split is disabled
+      if (threadContent.find(txt => txt == "") != null) {
+        log.logWarning("At least one of your tweets is empty.");
+        return null;
+      }
     }
 
     return threadContent;
