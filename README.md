@@ -84,3 +84,32 @@ Threads must start with `THREAD START` and end with `THREAD END`.
 
 ## Scheduling Tweets
 Follow [this guide](./GuideToSettingUpScheduler.md).
+
+## Troubleshooting
+
+### Authentication Error (401)
+If you're seeing "TypeError: Cannot read properties of undefined (reading 'data')" or authentication errors even though the plugin shows as "connected":
+
+1. **Verify your Twitter app is attached to a Project**
+   - Go to [developer.twitter.com](https://developer.twitter.com)
+   - Navigate to your app settings
+   - Ensure your app is attached to a Project (required for Twitter API v2)
+
+2. **Check your system clock**
+   - Authentication can fail if your system time is incorrect
+   - Ensure your computer's clock is synchronized
+
+3. **Regenerate your access tokens**
+   - In the Twitter Developer Portal, regenerate your Access Token & Secret
+   - Update the plugin settings with the new tokens
+
+4. **Verify app permissions**
+   - Your Twitter app must have "Read and Write" permissions
+   - If you recently changed permissions, regenerate your tokens
+
+5. **Check for token expiration**
+   - Twitter tokens can expire after extended periods of non-use
+   - Simply regenerating them often resolves this issue
+
+### Common Issues
+- **Media upload failures**: Ensure your image files are in a supported format (gif, jpg, jpeg, png, webp, bmp) and accessible in your vault.

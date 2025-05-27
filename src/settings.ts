@@ -32,12 +32,26 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
-  checkStatus() {
-    this.statusIndicator.innerHTML = `<strong>Plugin Status:</strong> ${
-      this.plugin.twitterHandler.isConnectedToTwitter
-        ? "✅ Plugin connected to Twitter."
-        : "🛑 Plugin not connected to Twitter."
-    }`;
+  checkStatus(message?: string) {
+    if (message) {
+      this.statusIndicator.innerHTML = `<strong>Plugin Status:</strong> ${message}`;
+    } else {
+      this.statusIndicator.innerHTML = `<strong>Plugin Status:</strong> ${
+        this.plugin.twitterHandler.isConnectedToTwitter
+          ? "✅ Plugin connected to Twitter."
+          : "🛑 Plugin not connected to Twitter."
+      }`;
+    }
+  }
+
+  async updateConnectionStatus() {
+    this.checkStatus("⏳ Verifying Twitter credentials...");
+    const connected = await this.plugin.connectToTwitterWithPlainSettings();
+    if (connected === undefined && this.plugin.settings.secureMode) {
+      this.checkStatus("🔒 Secure mode enabled.");
+    } else {
+      this.checkStatus();
+    }
   }
 
   display(): void {
@@ -114,8 +128,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                   this.plugin.settings.accessTokenSecret = value;
                   await this.plugin.saveSettings();
 
-                  this.plugin.connectToTwitterWithPlainSettings();
-                  this.checkStatus();
+                  await this.updateConnectionStatus();
               })
           }
       );
@@ -134,8 +147,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                   this.plugin.settings.accessToken = value;
                   await this.plugin.saveSettings();
 
-                  this.plugin.connectToTwitterWithPlainSettings();
-                  this.checkStatus();
+                  await this.updateConnectionStatus();
               })
           }
       );
@@ -154,8 +166,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                   this.plugin.settings.apiSecret = value;
                   await this.plugin.saveSettings();
 
-                  this.plugin.connectToTwitterWithPlainSettings();
-                  this.checkStatus();
+                  await this.updateConnectionStatus();
               })
           }
       );
@@ -174,8 +185,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
                   this.plugin.settings.apiKey = value;
                   await this.plugin.saveSettings();
 
-                  this.plugin.connectToTwitterWithPlainSettings();
-                  this.checkStatus();
+                  await this.updateConnectionStatus();
               })
           }
       );

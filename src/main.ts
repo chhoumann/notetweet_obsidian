@@ -1,4 +1,4 @@
-import {Editor, MarkdownView, Plugin, TFile} from "obsidian";
+import {Editor, MarkdownView, Notice, Plugin, TFile} from "obsidian";
 import {TwitterHandler} from "./TwitterHandler";
 import {DEFAULT_SETTINGS, NoteTweetSettings, NoteTweetSettingsTab,} from "./settings";
 import {TweetsPostedModal} from "./Modals/TweetsPostedModal/TweetsPostedModal";
@@ -30,7 +30,7 @@ export default class NoteTweet extends Plugin {
 
     await this.loadSettings();
     this.twitterHandler = new TwitterHandler(this);
-    this.connectToTwitterWithPlainSettings();
+    await this.connectToTwitterWithPlainSettings();
 
     this.addCommand({
       id: "post-selected-as-tweet",
@@ -136,23 +136,31 @@ export default class NoteTweet extends Plugin {
     if (tweet instanceof ScheduledTweet) {
       await this.scheduler.scheduleTweet(tweet);
     } else if (tweet instanceof Tweet) {
-      const tweetsPosted: TweetV2PostTweetResult[] = await this.twitterHandler.postThread(tweet.content);
-      new TweetsPostedModal(this.app, tweetsPosted, this.twitterHandler).open();
+      try {
+        const tweetsPosted: TweetV2PostTweetResult[] = await this.twitterHandler.postThread(tweet.content);
+        if (tweetsPosted && tweetsPosted.length > 0) {
+          new TweetsPostedModal(this.app, tweetsPosted, this.twitterHandler).open();
+        }
+      } catch (e) {
+        log.logError(`Failed to post tweet: ${e}`);
+        new Notice(`Failed to post tweet: ${e.message || e}`);
+      }
     }
   }
 
-  public connectToTwitterWithPlainSettings() {
+  public async connectToTwitterWithPlainSettings(): Promise<boolean | undefined> {
     if (!this.settings.secureMode) {
       let { apiKey, apiSecret, accessToken, accessTokenSecret } = this.settings;
-      if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) return;
+      if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) return false;
 
-      this.twitterHandler.connectToTwitter(
+      return await this.twitterHandler.connectToTwitter(
         apiKey,
         apiSecret,
         accessToken,
         accessTokenSecret
       );
     }
+    return undefined;
   }
 
   private async postThreadInFile() {
@@ -168,18 +176,21 @@ export default class NoteTweet extends Plugin {
 
     try {
       let postedTweets = await this.twitterHandler.postThread(threadContent);
-      let postedModal = new TweetsPostedModal(
-        this.app,
-        postedTweets,
-        this.twitterHandler
-      );
+      if (postedTweets && postedTweets.length > 0) {
+        let postedModal = new TweetsPostedModal(
+          this.app,
+          postedTweets,
+          this.twitterHandler
+        );
 
-      await postedModal.waitForClose;
-      if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
-        postedTweets.forEach((tweet) => this.appendPostTweetTag(tweet.data.text));
+        await postedModal.waitForClose;
+        if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
+          postedTweets.forEach((tweet) => this.appendPostTweetTag(tweet.data.text));
+        }
       }
     } catch (e) {
       log.logError(`failed attempted to post tweets. ${e}`);
+      new Notice(`Failed to post thread: ${e.message || e}`);
     }
   }
 
@@ -198,18 +209,21 @@ export default class NoteTweet extends Plugin {
 
       try {
         let tweet = await this.twitterHandler.postTweet(selection);
-        let postedModal = new TweetsPostedModal(
-          this.app,
-          [tweet],
-          this.twitterHandler
-        );
+        if (tweet) {
+          let postedModal = new TweetsPostedModal(
+            this.app,
+            [tweet],
+            this.twitterHandler
+          );
 
-        await postedModal.waitForClose;
-        if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
-          await this.appendPostTweetTag(tweet.data.text);
+          await postedModal.waitForClose;
+          if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
+            await this.appendPostTweetTag(tweet.data.text);
+          }
         }
       } catch (e) {
         log.logError(`failed attempt to post selected. ${e}`);
+        new Notice(`Failed to post tweet: ${e.message || e}`);
       }
     } else {
       log.logWarning(`tried to post selected but nothing was selected.`)
