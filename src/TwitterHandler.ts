@@ -9,12 +9,12 @@ export class TwitterHandler {
 
   constructor(private plugin: NoteTweet) {}
 
-  public connectToTwitter(
+  public async connectToTwitter(
     apiKey: string,
     apiSecret: string,
     accessToken: string,
     accessTokenSecret: string
-  ) {
+  ): Promise<boolean> {
     try {
       this.twitterClient = new TwitterApi({
         appKey: apiKey,
@@ -22,9 +22,20 @@ export class TwitterHandler {
         accessToken: accessToken,
         accessSecret: accessTokenSecret,
       });
-      this.isConnectedToTwitter = true;
+      
+      // Verify credentials by making a test API call
+      try {
+        await this.twitterClient.v2.me();
+        this.isConnectedToTwitter = true;
+        return true;
+      } catch (e) {
+        console.error("Twitter authentication verification failed:", e);
+        this.isConnectedToTwitter = false;
+        return false;
+      }
     } catch (e) {
       this.isConnectedToTwitter = false;
+      return false;
     }
   }
 

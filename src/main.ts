@@ -30,7 +30,7 @@ export default class NoteTweet extends Plugin {
 
     await this.loadSettings();
     this.twitterHandler = new TwitterHandler(this);
-    this.connectToTwitterWithPlainSettings();
+    await this.connectToTwitterWithPlainSettings();
 
     this.addCommand({
       id: "post-selected-as-tweet",
@@ -148,18 +148,19 @@ export default class NoteTweet extends Plugin {
     }
   }
 
-  public connectToTwitterWithPlainSettings() {
+  public async connectToTwitterWithPlainSettings(): Promise<boolean | undefined> {
     if (!this.settings.secureMode) {
       let { apiKey, apiSecret, accessToken, accessTokenSecret } = this.settings;
-      if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) return;
+      if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) return false;
 
-      this.twitterHandler.connectToTwitter(
+      return await this.twitterHandler.connectToTwitter(
         apiKey,
         apiSecret,
         accessToken,
         accessTokenSecret
       );
     }
+    return undefined;
   }
 
   private async postThreadInFile() {

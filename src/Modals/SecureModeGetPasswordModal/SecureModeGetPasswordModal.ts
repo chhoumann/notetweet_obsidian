@@ -34,23 +34,24 @@ export class SecureModeGetPasswordModal extends Modal {
     this.resolvePromise();
   }
 
-  private onSubmit(value: string) {
+  private async onSubmit(value: string) {
     if (value === "") return;
 
     try {
-      this.secureModeLogin(value);
+      const connected = await this.secureModeLogin(value);
+      if (connected) {
+        new Notice("Successfully authenticated with Twitter!");
+        this.close();
+      } else {
+        new Notice("Failed to authenticate with Twitter. Please check your credentials.");
+      }
     } catch (e) {
-      new Notice("Wrong password.");
-    }
-
-    if (this._plugin.twitterHandler.isConnectedToTwitter) {
-      new Notice("Successfully authenticated with Twitter!");
-      this.close();
+      new Notice("Wrong password or decryption failed.");
     }
   }
 
-  private secureModeLogin(password: string) {
-    this._plugin.twitterHandler.connectToTwitter(
+  private async secureModeLogin(password: string): Promise<boolean> {
+    return await this._plugin.twitterHandler.connectToTwitter(
       SecureModeCrypt.decryptString(this._plugin.settings.apiKey, password),
       SecureModeCrypt.decryptString(this._plugin.settings.apiSecret, password),
       SecureModeCrypt.decryptString(

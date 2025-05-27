@@ -112,5 +112,4 @@ If you're seeing "TypeError: Cannot read properties of undefined (reading 'data'
    - Simply regenerating them often resolves this issue
 
 ### Common Issues
-- **Green "connected" status but tweets fail**: The connection indicator only verifies that credentials are entered, not that they're valid. Follow the authentication troubleshooting steps above.
 - **Media upload failures**: Ensure your image files are in a supported format (gif, jpg, jpeg, png, webp, bmp) and accessible in your vault.
