@@ -39,6 +39,7 @@ export class TwitterHandler {
       return await this.twitterClient.v2.tweetThread(tweets);
     } catch (e) {
       console.log(`error in posting tweet thread: ${e}`);
+      throw e;
     }
   }
 
@@ -52,6 +53,7 @@ export class TwitterHandler {
       return await this.twitterClient.v2.tweet(tweet);
     } catch (e) {
       console.log(`error in posting tweet. ${e}`);
+      throw e;
     }
   }
 

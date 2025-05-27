@@ -17,7 +17,7 @@ export class TweetsPostedModal extends Modal {
     twitterHandler: TwitterHandler
   ) {
     super(app);
-    this.posts = post;
+    this.posts = post || [];
     this.twitterHandler = twitterHandler;
     this.waitForClose = new Promise<void>(
       (resolve) => (this.resolvePromise = resolve)
