@@ -6,16 +6,19 @@ import {Tweet} from "../Types/Tweet";
 import {promptForDateTime} from "../utility";
 import {ScheduledTweet} from "../Types/ScheduledTweet";
 import {PostTweetModal} from "./PostTweetModal";
+import NoteTweet from "../main";
 
 export class UpdateScheduledTweetModal extends PostTweetModal<IScheduledTweet> {
     static Update(app: App, tweet: IScheduledTweet): Promise<IScheduledTweet> {
-        const modal = new UpdateScheduledTweetModal(app, tweet);
+        // Get plugin instance
+        const plugin = (app as any).plugins.plugins["notetweet"] as NoteTweet;
+        const modal = new UpdateScheduledTweetModal(app, plugin, tweet);
         modal.open();
         return modal.newTweet;
     }
 
-    constructor(app: App, private tweet: IScheduledTweet) {
-        super(app);
+    constructor(app: App, plugin: NoteTweet, private tweet: IScheduledTweet) {
+        super(app, plugin);
     }
 
     protected createFirstTextarea() {

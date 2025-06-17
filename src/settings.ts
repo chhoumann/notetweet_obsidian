@@ -187,7 +187,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     private addAutoSplitTweetsSetting() {
         new Setting(this.containerEl)
             .setName("Auto-split tweets")
-            .setDesc("Automatically split tweets at 280 characters. Disable this to allow tweets to exceed character limit.")
+            .setDesc("Automatically split tweets at 280 characters. Disable this to allow tweets to exceed character limit. Note: Posting tweets longer than 280 characters requires a paid X (Twitter) plan.")
             .addToggle(toggle => 
                 toggle.setTooltip('Toggle auto-splitting tweets')
                     .setValue(this.plugin.settings.autoSplitTweets)
