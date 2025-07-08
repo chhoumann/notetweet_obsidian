@@ -10,6 +10,7 @@ export interface NoteTweetSettings {
   accessTokenSecret: string;
   postTweetTag: string;
   secureMode: boolean;
+  autoSplitTweets: boolean;
   scheduling: {enabled: boolean, url: string, password: string, cronStrings: string[]};
 }
 
@@ -20,6 +21,7 @@ export const DEFAULT_SETTINGS: NoteTweetSettings = Object.freeze({
   accessTokenSecret: "",
   postTweetTag: "",
   secureMode: false,
+  autoSplitTweets: true,
   scheduling: {enabled: false, url: "", password: "", cronStrings: []},
 });
 
@@ -67,6 +69,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
     this.addAccessTokenSetting();
     this.addAccessTokenSecretSetting();
     this.addTweetTagSetting();
+    this.addAutoSplitTweetsSetting();
     this.addSecureModeSetting();
     this.addSchedulerSetting();
   }
@@ -190,6 +193,20 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
           }
       );
   }
+
+    private addAutoSplitTweetsSetting() {
+        new Setting(this.containerEl)
+            .setName("Auto-split tweets")
+            .setDesc("Automatically split tweets at 280 characters. Disable this to allow tweets to exceed character limit. Note: Posting tweets longer than 280 characters requires a paid X (Twitter) plan.")
+            .addToggle(toggle => 
+                toggle.setTooltip('Toggle auto-splitting tweets')
+                    .setValue(this.plugin.settings.autoSplitTweets)
+                    .onChange(async value => {
+                        this.plugin.settings.autoSplitTweets = value;
+                        await this.plugin.saveSettings();
+                    })
+            );
+    }
 
     private addSchedulerSetting() {
         new Setting(this.containerEl)

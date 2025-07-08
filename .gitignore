@@ -10,3 +10,6 @@ package-lock.json
 src/main.js
 *.js.map
 main.js
+
+# data
+data.json

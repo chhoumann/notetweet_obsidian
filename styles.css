@@ -1,6 +1,6 @@
 .postTweetModal {
     max-width: 35rem;
-    width: 35rem;
+    width: 100%;
     overflow-y: auto;
     max-height: 50rem;
     padding-left: 0.5rem;
@@ -40,7 +40,7 @@ textarea:focus {
 
 .tweetTooltipBody {
     visibility: hidden;
-    width: 500px;
+    width: 100%;
     background-color: black;
     color: #fff;
     text-align: center;

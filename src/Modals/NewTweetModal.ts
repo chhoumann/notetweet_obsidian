@@ -6,16 +6,19 @@ import {Tweet} from "../Types/Tweet";
 import {promptForDateTime} from "../utility";
 import {ScheduledTweet} from "../Types/ScheduledTweet";
 import {PostTweetModal} from "./PostTweetModal";
+import NoteTweet from "../main";
 
 export class NewTweetModal extends PostTweetModal<IScheduledTweet | ITweet> {
     static PostTweet(app: App, selection?: { text: string, thread: boolean }): Promise<ITweet | IScheduledTweet> {
-        const modal = new NewTweetModal(app, selection);
+        // Get plugin instance
+        const plugin = (app as any).plugins.plugins["notetweet"] as NoteTweet;
+        const modal = new NewTweetModal(app, plugin, selection);
         modal.open();
         return modal.newTweet;
     }
 
-    constructor(app: App, selection?: { text: string, thread: boolean }) {
-        super(app, selection);
+    constructor(app: App, plugin: NoteTweet, selection?: { text: string, thread: boolean }) {
+        super(app, plugin, selection);
     }
 
     protected addActionButtons() {
