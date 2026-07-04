@@ -1,5 +1,4 @@
 import { Notice, requestUrl } from "obsidian";
-import { log } from "./log";
 import type { ScheduledTweet } from "./tweet";
 import { formatDateTime } from "./datetime";
 
@@ -22,11 +21,10 @@ export class SelfHostedScheduler implements Scheduler {
 	) {}
 
 	async scheduleTweet(tweet: ScheduledTweet): Promise<void> {
-		const response = await this.send("/scheduleTweet", "POST", {
+		await this.send("/scheduleTweet", "POST", {
 			tweet,
 			postAt: tweet.postat,
 		});
-		log.message(`Scheduled tweet: ${response.text}`);
 		const when = formatDateTime(tweet.postat);
 		new Notice(
 			`Scheduled '${tweet.content[0].slice(0, 10)}...' for ${when}`,
@@ -40,15 +38,13 @@ export class SelfHostedScheduler implements Scheduler {
 
 	async deleteScheduledTweet(tweet: ScheduledTweet): Promise<void> {
 		await this.send("/deleteScheduled", "DELETE", { tweet });
-		log.message(`Unscheduled tweet: ${tweet.id}`);
 	}
 
 	async updateTweet(tweet: ScheduledTweet): Promise<void> {
-		const response = await this.send("/updateTweet", "POST", {
+		await this.send("/updateTweet", "POST", {
 			tweet,
 			postAt: tweet.postat,
 		});
-		log.message(`Updated tweet: ${response.text}`);
 	}
 
 	private async send(path: string, method: string, body?: unknown) {

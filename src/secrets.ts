@@ -1,5 +1,4 @@
 import type { App } from "obsidian";
-import { log } from "./log";
 
 /**
  * Stable SecretStorage keys owned by this plugin. Obsidian requires secret ids
@@ -35,8 +34,7 @@ export function hasSecretStorage(app: App): boolean {
 export function getSecret(app: App, id: SecretId): string {
 	try {
 		return app.secretStorage?.getSecret(id) ?? "";
-	} catch (error) {
-		log.message(`Failed to read secret "${id}": ${error}`);
+	} catch {
 		return "";
 	}
 }

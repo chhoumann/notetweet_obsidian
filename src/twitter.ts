@@ -48,21 +48,6 @@ function humanError(error: unknown): string {
 	return String(error);
 }
 
-function describeError(error: unknown): string {
-	if (typeof error !== "object" || error === null) return String(error);
-	const parts: string[] = [];
-	if ("code" in error) parts.push(`code=${String(error.code)}`);
-	if ("data" in error) {
-		try {
-			parts.push(`data=${JSON.stringify(error.data)}`);
-		} catch {
-			// non-serializable error payload; skip it
-		}
-	}
-	if ("message" in error && parts.length === 0) parts.push(String(error.message));
-	return parts.length > 0 ? parts.join(" ") : String(error);
-}
-
 /** Thin wrapper around twitter-api-v2 that owns the connection state. */
 export class TwitterClient {
 	private client: TwitterApi | null = null;
@@ -101,7 +86,6 @@ export class TwitterClient {
 			this.client = null;
 			this.isConnected = false;
 			this.lastError = humanError(error);
-			log.message(`Twitter authentication failed: ${describeError(error)}`);
 			return false;
 		}
 	}
@@ -128,9 +112,8 @@ export class TwitterClient {
 		}
 	}
 
-	/** Log the raw API failure and return an Error carrying X's own reason. */
+	/** Return an Error carrying X's own reason for the failure. */
 	private postError(error: unknown): Error {
-		log.message(`Post request failed: ${describeError(error)}`);
 		return new Error(humanError(error));
 	}
 

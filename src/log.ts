@@ -2,22 +2,19 @@ import { Notice } from "obsidian";
 
 const PREFIX = "NoteTweet";
 
+const ERROR_NOTICE_MS = 10_000;
+
 /**
- * Minimal logging surface for the plugin. Errors and warnings reach the user as
- * a `Notice`; everything is mirrored to the developer console. This replaces
- * the previous multi-class logger hierarchy, which added indirection without
- * value.
+ * Minimal logging surface for the plugin. Everything reaches the user as a
+ * `Notice`; errors stay on screen longer so they can be read and reported.
+ * Nothing is written to the developer console, per Obsidian's plugin
+ * guidelines.
  */
 export const log = {
 	error(message: string): void {
-		console.error(`${PREFIX}: ${message}`);
-		new Notice(`${PREFIX}: ${message}`);
+		new Notice(`${PREFIX}: ${message}`, ERROR_NOTICE_MS);
 	},
 	warning(message: string): void {
-		console.warn(`${PREFIX}: ${message}`);
 		new Notice(`${PREFIX}: ${message}`);
-	},
-	message(message: string): void {
-		console.log(`${PREFIX}: ${message}`);
 	},
 };
