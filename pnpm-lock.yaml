@@ -11,9 +11,6 @@ importers:
       crypto-es:
         specifier: ^2.1.0
         version: 2.1.0
-      twitter-api-v2:
-        specifier: ^1.15.2
-        version: 1.29.0
     devDependencies:
       '@semantic-release/git':
         specifier: ^10.0.1
@@ -25,7 +22,7 @@ importers:
         specifier: ^4.1.9
         version: 4.1.9(vitest@4.1.9)
       esbuild:
-        specifier: ^0.28.1
+        specifier: 0.28.1
         version: 0.28.1
       eslint:
         specifier: ^9.39.4
@@ -3227,9 +3224,6 @@ packages:
   tunnel@0.0.6:
     resolution: {integrity: sha512-1h/Lnq9yajKY2PEbBadPXj3VxsDDu844OnaAo52UVmIzIvwwtBPIuNvkjuzBlTWpfJyUbG3ez0KSBibQkj4ojg==}
     engines: {node: '>=0.6.11 <=0.7.0 || >=0.7.3'}
-
-  twitter-api-v2@1.29.0:
-    resolution: {integrity: sha512-v473q5bwme4N+DWSg6qY+JCvfg1nSJRWwui3HUALafxfqCvVkKiYmS/5x/pVeJwTmyeBxexMbzHwnzrH4h6oYQ==}
 
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
@@ -6742,8 +6736,6 @@ snapshots:
       safe-buffer: 5.2.1
 
   tunnel@0.0.6: {}
-
-  twitter-api-v2@1.29.0: {}
 
   type-check@0.4.0:
     dependencies:
