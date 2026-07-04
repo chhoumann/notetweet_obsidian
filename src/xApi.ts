@@ -73,7 +73,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Human-readable reason for a failed API call, in the priority X actually
- * populates: v2 per-item errors first, then RFC 7807 problem fields.
+ * populates: v2 per-item errors first, then RFC 7807 problem fields, then
+ * the legacy `{ code, message }` Error schema some media/auth failures use.
  */
 export function extractApiError(status: number, body: unknown): string {
 	if (isRecord(body)) {
@@ -87,6 +88,7 @@ export function extractApiError(status: number, body: unknown): string {
 		}
 		if (typeof body.title === "string") return body.title;
 		if (typeof body.detail === "string") return body.detail;
+		if (typeof body.message === "string") return body.message;
 	}
 	return `HTTP ${status}`;
 }

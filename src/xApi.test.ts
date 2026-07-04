@@ -242,8 +242,10 @@ describe("XApiClient", () => {
 
 describe("extractApiError", () => {
 	// Priority order pinned: errors[0].message -> errors[0].detail -> title
-	// -> detail -> HTTP <status>. X mixes these shapes across endpoints, so
-	// a reshuffle silently downgrades every error message users see.
+	// -> detail -> message -> HTTP <status>. X mixes these shapes across
+	// endpoints (RFC 7807 problems plus the legacy { code, message } Error
+	// schema on some media/auth failures), so a reshuffle silently
+	// downgrades every error message users see.
 	const cases: Array<{ name: string; status: number; body: unknown; expected: string }> = [
 		{
 			name: "errors[0].message wins over title",
@@ -268,6 +270,18 @@ describe("extractApiError", () => {
 			status: 400,
 			body: { detail: "only detail" },
 			expected: "only detail",
+		},
+		{
+			name: "legacy { code, message } Error schema is used before the fallback",
+			status: 403,
+			body: { code: 32, message: "Could not authenticate you." },
+			expected: "Could not authenticate you.",
+		},
+		{
+			name: "detail wins over legacy message",
+			status: 400,
+			body: { detail: "problem detail", message: "legacy message" },
+			expected: "problem detail",
 		},
 		{
 			name: "falls back to HTTP <status> for an empty body",
