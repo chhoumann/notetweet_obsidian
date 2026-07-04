@@ -58,7 +58,7 @@ describe("NoteTweet settings tab", () => {
 			await obsidian.dev.evalJson<SettingsSnapshot>(SETTINGS_SNAPSHOT);
 
 		expect(snapshot.found).toBe(true);
-		expect(snapshot.headings).toContain("Twitter API credentials");
+		expect(snapshot.headings).toContain("X API credentials");
 		expect(snapshot.headings).toContain("Posting");
 		expect(snapshot.headings).toContain("Scheduling");
 		// The migration group is always part of the definitions; with no legacy
