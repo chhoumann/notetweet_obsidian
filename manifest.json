@@ -3,7 +3,7 @@
 	"name": "NoteTweet",
 	"version": "0.6.0",
 	"minAppVersion": "1.13.0",
-	"description": "Post tweets and threads to X (Twitter) directly from Obsidian.",
+	"description": "Post tweets and threads to X (Twitter) directly from your notes.",
 	"author": "Christian Bager Bach Houmann",
 	"authorUrl": "https://bagerbach.com/",
 	"isDesktopOnly": false

@@ -1,7 +1,7 @@
 {
   "name": "notetweet",
   "version": "0.6.0",
-  "description": "Post tweets and threads to X (Twitter) directly from Obsidian.",
+  "description": "Post tweets and threads to X (Twitter) directly from your notes.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
