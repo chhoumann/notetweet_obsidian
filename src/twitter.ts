@@ -22,7 +22,23 @@ function humanError(error: unknown): string {
 	if (typeof error === "object" && error !== null && "data" in error) {
 		const data = error.data;
 		if (typeof data === "object" && data !== null) {
+			if ("reason" in data && typeof data.reason === "string") return data.reason;
 			if ("detail" in data && typeof data.detail === "string") return data.detail;
+			if (
+				"errors" in data &&
+				Array.isArray(data.errors) &&
+				data.errors.length > 0
+			) {
+				const first: unknown = data.errors[0];
+				if (
+					typeof first === "object" &&
+					first !== null &&
+					"message" in first &&
+					typeof first.message === "string"
+				) {
+					return first.message;
+				}
+			}
 			if ("title" in data && typeof data.title === "string") return data.title;
 		}
 	}
@@ -92,16 +108,30 @@ export class TwitterClient {
 
 	async postThread(content: string[]): Promise<TweetV2PostTweetResult[]> {
 		const client = this.requireClient();
-		const tweets: SendTweetV2Params[] = [];
-		for (const text of content) {
-			tweets.push(await this.buildTweet(text));
+		try {
+			const tweets: SendTweetV2Params[] = [];
+			for (const text of content) {
+				tweets.push(await this.buildTweet(text));
+			}
+			return await client.v2.tweetThread(tweets);
+		} catch (error) {
+			throw this.postError(error);
 		}
-		return client.v2.tweetThread(tweets);
 	}
 
 	async postTweet(text: string): Promise<TweetV2PostTweetResult> {
 		const client = this.requireClient();
-		return client.v2.tweet(await this.buildTweet(text));
+		try {
+			return await client.v2.tweet(await this.buildTweet(text));
+		} catch (error) {
+			throw this.postError(error);
+		}
+	}
+
+	/** Log the raw API failure and return an Error carrying X's own reason. */
+	private postError(error: unknown): Error {
+		log.message(`Post request failed: ${describeError(error)}`);
+		return new Error(humanError(error));
 	}
 
 	async deleteTweets(tweets: { id: string }[]): Promise<boolean> {
