@@ -43,6 +43,7 @@ If you want to watch a video on how to set up this plugin, click [here](https://
 4. Enable posting and generate the user tokens (this is the extra step people miss):
    - In the app's **Settings** tab, open **User authentication settings** and click **Edit**.
    - Enable **OAuth 1.0a**, set **App permissions** to **Read and write**, then **Save**.
+   - To save, X also requires a **Callback URI / Redirect URL**, a **Website URL**, and a **Type of App**. The plugin uses OAuth 1.0a with the Access Token below and never uses the callback redirect, so any valid values work: put `https://github.com/chhoumann/notetweet_obsidian` in both URL fields and pick **Web App, Automated App or Bot** for the type.
    - Open the **Keys and tokens** tab, find **Access Token and Secret**, and click **Generate**. This gives you the **Access Token** and **Access Token Secret**.
    - If you change App permissions *after* generating the Access Token, regenerate the Access Token - otherwise it stays read-only.
 5. Paste all four values - **API Key**, **API Key Secret**, **Access Token**, and **Access Token Secret** - into the plugin settings in Obsidian. They are stored in Obsidian's encrypted Secret Storage (see 'Credentials & security' below).
@@ -110,6 +111,14 @@ To fix it:
 1. In the [Developer Portal](https://developer.x.com/en/portal/dashboard), either create a **fresh app** (new apps are automatically enrolled in a Project) or attach your existing app to a Project.
 2. Regenerate your **Access Token and Secret** (Keys and tokens -> Access Token and Secret -> Generate), since the tokens are tied to the app.
 3. Paste the updated credentials into the plugin settings and re-check the connection indicator.
+
+### Posting fails with 403 even though you're connected
+The connection indicator uses a *read* call, so it stays green even when your app can't *write*. A 403 when you hit **Post** almost always means one of:
+- **Your Access Token is read-only.** If the app was Read-only when the token was generated (or you switched to **Read and write** afterwards without regenerating), the token can read but not post. Set **App permissions = Read and write**, then **regenerate the Access Token and Secret** and paste the new ones in - this is the fix in the large majority of cases.
+- **You hit the free tier's monthly write cap.** X returns a 403 (`UsageCapExceeded`) once you exceed it; wait for the reset or raise your access tier.
+- **Duplicate content.** X rejects an identical post; change the text.
+
+The failure notice shows X's own reason, and the full payload is logged to the developer console (`Post request failed: code=… data=…`) so you can tell these apart.
 
 ### Authentication Error (401)
 If you're seeing "TypeError: Cannot read properties of undefined (reading 'data')" or authentication errors even though the plugin shows as "connected":
