@@ -28,6 +28,15 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+      - run: pnpm run test
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm semantic-release
+      # After semantic-release: its npm `version` lifecycle bumps
+      # manifest.json/versions.json, so attesting earlier would sign a
+      # digest that no longer matches the uploaded asset. Attestations are
+      # digest-based, so attesting after upload is valid.
       - name: Attest release artifacts
         uses: actions/attest-build-provenance@v4
         with:
@@ -35,8 +44,3 @@ jobs:
             main.js
             manifest.json
             styles.css
-      - run: pnpm run test
-      - name: Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm semantic-release
