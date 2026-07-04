@@ -53,7 +53,7 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
-    "crypto-es": "^1.2.7",
+    "crypto-es": "^2.1.0",
     "twitter-api-v2": "^1.15.2"
   },
   "pnpm": {

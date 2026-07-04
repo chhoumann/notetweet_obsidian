@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       crypto-es:
-        specifier: ^1.2.7
-        version: 1.2.7
+        specifier: ^2.1.0
+        version: 2.1.0
       twitter-api-v2:
         specifier: ^1.15.2
         version: 1.29.0
@@ -1422,8 +1422,8 @@ packages:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
 
-  crypto-es@1.2.7:
-    resolution: {integrity: sha512-UUqiVJ2gUuZFmbFsKmud3uuLcNP2+Opt+5ysmljycFCyhA0+T16XJmo1ev/t5kMChMqWh7IEvURNCqsg+SjZGQ==}
+  crypto-es@2.1.0:
+    resolution: {integrity: sha512-C5Dbuv4QTPGuloy5c5Vv/FZHtmK+lobLAypFfuRaBbwCsk3qbCWWESCH3MUcBsrgXloRNMrzwUAiPg4U6+IaKA==}
 
   crypto-random-string@4.0.0:
     resolution: {integrity: sha512-x8dy3RnvYdlUcPOjkEHqozhiwzKNSq7GcPuXFbnyMOCHxX8V3OgIg/pYuabl2sbUPfIJaeAQB7PMOK8DFIdoRA==}
@@ -4752,7 +4752,7 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  crypto-es@1.2.7: {}
+  crypto-es@2.1.0: {}
 
   crypto-random-string@4.0.0:
     dependencies:

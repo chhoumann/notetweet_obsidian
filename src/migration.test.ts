@@ -1,5 +1,6 @@
 import type { App } from "obsidian";
 import CryptoES from "crypto-es";
+import { decryptLegacyValue } from "./legacyCrypt";
 import {
 	type LegacyCredentialData,
 	legacyCredentialsEncrypted,
@@ -109,6 +110,23 @@ describe("readLegacyCredentials", () => {
 		expect(result.accessTokenSecret).toBe("ats");
 		// Must NOT be run through decrypt - kept as the stored plaintext.
 		expect(result.schedulerPassword).toBe("sched-pw");
+	});
+});
+
+describe("decryptLegacyValue", () => {
+	// Ciphertext hardcoded from crypto-es 1.2.7 on purpose: a same-version
+	// round trip (encrypt + decrypt with the installed library) can never
+	// detect a cross-version break, so this fixture pins decrypt
+	// compatibility for values users encrypted with the old Secure Mode
+	// across crypto-es upgrades.
+	it("decrypts a ciphertext produced under crypto-es 1.2.7 (cross-version compatibility pin)", () => {
+		const fixtureCiphertext =
+			"U2FsdGVkX1+oF0/EozimKUeYHNCJp5s/xIMvUyn04bUvusFwGUi5XHuI6fS2NGfo";
+		const password = "correct horse battery staple";
+
+		expect(decryptLegacyValue(fixtureCiphertext, password)).toBe(
+			"api-key-1234:secret",
+		);
 	});
 });
 
