@@ -15,13 +15,6 @@ import {
 	resolveSchedulerPassword,
 } from "./migration";
 
-interface AppWithPluginManager {
-	plugins: {
-		disablePlugin(id: string): Promise<void>;
-		enablePlugin(id: string): Promise<void>;
-	};
-}
-
 function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
@@ -53,14 +46,6 @@ export default class NoteTweet extends Plugin {
 			name: "Post file as thread",
 			callback: () => void this.postFileAsThread(),
 		});
-
-		/*START.DEVCMD*/
-		this.addCommand({
-			id: "reload",
-			name: "Reload (dev)",
-			callback: () => this.devReload(),
-		});
-		/*END.DEVCMD*/
 
 		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
 
@@ -228,11 +213,5 @@ export default class NoteTweet extends Plugin {
 		await this.app.vault.process(file, (data) =>
 			data.replace(trimmed, `${trimmed} ${this.settings.postTweetTag}`),
 		);
-	}
-
-	private devReload(): void {
-		const app = this.app as unknown as AppWithPluginManager;
-		const id = this.manifest.id;
-		void app.plugins.disablePlugin(id).then(() => app.plugins.enablePlugin(id));
 	}
 }

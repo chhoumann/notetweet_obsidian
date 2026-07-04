@@ -21,9 +21,9 @@ describe("NoteTweet runtime", () => {
 		expect(commandIds).toContain(`${PLUGIN_ID}:post-tweet`);
 		expect(commandIds).toContain(`${PLUGIN_ID}:post-selected-as-tweet`);
 		expect(commandIds).toContain(`${PLUGIN_ID}:post-file-as-thread`);
-		// The dev-only "Reload (dev)" command lives inside START.DEVCMD/END.DEVCMD
-		// markers that esbuild strips from the production bundle, so a shipped
-		// build must never expose it.
+		// The old dev-only "Reload (dev)" command was removed entirely: the
+		// directory review flags self-disable/re-enable as a malware pattern,
+		// so no build may ever register it again.
 		expect(commandIds).not.toContain(`${PLUGIN_ID}:reload`);
 		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
 	});
