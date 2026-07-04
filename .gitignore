@@ -2,14 +2,27 @@
 *.iml
 .idea
 
-# npm
+# node
 node_modules
 package-lock.json
 
 # build
-src/main.js
-*.js.map
 main.js
+*.js.map
 
-# data
+# obsidian
 data.json
+
+# test
+/coverage/
+
+# obsidian e2e harness (per-worktree isolated vaults, instances, failure artifacts)
+.obsidian-e2e-vaults
+.obsidian-e2e-instances
+.obsidian-e2e-artifacts
+
+# env
+.env
+
+# macOS
+.DS_Store
