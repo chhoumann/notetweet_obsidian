@@ -1,19 +1,19 @@
-## NoteTweet🐦 for Obsidian
+## NoteTweet for Obsidian
 This plugin allows you to post to X (formerly Twitter) directly from Obsidian.
 
 [![Release](https://img.shields.io/github/v/release/chhoumann/notetweet_obsidian?style=for-the-badge)]()
 [![Github All Releases](https://img.shields.io/github/downloads/chhoumann/notetweet_obsidian/total.svg?style=for-the-badge&logo=appveyor)]()
 
 ### Features
-- Post to X (tweets) of selected text
-- Post threads from file
-- Automatically appends a tag to your post (to keep track of what you've posted)
-- **Secure mode** - encrypts your API keys such that they can only be accessed with a password.
-- Delete post/thread that was just posted (undo)
-- Post Mode - a modal dedicated to writing posts and threads.
-- Images are supported - just include a `[[link]]` to your images!
-- Scheduling posts - follow [this guide](./GuideToSettingUpScheduler.md) to set it up.
-
+- **Composer** (`Post tweet`) - a modal for writing single tweets or threads. It pre-fills from your current selection: a `THREAD START`/`THREAD END` block becomes a pre-split thread, and other text is auto-split for you.
+- **Post selection as tweet** - posts the current editor selection as a single tweet, immediately.
+- **Post file as thread** - parses the first `THREAD START`/`THREAD END` block in the active note and posts it as a thread.
+- **Encrypted credentials** - your API keys are kept in Obsidian's built-in encrypted Secret Storage, not in the plugin's `data.json`.
+- **Auto-split** - long text is split into a thread at 280 characters (toggle in settings). Disabling it allows longer tweets, which require a paid X plan.
+- **Images** - include an image by adding a `[[wikilink]]` to an image file (gif, jpg, jpeg, png, webp, bmp) in the tweet text (desktop only).
+- **Tweet tag** - optionally append a tag to your note after posting, so you can keep track of what you've tweeted.
+- **Delete/undo** - after posting, a modal lets you delete the tweets you just posted.
+- **Scheduling** (optional, advanced) - post on a schedule through a self-hosted scheduler. Follow [this guide](./GuideToSettingUpScheduler.md) to set it up.
 
 Feel free to recommend features!
 
@@ -35,54 +35,61 @@ If you want to watch a video on how to set up this plugin, click [here](https://
 
 #### Setup
 1. Go to [developer.x.com](https://developer.x.com) and sign up for a developer account if you haven't already.
-2. Navigate to the [Developer Portal](https://developer.x.com/en/portal/products/free) and create a new Project.
-3. Within your Project, create a new App. Make sure to enable **Read and Write** permissions (required for posting).
-4. In your App settings, navigate to the "Keys and tokens" section.
-5. Generate and save the following credentials:
-   - **API Key and API Key Secret** (used for OAuth 1.0a authentication)
-   - **Access Token and Access Token Secret** (represents your account for posting)
-6. Paste these four values into the plugin settings in Obsidian.
+2. Create a new App in the [Developer Portal](https://developer.x.com/en/portal/dashboard). New apps created at developer.x.com are automatically placed inside a Project, which is **required** for the X API v2. (A legacy, non-Project app causes a 403 `Client Forbidden` with reason `client-not-enrolled` - see Troubleshooting.)
+3. On app creation you're shown the **API Key**, the **API Key Secret**, and a Bearer Token. Copy the API Key and API Key Secret - the portal names these differently than the plugin's fields:
+   - **API Key** = your Consumer Key
+   - **API Key Secret** (some UIs call it **Secret Key**) = your Consumer Secret
+   - The **Access Token** and **Access Token Secret** are **not** shown here - you generate them in the next step.
+4. Enable posting and generate the user tokens (this is the extra step people miss):
+   - In the app's **Settings** tab, open **User authentication settings** and click **Edit**.
+   - Enable **OAuth 1.0a**, set **App permissions** to **Read and write**, then **Save**.
+   - Open the **Keys and tokens** tab, find **Access Token and Secret**, and click **Generate**. This gives you the **Access Token** and **Access Token Secret**.
+   - If you change App permissions *after* generating the Access Token, regenerate the Access Token - otherwise it stays read-only.
+5. Paste all four values - **API Key**, **API Key Secret**, **Access Token**, and **Access Token Secret** - into the plugin settings in Obsidian. They are stored in Obsidian's encrypted Secret Storage (see 'Credentials & security' below).
 
 **Important Notes:**
-- Store your credentials securely - they only display once in the developer portal
-- If you lose them, you'll need to regenerate new ones
-- Ensure your App has "Read and Write" permissions, not just "Read"
-- Your App must be attached to a Project (this is now required for X API v2)
+- Credentials are shown only once in the developer portal - if you lose them, regenerate new ones.
+- Ensure your App has **Read and write** permissions, not just Read, and regenerate the Access Token after changing permissions.
+- Your App must be attached to a Project (required for X API v2). New apps are enrolled automatically; legacy apps must be attached manually.
 
-You'll see an indicator which tells you if you're connected or not.
+You'll see a connection indicator that tells you whether you're connected and, when a connection fails, the exact reason X returned (for example the `client-not-enrolled` message).
 
-## Post Mode
-Using the `Post Tweet` command, a new modal will open. There, you can craft threads - or single posts.
-You can select both text or threads before using the command and it'll automatically port it into the modal. If the selected text is longer than 280 characters, it'll break it into a thread for you.
-You can paste text into the modal. If that text is longer than 280 characters, it'll also break it into multiple posts.
+### Credentials & security
+Your API key, API secret, access token, and access token secret are kept in Obsidian's built-in encrypted Secret Storage (`app.secretStorage`), not in the plugin's `data.json`. Because Secret Storage is used, this plugin requires **Obsidian 1.13.0 or newer**.
 
-### Post Mode Shortcuts
-- `Backspace` to delete empty post
-- `Enter` to make new post if max length
-- `Alt + Enter` to make new post
-- `Ctrl + Enter` to insert a post below
-- `Shift + Enter` to insert a new post above
-- `Ctrl + ArrowUp` to focus post above
-- `Ctrl + ArrowDown` to focus post below
-- `Ctrl + Shift + ArrowUp` to move post up
-- `Ctrl + Shift + ArrowDown` to move post down
-- `Ctrl + Shift + Delete` to delete the post you have focused
+**Migrating from an older version.** If you're upgrading from a version that stored credentials in `data.json`, the settings tab shows a **Migrate credentials** section at the top with a **Migrate now** button. Click it to move your existing credentials into Secret Storage. If you previously enabled the old password-based Secure Mode, the button first prompts for that password so it can decrypt your credentials before storing them - the migration is lossless. A one-time notice on load points you to settings, and once you've migrated, your credentials no longer live in `data.json`.
 
-## Quick-posts
-Single posts are simple. Just select some text and use the `Post Selected as Tweet` command.
+## Composer
+Run the `Post tweet` command to open the composer, where you can craft threads or single tweets. If you have text selected, it is ported into the composer automatically: a `THREAD START`/`THREAD END` block opens as a pre-split thread, and any other text is auto-split into tweets when it exceeds 280 characters. You can also paste text in, and anything longer than 280 characters is split for you. The composer has a **Post** button, and a **Schedule** button when scheduling is enabled.
 
-**Threads** have a specific format. First off, it only detects the first thread in any file.
+### Composer Shortcuts
+- `Backspace` to delete an empty tweet
+- `Enter` (at max length) or `Alt + Enter` to make a new tweet
+- `Ctrl + Enter` to insert a tweet below
+- `Shift + Enter` to insert a tweet above
+- `Ctrl + ArrowUp` to focus the tweet above
+- `Ctrl + ArrowDown` to focus the tweet below
+- `Ctrl + Shift + ArrowUp` to move the current tweet up
+- `Ctrl + Shift + ArrowDown` to move the current tweet down
+- `Ctrl + Shift + Delete` to delete the focused tweet
+
+## Quick posts
+Single tweets are simple. Just select some text and run the `Post selection as tweet` command to post it immediately.
+
+To post a thread straight from a note, run the `Post file as thread` command. It detects the first `THREAD START`/`THREAD END` block in the active note and posts it.
+
+**Threads** have a specific format. Only the first thread block in a file is detected.
 
 Format:
 ```
 THREAD START
 
-Here you can type the first post in your thread.
+Here you can type the first tweet in your thread.
 
 Spacing is fine.
 
 ---
-Separation between posts is done using a newline and three dashes - just like you see above.
+Separation between tweets is done using a line containing only three dashes - just like you see above.
 
 ---
 Enjoy!
@@ -90,13 +97,20 @@ Enjoy!
 THREAD END
 ```
 
-Threads must start with `THREAD START` and end with `THREAD END`.
-
+Threads must start with `THREAD START` and end with `THREAD END`, and individual tweets are separated by a line containing only `---`.
 
 ## Scheduling Posts
-Follow [this guide](./GuideToSettingUpScheduler.md).
+Scheduling is optional and advanced. It posts through a self-hosted scheduler endpoint, and it requires the **Natural Language Dates** community plugin for entering times. Follow [this guide](./GuideToSettingUpScheduler.md) to set it up.
 
 ## Troubleshooting
+
+### Not connected - 403 `Client Forbidden` (`client-not-enrolled`)
+This is the most common setup failure. It means the app your credentials come from is **not attached to a Project**, so it isn't enrolled to use the X API v2 write endpoints. The plugin surfaces this exact reason in the connection status.
+
+To fix it:
+1. In the [Developer Portal](https://developer.x.com/en/portal/dashboard), either create a **fresh app** (new apps are automatically enrolled in a Project) or attach your existing app to a Project.
+2. Regenerate your **Access Token and Secret** (Keys and tokens -> Access Token and Secret -> Generate), since the tokens are tied to the app.
+3. Paste the updated credentials into the plugin settings and re-check the connection indicator.
 
 ### Authentication Error (401)
 If you're seeing "TypeError: Cannot read properties of undefined (reading 'data')" or authentication errors even though the plugin shows as "connected":
@@ -122,8 +136,8 @@ If you're seeing "TypeError: Cannot read properties of undefined (reading 'data'
    - X API tokens can expire after extended periods of non-use
    - Simply regenerating them often resolves this issue
 
-6. **Verify Basic access is sufficient**
-   - The free Basic tier should work for most use cases
+6. **Check your access tier and usage limits**
+   - The free tier can post (write), so it works for most use cases. (Basic is a separate paid tier - you don't need it just to post.)
    - Check your usage limits in the developer portal if you're hitting rate limits
 
 ### Common Issues
