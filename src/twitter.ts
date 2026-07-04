@@ -5,7 +5,7 @@ import { log } from "./log";
 import { hasCompleteCredentials, type TwitterCredentials } from "./secrets";
 
 const IMAGE_REGEX =
-	/!?\[\[([a-zA-Z 0-9-.]*\.(gif|jpe?g|tiff?|png|webp|bmp))]]/;
+	/!?\[\[([\w .\-/]*\.(gif|jpe?g|tiff?|png|webp|bmp))]]/i;
 
 const MIME_BY_EXTENSION: Record<string, string> = {
 	gif: "image/gif",
