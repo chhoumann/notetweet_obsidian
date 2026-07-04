@@ -1,104 +1,102 @@
 .postTweetModal {
-    max-width: 35rem;
-    width: 100%;
-    overflow-y: auto;
-    max-height: 50rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    overflow-x: hidden;
+	max-width: 35rem;
+	width: 100%;
+	overflow-y: auto;
+	max-height: 50rem;
+	padding-left: 0.5rem;
+	padding-right: 0.5rem;
+	overflow-x: hidden;
 }
 
-.tweetArea {
-    max-width: 35rem;
-    width: 100%;
-    display: inline-block;
-    min-height: 7.5rem;
-    overflow-y: hidden;
-    border: 0 solid rgba(63,63,63,1);
-}
-
-textarea:focus {
-    border: 1px solid rgba(63,63,63,1);
+/* Tweet composer textareas auto-grow with content via field-sizing, so no
+   JavaScript height juggling is needed. */
+.postTweetModal .tweetArea {
+	width: 100%;
+	min-height: 7.5rem;
+	field-sizing: content;
+	resize: vertical;
 }
 
 .ntLengthChecker {
-    margin-top: 0px;
-    margin-bottom: 5px;
-    color: #339900;
+	margin: 0 0 5px;
+	color: var(--text-muted);
+}
+
+.ntLengthChecker.nt-length--warn {
+	color: var(--text-warning);
+}
+
+.ntLengthChecker.nt-length--danger {
+	color: var(--text-warning);
+	font-weight: var(--font-bold);
+}
+
+.ntLengthChecker.nt-length--over {
+	color: var(--text-error);
+	font-weight: var(--font-bold);
+}
+
+.nt-add-tweet {
+	margin: 0.5rem 0 1rem;
 }
 
 .tweetTooltip {
-    position: relative;
-    display: inline-block;
-    border-bottom: 1px dotted black;
-    margin-bottom: 5px;
+	position: relative;
+	display: inline-block;
+	border-bottom: 1px dotted var(--text-muted);
+	margin-bottom: 5px;
+	cursor: help;
 }
 
 .tweetTooltip:hover .tweetTooltipBody {
-    visibility: visible;
+	visibility: visible;
 }
 
 .tweetTooltipBody {
-    visibility: hidden;
-    width: 100%;
-    background-color: black;
-    color: #fff;
-    text-align: center;
-    padding: 10px;
-    border-radius: 6px;
-    position: absolute;
-    z-index: 0;
+	visibility: hidden;
+	width: 100%;
+	background-color: var(--background-secondary-alt);
+	color: var(--text-normal);
+	padding: 10px;
+	border-radius: 6px;
+	position: absolute;
+	z-index: var(--layer-tooltip);
 }
 
-.postTweetButton {
-    float: right;
-    margin-top: 1rem;
-    width: 120px;
-    height: 30px;
-    font-size: 14px;
-    font-weight: bold;
+.nt-posted-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
 }
 
-.redWarningButton {
-    background-color: #ff4b4b !important;
-    color: white !important;
-    margin: 1rem !important;
+.nt-status--ok {
+	color: var(--text-success);
 }
 
-.greenSuccessButton {
-    background-color: #4BB543 !important;
-    color: white !important;
-}
-
-.cronStringRow {
-    display: flex;
-    align-content: center;
-    justify-content: center;
-    gap: 10px;
+.nt-status--err {
+	color: var(--text-error);
 }
 
 .scheduledTweetsContainer {
-    display: grid;
+	display: grid;
 }
 
 .scheduledTweet {
-    display: grid;
-    grid-template-columns: 1fr;
-    justify-content: space-between;
-    padding-bottom: 1em;
-    padding-top: 1em;
-    border-bottom: 1px solid black;
+	display: grid;
+	grid-template-columns: 1fr;
+	padding: 1em 0;
+	border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .tweetContainer {
-    border: black solid 1px;
-    border-radius: 5px;
-    padding: 1em;
-    margin-top: 1em;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 5px;
+	padding: 1em;
+	margin-top: 1em;
 }
 
-.updateScheduledTweetButtonsContainer {
-    display: flex;
-    align-content: center;
-    gap: 0.5em;
+.nt-scheduled-when {
+	color: var(--text-muted);
+	margin: 0.5em 0;
 }

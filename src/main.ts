@@ -1,305 +1,238 @@
-import {Editor, MarkdownView, Notice, Plugin, TFile} from "obsidian";
-import {TwitterHandler} from "./TwitterHandler";
-import {DEFAULT_SETTINGS, NoteTweetSettings, NoteTweetSettingsTab,} from "./settings";
-import {TweetsPostedModal} from "./Modals/TweetsPostedModal/TweetsPostedModal";
-import {TweetErrorModal} from "./Modals/TweetErrorModal";
-import {SecureModeGetPasswordModal} from "./Modals/SecureModeGetPasswordModal/SecureModeGetPasswordModal";
-import {log} from "./ErrorModule/logManager";
-import {ConsoleErrorLogger} from "./ErrorModule/consoleErrorLogger";
-import {GuiLogger} from "./ErrorModule/guiLogger";
-import {NoteTweetScheduler} from "./scheduling/NoteTweetScheduler";
-import {SelfHostedScheduler} from "./scheduling/SelfHostedScheduler";
-import {NewTweetModal} from "./Modals/NewTweetModal";
-import {ITweet} from "./Types/ITweet";
-import {IScheduledTweet} from "./Types/IScheduledTweet";
-import {Tweet} from "./Types/Tweet";
-import {ScheduledTweet} from "./Types/ScheduledTweet";
-import {TweetV2PostTweetResult} from "twitter-api-v2";
+import { type Editor, MarkdownView, Notice, Plugin } from "obsidian";
+import type { TweetV2PostTweetResult } from "twitter-api-v2";
+import { DEFAULT_SETTINGS, type NoteTweetSettings } from "./settings";
+import { NoteTweetSettingsTab } from "./settingsTab";
+import { TwitterClient } from "./twitter";
+import { SelfHostedScheduler } from "./scheduler";
+import { ComposeTweetModal, type ComposeOptions } from "./Modals/ComposeTweetModal";
+import { TweetsPostedModal } from "./Modals/TweetsPostedModal";
+import { log } from "./log";
+import { parseThread, type ScheduledTweet } from "./tweet";
+import {
+	type LegacyCredentialData,
+	legacyCredentialsPresent,
+	resolveCredentials,
+	resolveSchedulerPassword,
+} from "./migration";
 
-const WELCOME_MESSAGE: string = "Loading NoteTweet🐦. Thanks for installing.";
-const UNLOAD_MESSAGE: string = "Unloaded NoteTweet.";
+interface AppWithPluginManager {
+	plugins: {
+		disablePlugin(id: string): Promise<void>;
+		enablePlugin(id: string): Promise<void>;
+	};
+}
+
+function errorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
 
 export default class NoteTweet extends Plugin {
-  settings: NoteTweetSettings;
-  scheduler: NoteTweetScheduler;
+	settings!: NoteTweetSettings;
+	twitter!: TwitterClient;
+	scheduler: SelfHostedScheduler | null = null;
 
-  public twitterHandler: TwitterHandler;
+	async onload(): Promise<void> {
+		await this.loadSettings();
 
-  async onload() {
-    console.log(WELCOME_MESSAGE);
+		this.twitter = new TwitterClient(this.app);
+		await this.reconnect();
+		this.refreshScheduler();
 
-    await this.loadSettings();
-    this.twitterHandler = new TwitterHandler(this);
-    await this.connectToTwitterWithPlainSettings();
+		this.addCommand({
+			id: "post-tweet",
+			name: "Post tweet",
+			callback: () => void this.composeAndPost(),
+		});
+		this.addCommand({
+			id: "post-selected-as-tweet",
+			name: "Post selection as tweet",
+			editorCallback: (editor) => void this.postSelection(editor),
+		});
+		this.addCommand({
+			id: "post-file-as-thread",
+			name: "Post file as thread",
+			callback: () => void this.postFileAsThread(),
+		});
 
-    this.addCommand({
-      id: "post-selected-as-tweet",
-      name: "Post Selected as Tweet",
-      callback: async () => {
-        if (this.twitterHandler.isConnectedToTwitter)
-          await this.postSelectedTweet();
-        else if (this.settings.secureMode)
-          await this.secureModeProxy(
-            async () => await this.postSelectedTweet()
-          );
-        else {
-          this.connectToTwitterWithPlainSettings();
+		/*START.DEVCMD*/
+		this.addCommand({
+			id: "reload",
+			name: "Reload (dev)",
+			callback: () => this.devReload(),
+		});
+		/*END.DEVCMD*/
 
-          if (!this.twitterHandler.isConnectedToTwitter)
-            new TweetErrorModal(this.app, "Not connected to Twitter").open();
-          else await this.postSelectedTweet();
-        }
-      },
-    });
+		this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
 
-    this.addCommand({
-      id: "post-file-as-thread",
-      name: "Post File as Thread",
-      callback: async () => {
-        if (this.twitterHandler.isConnectedToTwitter)
-          await this.postThreadInFile();
-        else if (this.settings.secureMode)
-          await this.secureModeProxy(async () => await this.postThreadInFile());
-        else {
-          this.connectToTwitterWithPlainSettings();
+		if (legacyCredentialsPresent(this.legacyData())) {
+			new Notice(
+				"NoteTweet: open settings to move your credentials into secure storage.",
+			);
+		}
+	}
 
-          if (!this.twitterHandler.isConnectedToTwitter)
-            new TweetErrorModal(this.app, "Not connected to Twitter").open();
-          else await this.postThreadInFile();
-        }
-      },
-    });
+	async loadSettings(): Promise<void> {
+		const loaded = ((await this.loadData()) ?? {}) as Record<string, unknown>;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded);
+		this.settings.scheduling = Object.assign(
+			{},
+			DEFAULT_SETTINGS.scheduling,
+			this.settings.scheduling,
+		);
+	}
 
-    this.addCommand({
-      id: "post-tweet",
-      name: "Post Tweet",
-      callback: async () => {
-        if (this.twitterHandler.isConnectedToTwitter) await this.postTweetMode();
-        else if (this.settings.secureMode)
-          await this.secureModeProxy(async () => await this.postTweetMode());
-        else {
-          this.connectToTwitterWithPlainSettings();
+	async saveSettings(): Promise<void> {
+		await this.saveData(this.settings);
+	}
 
-          if (!this.twitterHandler.isConnectedToTwitter)
-            new TweetErrorModal(this.app, "Not connected to Twitter").open();
-          else await this.postTweetMode();
-        }
-      },
-    });
+	/** Connect using SecretStorage credentials (falling back to legacy plaintext). */
+	async reconnect(): Promise<boolean> {
+		return this.twitter.connect(resolveCredentials(this.app, this.legacyData()));
+	}
 
-    /*START.DEVCMD*/
-    this.addCommand({
-      id: 'reloadNoteTweet',
-      name: 'Reload NoteTweet (dev)',
-      callback: () => { // @ts-ignore - for this.app.plugins
-        const id: string = this.manifest.id, plugins = this.app.plugins;
-        plugins.disablePlugin(id).then(() => plugins.enablePlugin(id));
-      },
-    });
-    /*END.DEVCMD*/
+	/** Rebuild the scheduler from current settings, or clear it when disabled. */
+	refreshScheduler(passwordOverride?: string): void {
+		const { enabled, url } = this.settings.scheduling;
+		if (!enabled || !url) {
+			this.scheduler = null;
+			return;
+		}
+		const password =
+			passwordOverride ?? resolveSchedulerPassword(this.app, this.legacyData());
+		this.scheduler = new SelfHostedScheduler(url, password);
+	}
 
-    log.register(new ConsoleErrorLogger())
-        .register(new GuiLogger(this));
+	/** The persisted settings viewed as the legacy shape, for migration reads. */
+	legacyData(): LegacyCredentialData {
+		return this.settings as unknown as LegacyCredentialData;
+	}
 
-    this.addSettingTab(new NoteTweetSettingsTab(this.app, this));
+	private currentSelection(): string | null {
+		const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+		return editor?.somethingSelected() ? editor.getSelection() : null;
+	}
 
-    if (this.settings.scheduling.enabled) {
-      this.scheduler = new SelfHostedScheduler(this.app, this.settings.scheduling.url, this.settings.scheduling.password);
-    }
-  }
+	private async composeAndPost(): Promise<void> {
+		const options: ComposeOptions = {
+			allowSchedule: this.settings.scheduling.enabled,
+			autoSplit: this.settings.autoSplitTweets,
+		};
 
-  private async postTweetMode() {
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    let editor: Editor;
+		const selection = this.currentSelection();
+		if (selection) {
+			try {
+				options.initialContent = parseThread(selection);
+			} catch {
+				options.initialText = selection;
+			}
+		}
 
-    if (view instanceof MarkdownView) {
-      editor = view.editor;
-    }
+		const result = await ComposeTweetModal.compose(this.app, options);
+		if (!result) return;
 
-    let tweet: ITweet | IScheduledTweet;
+		if (result.postAt != null) {
+			await this.schedule(result.content, result.postAt);
+			return;
+		}
 
-    if (editor?.somethingSelected()) {
-      let text = editor.getSelection();
+		if (!(await this.ensureConnected())) return;
+		try {
+			await this.showPosted(await this.twitter.postThread(result.content));
+		} catch (error) {
+			log.error(`Failed to post tweet: ${errorMessage(error)}`);
+		}
+	}
 
-      try {
-        text = this.parseThreadFromText(text).join("--nt_sep--");
-        const selection = {text, thread: true};
-        tweet = await NewTweetModal.PostTweet(this.app, selection);
-      } catch {
-        const selection = {text, thread: false};
-        tweet = await NewTweetModal.PostTweet(this.app, selection);
-      } // Intentionally suppressing exceptions. They're expected.
-    } else {
-        tweet = await NewTweetModal.PostTweet(this.app);
-    }
+	private async postSelection(editor: Editor): Promise<void> {
+		if (!editor.somethingSelected()) {
+			log.warning("Nothing is selected.");
+			return;
+		}
+		if (!(await this.ensureConnected())) return;
 
-    if (tweet instanceof ScheduledTweet) {
-      await this.scheduler.scheduleTweet(tweet);
-    } else if (tweet instanceof Tweet) {
-      try {
-        const tweetsPosted: TweetV2PostTweetResult[] = await this.twitterHandler.postThread(tweet.content);
-        if (tweetsPosted && tweetsPosted.length > 0) {
-          new TweetsPostedModal(this.app, tweetsPosted, this.twitterHandler).open();
-        }
-      } catch (e) {
-        log.logError(`Failed to post tweet: ${e}`);
-        new Notice(`Failed to post tweet: ${e.message || e}`);
-      }
-    }
-  }
+		try {
+			const posted = await this.twitter.postTweet(editor.getSelection());
+			await this.showPosted([posted]);
+		} catch (error) {
+			log.error(`Failed to post tweet: ${errorMessage(error)}`);
+		}
+	}
 
-  public async connectToTwitterWithPlainSettings(): Promise<boolean | undefined> {
-    if (!this.settings.secureMode) {
-      let { apiKey, apiSecret, accessToken, accessTokenSecret } = this.settings;
-      if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) return false;
+	private async postFileAsThread(): Promise<void> {
+		const file = this.app.workspace.getActiveFile();
+		if (!file || file.extension !== "md") {
+			log.warning("Open a Markdown note first.");
+			return;
+		}
 
-      return await this.twitterHandler.connectToTwitter(
-        apiKey,
-        apiSecret,
-        accessToken,
-        accessTokenSecret
-      );
-    }
-    return undefined;
-  }
+		let thread: string[];
+		try {
+			thread = parseThread(await this.app.vault.read(file));
+		} catch (error) {
+			log.warning(`Could not parse a thread in ${file.name}: ${errorMessage(error)}`);
+			return;
+		}
 
-  private async postThreadInFile() {
-    const file = this.app.workspace.getActiveFile();
-    let content = await this.getFileContent(file);
-    let threadContent: string[];
-    try {
-      threadContent = this.parseThreadFromText(content);
-    } catch (e) {
-      log.logError(`error in parsing thread in file ${file?.name}. ${e}`);
-      return;
-    }
+		if (!(await this.ensureConnected())) return;
+		try {
+			await this.showPosted(await this.twitter.postThread(thread));
+		} catch (error) {
+			log.error(`Failed to post thread: ${errorMessage(error)}`);
+		}
+	}
 
-    try {
-      let postedTweets = await this.twitterHandler.postThread(threadContent);
-      if (postedTweets && postedTweets.length > 0) {
-        let postedModal = new TweetsPostedModal(
-          this.app,
-          postedTweets,
-          this.twitterHandler
-        );
+	private async schedule(content: string[], postAt: number): Promise<void> {
+		this.refreshScheduler();
+		if (!this.scheduler) {
+			new Notice("Set a scheduler URL in settings first.");
+			return;
+		}
 
-        await postedModal.waitForClose;
-        if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
-          postedTweets.forEach((tweet) => this.appendPostTweetTag(tweet.data.text));
-        }
-      }
-    } catch (e) {
-      log.logError(`failed attempted to post tweets. ${e}`);
-      new Notice(`Failed to post thread: ${e.message || e}`);
-    }
-  }
+		const tweet: ScheduledTweet = {
+			id: crypto.randomUUID(),
+			content,
+			postat: postAt,
+		};
+		try {
+			await this.scheduler.scheduleTweet(tweet);
+		} catch (error) {
+			log.error(`Failed to schedule tweet: ${errorMessage(error)}`);
+		}
+	}
 
-  private async postSelectedTweet() {
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    let editor;
+	private async ensureConnected(): Promise<boolean> {
+		if (this.twitter.isConnected) return true;
+		await this.reconnect();
+		if (this.twitter.isConnected) return true;
+		new Notice(
+			"NoteTweet: not connected to X. Add your credentials in settings.",
+		);
+		return false;
+	}
 
-    if (view instanceof MarkdownView) {
-      editor = view.editor;
-    } else {
-      return;
-    }
+	private async showPosted(posts: TweetV2PostTweetResult[]): Promise<void> {
+		if (posts.length === 0) return;
 
-    if (editor.somethingSelected()) {
-      let selection: string = editor.getSelection();
+		const modal = new TweetsPostedModal(this.app, posts, this.twitter);
+		modal.open();
+		await modal.waitForClose;
 
-      try {
-        let tweet = await this.twitterHandler.postTweet(selection);
-        if (tweet) {
-          let postedModal = new TweetsPostedModal(
-            this.app,
-            [tweet],
-            this.twitterHandler
-          );
+		if (modal.userDeletedTweets || !this.settings.postTweetTag) return;
+		for (const post of posts) await this.appendTweetTag(post.data.text);
+	}
 
-          await postedModal.waitForClose;
-          if (!postedModal.userDeletedTweets && this.settings.postTweetTag) {
-            await this.appendPostTweetTag(tweet.data.text);
-          }
-        }
-      } catch (e) {
-        log.logError(`failed attempt to post selected. ${e}`);
-        new Notice(`Failed to post tweet: ${e.message || e}`);
-      }
-    } else {
-      log.logWarning(`tried to post selected but nothing was selected.`)
-    }
-  }
+	private async appendTweetTag(text: string): Promise<void> {
+		const file = this.app.workspace.getActiveFile();
+		if (!file) return;
+		const trimmed = text.trim();
+		await this.app.vault.process(file, (data) =>
+			data.replace(trimmed, `${trimmed} ${this.settings.postTweetTag}`),
+		);
+	}
 
-  private async secureModeProxy(callback: any) {
-    if (
-      !(this.settings.secureMode && !this.twitterHandler.isConnectedToTwitter)
-    )
-      return;
-
-    let modal = new SecureModeGetPasswordModal(this.app, this);
-
-    modal.waitForClose
-      .then(async () => {
-        if (this.twitterHandler.isConnectedToTwitter) await callback();
-        else log.logWarning("could not connect to Twitter");
-      })
-      .catch(() => {
-        modal.close();
-        log.logWarning("could not connect to Twitter.");
-      });
-  }
-
-  onunload() {
-    console.log(UNLOAD_MESSAGE);
-  }
-
-  async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-  }
-
-  async saveSettings() {
-    await this.saveData(this.settings);
-  }
-
-  async getFileContent(file: TFile): Promise<string> {
-    if (file.extension != "md") return null;
-
-    return await this.app.vault.read(file);
-  }
-
-  // All threads start with THREAD START and ends with THREAD END. To separate tweets in a thread,
-  // one should use use a newline and '---' (this prevents markdown from believing the above tweet is a heading).
-  // We also purposefully remove the newline after the separator - otherwise tweets will be posted with a newline
-  // as their first line.
-  private parseThreadFromText(text: string) {
-    let contentArray = text.split("\n");
-    let threadStartIndex = contentArray.indexOf("THREAD START") + 1;
-    let threadEndIndex = contentArray.indexOf("THREAD END");
-
-    if (threadStartIndex == 0 || threadEndIndex == -1) {
-      throw new Error("Failed to detect THREAD START or THREAD END");
-    }
-
-    let content = contentArray
-      .slice(threadStartIndex, threadEndIndex)
-      .join("\n")
-      .split("\n---\n");
-    if (content.length == 1 && content[0] == "") {
-      throw new Error("Please write something in your thread.");
-    }
-
-    return content.map((txt) => txt.trim());
-  }
-
-  private async appendPostTweetTag(selection: string) {
-    const currentFile = this.app.workspace.getActiveFile();
-    let pageContent = await this.getFileContent(currentFile);
-
-    pageContent = pageContent.replace(
-      selection.trim(),
-      `${selection.trim()} ${this.settings.postTweetTag}`
-    );
-
-    await this.app.vault.modify(currentFile, pageContent);
-  }
+	private devReload(): void {
+		const app = this.app as unknown as AppWithPluginManager;
+		const id = this.manifest.id;
+		void app.plugins.disablePlugin(id).then(() => app.plugins.enablePlugin(id));
+	}
 }
