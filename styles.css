@@ -28,13 +28,13 @@
 	position: relative;
 	display: grid;
 	grid-template-columns: var(--nt-rail-w) 1fr;
-	column-gap: var(--nt-gap);
+	gap: 0 var(--nt-gap);
 	align-items: start;
 }
 
 .nt-thread.is-single .nt-post {
 	grid-template-columns: 1fr;
-	column-gap: 0;
+	gap: 0;
 }
 
 .nt-thread.is-single .nt-rail {

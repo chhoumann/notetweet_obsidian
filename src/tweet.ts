@@ -59,7 +59,9 @@ export function splitIntoTweets(
 
 	for (const line of text.split("\n")) {
 		if (line.length > maxLength) {
-			const bySentence = line.split(/(?<=[.?!])\s/).join("\n");
+			// `replace` instead of a lookbehind split: lookbehinds crash the
+			// regex engine on iOS < 16.4, which Obsidian still supports.
+			const bySentence = line.replace(/([.?!])\s/g, "$1\n");
 			// A line with no sentence boundary won't shrink by re-splitting, so
 			// fall back to a hard word/character wrap to guarantee progress.
 			const pieces =

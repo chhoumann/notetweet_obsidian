@@ -290,10 +290,11 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 	private scheduleReconnect(): void {
 		if (this.reconnectTimer !== null) window.clearTimeout(this.reconnectTimer);
 		this.refreshStatus("Verifying credentials...");
-		this.reconnectTimer = window.setTimeout(async () => {
+		this.reconnectTimer = window.setTimeout(() => {
 			this.reconnectTimer = null;
-			await this.noteTweet.reconnect();
-			this.refreshStatus();
+			void this.noteTweet.reconnect()
+				.catch(() => {})
+				.then(() => this.refreshStatus());
 		}, RECONNECT_DELAY_MS);
 	}
 

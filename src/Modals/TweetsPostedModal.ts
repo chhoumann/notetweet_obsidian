@@ -42,7 +42,7 @@ export class TweetsPostedModal extends Modal {
 			.addButton((button) =>
 				button
 					.setButtonText("Delete")
-					.setWarning()
+					.setDestructive()
 					.onClick(() => this.deletePosted()),
 			)
 			.addButton((button) =>

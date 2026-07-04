@@ -58,7 +58,7 @@ describe("splitIntoTweets", () => {
 
 		const chunks = splitIntoTweets(text, 20);
 
-		// Lookbehind split keeps the punctuation attached to each sentence.
+		// The sentence split keeps the punctuation attached to each sentence.
 		expect(chunks).toEqual([
 			"First sentence.",
 			"Second sentence.",

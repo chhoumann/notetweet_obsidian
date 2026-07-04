@@ -54,7 +54,7 @@ export class ScheduledTweetsModal extends Modal {
 			.addButton((button) =>
 				button
 					.setButtonText("Delete")
-					.setWarning()
+					.setDestructive()
 					.onClick(() => this.deleteTweet(tweet)),
 			)
 			.addButton((button) =>
