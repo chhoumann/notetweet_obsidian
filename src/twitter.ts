@@ -1,8 +1,12 @@
 import type { App } from "obsidian";
-import { TwitterApi } from "twitter-api-v2";
-import type { SendTweetV2Params, TweetV2PostTweetResult } from "twitter-api-v2";
 import { log } from "./log";
 import { hasCompleteCredentials, type TwitterCredentials } from "./secrets";
+import {
+	XApiClient,
+	type HttpRequest,
+	type PostedTweet,
+	type TweetPayload,
+} from "./xApi";
 
 const IMAGE_REGEX =
 	/!?\[\[([\w .\-/]*\.(gif|jpe?g|tiff?|png|webp|bmp))]]/i;
@@ -18,46 +22,19 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 	bmp: "image/bmp",
 };
 
-function humanError(error: unknown): string {
-	if (typeof error === "object" && error !== null && "data" in error) {
-		const data = error.data;
-		if (typeof data === "object" && data !== null) {
-			if ("reason" in data && typeof data.reason === "string") return data.reason;
-			if ("detail" in data && typeof data.detail === "string") return data.detail;
-			if (
-				"errors" in data &&
-				Array.isArray(data.errors) &&
-				data.errors.length > 0
-			) {
-				const first: unknown = data.errors[0];
-				if (
-					typeof first === "object" &&
-					first !== null &&
-					"message" in first &&
-					typeof first.message === "string"
-				) {
-					return first.message;
-				}
-			}
-			if ("title" in data && typeof data.title === "string") return data.title;
-		}
-	}
-	if (typeof error === "object" && error !== null && "message" in error) {
-		return String(error.message);
-	}
-	return String(error);
-}
-
-/** Thin wrapper around twitter-api-v2 that owns the connection state. */
+/** Thin wrapper around the X API client that owns the connection state. */
 export class TwitterClient {
-	private client: TwitterApi | null = null;
+	private client: XApiClient | null = null;
 	public isConnected = false;
 	public lastError: string | null = null;
 
-	constructor(private readonly app: App) {}
+	constructor(
+		private readonly app: App,
+		private readonly request?: HttpRequest,
+	) {}
 
 	/**
-	 * Connect and verify the credentials with a `v2.me()` call. Any failure
+	 * Connect and verify the credentials with a `me()` call. Any failure
 	 * (bad credentials, an app not attached to a v2 Project, network) leaves the
 	 * client disconnected and records the X-provided reason in {@link lastError}
 	 * so the UI can show something actionable. NoteTweet uses the v2 API for
@@ -72,56 +49,58 @@ export class TwitterClient {
 		}
 
 		try {
-			this.client = new TwitterApi({
-				appKey: credentials.apiKey,
-				appSecret: credentials.apiSecret,
-				accessToken: credentials.accessToken,
-				accessSecret: credentials.accessTokenSecret,
-			});
-			await this.client.v2.me();
+			this.client = new XApiClient(
+				{
+					consumerKey: credentials.apiKey,
+					consumerSecret: credentials.apiSecret,
+					accessToken: credentials.accessToken,
+					accessTokenSecret: credentials.accessTokenSecret,
+				},
+				this.request,
+			);
+			await this.client.me();
 			this.isConnected = true;
 			this.lastError = null;
 			return true;
 		} catch (error) {
 			this.client = null;
 			this.isConnected = false;
-			this.lastError = humanError(error);
+			this.lastError =
+				error instanceof Error ? error.message : String(error);
 			return false;
 		}
 	}
 
-	async postThread(content: string[]): Promise<TweetV2PostTweetResult[]> {
+	async postThread(content: string[]): Promise<PostedTweet[]> {
 		const client = this.requireClient();
-		try {
-			const tweets: SendTweetV2Params[] = [];
-			for (const text of content) {
-				tweets.push(await this.buildTweet(text));
+		const payloads: TweetPayload[] = [];
+		for (const text of content) {
+			payloads.push(await this.buildTweet(text));
+		}
+
+		// Mirrors twitter-api-v2's tweetThread: post sequentially, chaining
+		// each tweet as a reply to the previously posted one.
+		const posted: PostedTweet[] = [];
+		for (const payload of payloads) {
+			const previous = posted[posted.length - 1];
+			if (previous) {
+				payload.reply = { in_reply_to_tweet_id: previous.data.id };
 			}
-			return await client.v2.tweetThread(tweets);
-		} catch (error) {
-			throw this.postError(error);
+			posted.push(await client.createTweet(payload));
 		}
+		return posted;
 	}
 
-	async postTweet(text: string): Promise<TweetV2PostTweetResult> {
+	async postTweet(text: string): Promise<PostedTweet> {
 		const client = this.requireClient();
-		try {
-			return await client.v2.tweet(await this.buildTweet(text));
-		} catch (error) {
-			throw this.postError(error);
-		}
-	}
-
-	/** Return an Error carrying X's own reason for the failure. */
-	private postError(error: unknown): Error {
-		return new Error(humanError(error));
+		return client.createTweet(await this.buildTweet(text));
 	}
 
 	async deleteTweets(tweets: { id: string }[]): Promise<boolean> {
 		const client = this.requireClient();
 		try {
 			for (const tweet of tweets) {
-				await client.v2.deleteTweet(tweet.id);
+				await client.deleteTweet(tweet.id);
 			}
 			return true;
 		} catch (error) {
@@ -130,13 +109,13 @@ export class TwitterClient {
 		}
 	}
 
-	private requireClient(): TwitterApi {
+	private requireClient(): XApiClient {
 		if (!this.client) throw new Error("Not connected to Twitter.");
 		return this.client;
 	}
 
 	/** Resolve embedded image links to uploaded media and strip them from text. */
-	private async buildTweet(text: string): Promise<SendTweetV2Params> {
+	private async buildTweet(text: string): Promise<TweetPayload> {
 		const client = this.requireClient();
 		const mediaIds: string[] = [];
 		let body = text;
@@ -146,13 +125,6 @@ export class TwitterClient {
 			const fileName = match[1];
 			body = body.replace(IMAGE_REGEX, "").trim();
 
-			if (typeof Buffer === "undefined") {
-				log.warning(
-					`Image attachments (${fileName}) are only supported on desktop.`,
-				);
-				continue;
-			}
-
 			const file = this.app.metadataCache.getFirstLinkpathDest(fileName, "");
 			if (!file) {
 				log.warning(`Could not find image '${fileName}' in the vault.`);
@@ -161,20 +133,15 @@ export class TwitterClient {
 
 			const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
 			const mimeType = MIME_BY_EXTENSION[extension];
-			const data = Buffer.from(await this.app.vault.readBinary(file));
-			const mediaId = await client.v1.uploadMedia(data, { mimeType });
-
-			if (mediaId) mediaIds.push(mediaId);
-			else log.warning(`Could not upload image '${fileName}' to Twitter.`);
+			const data = await this.app.vault.readBinary(file);
+			try {
+				mediaIds.push(await client.uploadMedia(data, mimeType));
+			} catch {
+				log.warning(`Could not upload image '${fileName}' to Twitter.`);
+			}
 		}
 
 		if (mediaIds.length === 0) return { text: body };
-
-		// twitter-api-v2 types media_ids as a 1-4 element tuple; the ids we collect
-		// are validated at runtime and capped by Twitter's own limit.
-		const media = { media_ids: mediaIds } as NonNullable<
-			SendTweetV2Params["media"]
-		>;
-		return { text: body, media };
+		return { text: body, media: { media_ids: mediaIds } };
 	}
 }

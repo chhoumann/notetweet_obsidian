@@ -1,5 +1,5 @@
 import { type App, Modal, Notice, Setting } from "obsidian";
-import type { TweetV2PostTweetResult } from "twitter-api-v2";
+import type { PostedTweet } from "../xApi";
 import type { TwitterClient } from "../twitter";
 
 /**
@@ -14,7 +14,7 @@ export class TweetsPostedModal extends Modal {
 
 	constructor(
 		app: App,
-		private readonly posts: TweetV2PostTweetResult[],
+		private readonly posts: PostedTweet[],
 		private readonly twitter: TwitterClient,
 	) {
 		super(app);

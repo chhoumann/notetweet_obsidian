@@ -1,5 +1,5 @@
 import { type Editor, MarkdownView, Notice, Plugin } from "obsidian";
-import type { TweetV2PostTweetResult } from "twitter-api-v2";
+import type { PostedTweet } from "./xApi";
 import { DEFAULT_SETTINGS, type NoteTweetSettings } from "./settings";
 import { NoteTweetSettingsTab } from "./settingsTab";
 import { TwitterClient } from "./twitter";
@@ -195,7 +195,7 @@ export default class NoteTweet extends Plugin {
 		return false;
 	}
 
-	private async showPosted(posts: TweetV2PostTweetResult[]): Promise<void> {
+	private async showPosted(posts: PostedTweet[]): Promise<void> {
 		if (posts.length === 0) return;
 
 		const modal = new TweetsPostedModal(this.app, posts, this.twitter);
