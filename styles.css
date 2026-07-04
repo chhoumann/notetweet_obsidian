@@ -1,81 +1,396 @@
+/* ============================================================
+   NoteTweet - compose modal
+   ============================================================ */
+.modal.nt-compose-modal {
+	width: min(40rem, 92vw);
+}
+
 .postTweetModal {
-	max-width: 35rem;
-	width: 100%;
+	--nt-rail-w: 1.75rem;
+	--nt-gap: 0.75rem;
+	--nt-node: 1.375rem;
+	--nt-accent: var(--interactive-accent);
+	max-height: min(76vh, 48rem);
 	overflow-y: auto;
-	max-height: 50rem;
-	padding-left: 0.5rem;
-	padding-right: 0.5rem;
 	overflow-x: hidden;
+	padding: 0 2px;
 }
 
-/* Tweet composer textareas auto-grow with content via field-sizing, so no
-   JavaScript height juggling is needed. */
-.postTweetModal .tweetArea {
-	width: 100%;
-	min-height: 7.5rem;
-	field-sizing: content;
-	resize: vertical;
+/* ---- Thread ---- */
+.nt-thread {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0.25rem 0 0;
 }
 
-.ntLengthChecker {
-	margin: 0 0 5px;
-	color: var(--text-muted);
+.nt-post {
+	position: relative;
+	display: grid;
+	grid-template-columns: var(--nt-rail-w) 1fr;
+	column-gap: var(--nt-gap);
+	align-items: start;
 }
 
-.ntLengthChecker.nt-length--warn {
-	color: var(--text-warning);
+.nt-thread.is-single .nt-post {
+	grid-template-columns: 1fr;
+	column-gap: 0;
 }
 
-.ntLengthChecker.nt-length--danger {
-	color: var(--text-warning);
+.nt-thread.is-single .nt-rail {
+	display: none;
+}
+
+/* Rail: numbered node + connector, only shown for real threads */
+.nt-rail {
+	position: relative;
+	display: flex;
+	justify-content: center;
+	align-self: stretch;
+}
+
+.nt-node {
+	position: relative;
+	z-index: 1;
+	width: var(--nt-node);
+	height: var(--nt-node);
+	margin-top: 0.6rem;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	font-size: 0.6875rem;
 	font-weight: var(--font-bold);
+	font-variant-numeric: tabular-nums;
+	color: var(--text-faint);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
 
-.ntLengthChecker.nt-length--over {
+.nt-rail::after {
+	content: "";
+	position: absolute;
+	top: calc(var(--nt-node) + 0.6rem);
+	bottom: -0.5rem;
+	left: 50%;
+	width: 1px;
+	transform: translateX(-50%);
+	background: var(--background-modifier-border);
+}
+
+.nt-post:last-child .nt-rail::after {
+	display: none;
+}
+
+.nt-post.is-active .nt-node {
+	color: var(--nt-accent);
+	border-color: var(--nt-accent);
+	background: color-mix(in srgb, var(--nt-accent) 10%, var(--background-primary));
+}
+
+/* ---- Card: the writing surface is the hero ---- */
+.nt-card {
+	position: relative;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-primary);
+	transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.nt-post.is-active .nt-card {
+	border-color: var(--nt-accent);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--nt-accent) 12%, transparent);
+}
+
+.nt-post.is-over .nt-card {
+	border-color: var(--text-error);
+}
+
+.nt-post.is-over.is-active .nt-card {
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-error) 12%, transparent);
+}
+
+.nt-editor {
+	position: relative;
+}
+
+.postTweetModal .tweetArea {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	border: none;
+	background: transparent;
+	color: var(--text-normal);
+	font-family: inherit;
+	font-size: 1.05rem;
+	line-height: 1.55;
+	padding: 0.75rem 0.875rem;
+	min-height: 4.5em;
+	resize: none;
+	field-sizing: content;
+}
+
+.nt-thread.is-single .tweetArea {
+	min-height: 8em;
+}
+
+.postTweetModal .tweetArea:focus {
+	outline: none;
+	box-shadow: none;
+}
+
+.postTweetModal .tweetArea::placeholder {
+	color: var(--text-faint);
+}
+
+.nt-card.has-count .tweetArea {
+	padding-bottom: 1.5rem;
+}
+
+/* Character count, tucked into the editor's bottom-right, near the limit only */
+.nt-count {
+	position: absolute;
+	right: 0.75rem;
+	bottom: 0.4375rem;
+	font-size: 0.6875rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-faint);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.1s ease;
+}
+
+.nt-count.is-shown {
+	opacity: 1;
+}
+
+.nt-count.is-over {
 	color: var(--text-error);
 	font-weight: var(--font-bold);
 }
 
-.nt-add-tweet {
-	margin: 0.5rem 0 1rem;
+/* ---- Attachments ---- */
+.nt-attachments:not(:empty) {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0 0.875rem 0.75rem;
 }
 
-.tweetTooltip {
+.nt-attachment {
 	position: relative;
-	display: inline-block;
-	border-bottom: 1px dotted var(--text-muted);
-	margin-bottom: 5px;
-	cursor: help;
+	width: 4.5rem;
+	height: 4.5rem;
+	border-radius: var(--radius-s);
+	overflow: hidden;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
 }
 
-.tweetTooltip:hover .tweetTooltipBody {
-	visibility: visible;
-}
-
-.tweetTooltipBody {
-	visibility: hidden;
+.nt-attachment img {
 	width: 100%;
-	background-color: var(--background-secondary-alt);
-	color: var(--text-normal);
-	padding: 10px;
-	border-radius: 6px;
-	position: absolute;
-	z-index: var(--layer-tooltip);
+	height: 100%;
+	object-fit: cover;
+	display: block;
 }
 
+.nt-attachment-remove {
+	position: absolute;
+	top: 0.1875rem;
+	right: 0.1875rem;
+	width: 1.125rem;
+	height: 1.125rem;
+	display: grid;
+	place-items: center;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: color-mix(in srgb, #000 62%, transparent);
+	color: #fff;
+	cursor: pointer;
+	box-shadow: none;
+	opacity: 0;
+	transition: opacity 0.1s ease;
+}
+
+.nt-attachment:hover .nt-attachment-remove {
+	opacity: 1;
+}
+
+.nt-attachment-remove .svg-icon {
+	width: 0.75rem;
+	height: 0.75rem;
+	stroke-width: 2.5;
+}
+
+/* Reorder / attach / delete controls, revealed on hover or focus */
+.nt-controls {
+	position: absolute;
+	top: 0.3125rem;
+	right: 0.3125rem;
+	display: flex;
+	gap: 1px;
+	padding: 2px;
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+	opacity: 0;
+	transition: opacity 0.1s ease;
+}
+
+.nt-post:hover .nt-controls,
+.nt-post:focus-within .nt-controls {
+	opacity: 1;
+}
+
+.nt-icon-btn {
+	width: 1.5rem;
+	height: 1.5rem;
+	display: grid;
+	place-items: center;
+	border: none;
+	border-radius: var(--radius-s);
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	padding: 0;
+	box-shadow: none;
+}
+
+.nt-icon-btn:hover:not(:disabled) {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.nt-icon-btn:disabled {
+	opacity: 0.3;
+	cursor: default;
+}
+
+.nt-icon-btn.nt-danger:hover:not(:disabled) {
+	color: var(--text-error);
+}
+
+.nt-icon-btn .svg-icon {
+	width: 0.9375rem;
+	height: 0.9375rem;
+}
+
+/* ---- Add post ---- */
+.nt-add {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	width: 100%;
+	margin-top: 0.5rem;
+	padding: 0.5rem 0.75rem;
+	border: 1px dashed var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: transparent;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	cursor: pointer;
+	box-shadow: none;
+	transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.nt-add:hover {
+	color: var(--text-normal);
+	border-color: var(--background-modifier-border-hover);
+	background: var(--background-modifier-hover);
+}
+
+.nt-add-icon {
+	display: inline-flex;
+}
+
+.nt-add-icon .svg-icon {
+	width: 1rem;
+	height: 1rem;
+}
+
+/* ---- Footer ---- */
+.nt-footer {
+	position: sticky;
+	bottom: 0;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-top: 1rem;
+	padding: 0.75rem 0 0.5rem;
+	border-top: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+}
+
+.nt-footer-status {
+	min-width: 0;
+	font-size: var(--font-ui-small);
+	color: var(--text-error);
+}
+
+.nt-footer-actions {
+	margin-left: auto;
+	display: flex;
+	gap: 0.5rem;
+}
+
+.nt-btn {
+	font: inherit;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-bold);
+	line-height: 1.4;
+	padding: 0.4375rem 0.875rem;
+	border: 1px solid transparent;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.nt-btn-ghost {
+	background: transparent;
+	color: var(--text-muted);
+}
+
+.nt-btn-ghost:hover:not(:disabled) {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.nt-btn-cta {
+	background: var(--nt-accent);
+	color: var(--text-on-accent);
+}
+
+.nt-btn-cta:hover:not(:disabled) {
+	background: var(--interactive-accent-hover);
+}
+
+.nt-btn:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.nt-node,
+	.nt-card,
+	.nt-controls,
+	.nt-count,
+	.nt-add,
+	.nt-attachment-remove {
+		transition: none;
+	}
+}
+
+/* ============================================================
+   NoteTweet - posted & scheduled lists
+   ============================================================ */
 .nt-posted-list {
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
 	margin-bottom: 1rem;
-}
-
-.nt-status--ok {
-	color: var(--text-success);
-}
-
-.nt-status--err {
-	color: var(--text-error);
 }
 
 .scheduledTweetsContainer {
@@ -99,4 +414,15 @@
 .nt-scheduled-when {
 	color: var(--text-muted);
 	margin: 0.5em 0;
+}
+
+/* ============================================================
+   NoteTweet - settings connection status
+   ============================================================ */
+.nt-status--ok {
+	color: var(--text-success);
+}
+
+.nt-status--err {
+	color: var(--text-error);
 }

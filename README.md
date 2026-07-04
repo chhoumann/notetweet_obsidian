@@ -10,7 +10,7 @@ This plugin allows you to post to X (formerly Twitter) directly from Obsidian.
 - **Post file as thread** - parses the first `THREAD START`/`THREAD END` block in the active note and posts it as a thread.
 - **Encrypted credentials** - your API keys are kept in Obsidian's built-in encrypted Secret Storage, not in the plugin's `data.json`.
 - **Auto-split** - long text is split into a thread at 280 characters (toggle in settings). Disabling it allows longer tweets, which require a paid X plan.
-- **Images** - include an image by adding a `[[wikilink]]` to an image file (gif, jpg, jpeg, png, webp, bmp) in the tweet text (desktop only).
+- **Images** - attach images to a post in the composer: hover a post and click the image button to pick one from your vault, or just paste an image straight in (it's saved to your vault, then uploaded). You can also embed one by typing a `[[wikilink]]` to an image file (gif, jpg, jpeg, png, webp, bmp) in the text. Uploads are desktop only.
 - **Tweet tag** - optionally append a tag to your note after posting, so you can keep track of what you've tweeted.
 - **Delete/undo** - after posting, a modal lets you delete the tweets you just posted.
 - **Scheduling** (optional, advanced) - post on a schedule through a self-hosted scheduler. Follow [this guide](./GuideToSettingUpScheduler.md) to set it up.
@@ -63,15 +63,14 @@ Your API key, API secret, access token, and access token secret are kept in Obsi
 Run the `Post tweet` command to open the composer, where you can craft threads or single tweets. If you have text selected, it is ported into the composer automatically: a `THREAD START`/`THREAD END` block opens as a pre-split thread, and any other text is auto-split into tweets when it exceeds 280 characters. You can also paste text in, and anything longer than 280 characters is split for you. The composer has a **Post** button, and a **Schedule** button when scheduling is enabled.
 
 ### Composer Shortcuts
-- `Backspace` to delete an empty tweet
-- `Enter` (at max length) or `Alt + Enter` to make a new tweet
-- `Ctrl + Enter` to insert a tweet below
-- `Shift + Enter` to insert a tweet above
-- `Ctrl + ArrowUp` to focus the tweet above
-- `Ctrl + ArrowDown` to focus the tweet below
-- `Ctrl + Shift + ArrowUp` to move the current tweet up
-- `Ctrl + Shift + ArrowDown` to move the current tweet down
-- `Ctrl + Shift + Delete` to delete the focused tweet
+- `Backspace` to delete an empty post
+- `Alt + Enter` (or `Enter` at the character limit) to start a new post
+- Three line breaks in a row also start a new post
+- `Shift + Enter` to insert a post above
+- `Ctrl + Enter` to insert a post below
+- `Ctrl + ArrowUp` / `Ctrl + ArrowDown` to focus the post above / below
+- `Ctrl + Shift + ArrowUp` / `Ctrl + Shift + ArrowDown` to move the current post up / down
+- `Ctrl + Shift + Delete` to delete the focused post
 
 ## Quick posts
 Single tweets are simple. Just select some text and run the `Post selection as tweet` command to post it immediately.
