@@ -1,7 +1,7 @@
 {
 	"id": "notetweet",
 	"name": "NoteTweet",
-	"version": "0.6.2",
+	"version": "0.6.3",
 	"minAppVersion": "1.13.0",
 	"description": "Post tweets and threads to X (Twitter) directly from your notes.",
 	"author": "Christian Bager Bach Houmann",
