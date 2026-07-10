@@ -1,39 +1,30 @@
 name: CI
+
+# Caller for the shared reusable CI workflow (chhoumann/obsidian-plugin-workflows).
+#
+# NO paths-ignore: Test and Build + Lint must run on every PR so they can be
+# required status checks without deadlocking docs-only PRs (a required check that
+# never runs stays pending forever and blocks merge).
 on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
-  workflow_dispatch:
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    push:
+        branches: [master]
+    pull_request:
+        branches: [master]
+    workflow_dispatch:
+
 permissions:
-  contents: read
+    contents: read
+
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+    ci:
+        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/ci.yml@v1
         with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run test
-  build-lint:
-    name: Build + Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      - run: pnpm run lint
-      - run: pnpm run typecheck:e2e
+            package-manager: pnpm
+            # Matches .mise.toml (node = "22").
+            node-version: "22"
+            # test-command defaults to 'pnpm run test'.
+            build-command: pnpm run build
+            lint-command: pnpm run lint
+            # The e2e sources typecheck against a separate tsconfig project.
+            check-commands: |
+                pnpm run typecheck:e2e
