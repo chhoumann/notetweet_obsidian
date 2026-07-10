@@ -5,12 +5,12 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "tests/*.test.ts"],
     exclude: ["node_modules/**", "tests/e2e/**"],
   },
   resolve: {
     alias: {
-      obsidian: path.resolve("./tests/obsidian-stub.ts"),
+      obsidian: path.resolve("./tests/obsidian.ts"),
     },
   },
 });

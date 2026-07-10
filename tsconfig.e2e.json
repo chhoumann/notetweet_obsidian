@@ -1,7 +1,7 @@
 {
 	"extends": "./tsconfig.json",
-	"include": ["tests/**/*.ts", "scripts/**/*.ts"],
-	"exclude": ["node_modules", "tests/obsidian-stub.ts"],
+	"include": ["tests/**/*.ts"],
+	"exclude": ["node_modules", "tests/obsidian.ts"],
 	"compilerOptions": {
 		"noEmit": true,
 		"types": ["node", "vitest"]

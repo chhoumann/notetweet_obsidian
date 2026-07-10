@@ -16,7 +16,8 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 
 export const PLUGIN_ID = "notetweet";
-export const E2E_VAULT = process.env.NOTETWEET_E2E_VAULT ?? "dev";
+export const E2E_VAULT =
+	process.env.OBSIDIAN_E2E_VAULT ?? process.env.NOTETWEET_E2E_VAULT ?? "dev";
 export const E2E_BIN = process.env.OBSIDIAN_BIN ?? "obsidian";
 // styles.css is a hand-written release asset shipped alongside main.js, so the
 // provisioned vault symlinks all three artifacts.

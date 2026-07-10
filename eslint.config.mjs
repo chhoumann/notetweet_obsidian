@@ -28,8 +28,6 @@ export default tseslint.config(
       "coverage/**",
       "esbuild.config.mjs",
       "version-bump.mjs",
-      "scripts/*.mjs",
-      "tests/obsidian-stub.ts",
       ".obsidian-e2e-vaults/**",
       ".obsidian-e2e-instances/**",
       ".obsidian-e2e-artifacts/**",
