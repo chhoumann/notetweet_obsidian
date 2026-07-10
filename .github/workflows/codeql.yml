@@ -1,0 +1,25 @@
+name: CodeQL
+
+# Caller for the shared reusable CodeQL workflow.
+#
+# The weekly cron lives HERE, not in the reusable workflow: `on.schedule` is
+# ignored inside a called workflow, so the scheduled scan only fires from this
+# caller's own trigger.
+on:
+    push:
+        branches: [master]
+    pull_request:
+        branches: [master]
+    schedule:
+        - cron: "0 6 * * 1"
+
+permissions:
+    contents: read
+
+jobs:
+    codeql:
+        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/codeql.yml@v1
+        permissions:
+            contents: read
+            security-events: write
+            actions: read
