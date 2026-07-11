@@ -18,7 +18,7 @@ permissions:
 
 jobs:
     codeql:
-        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/codeql.yml@v1
+        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/codeql.yml@v4
         permissions:
             contents: read
             security-events: write
