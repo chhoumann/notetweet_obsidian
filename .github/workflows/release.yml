@@ -1,46 +1,50 @@
+# Caller stub: release (stage 3) for notetweet (pnpm, styles.css).
+#
+# workflow_dispatch is the only trigger: the reusable validate workflow (stage 2)
+# dispatches this on the durable release-run/<version> recovery branch. Keeping a
+# plain workflow_dispatch here also makes the release itself replayable for
+# recovery without re-running the whole pipeline.
+
 name: Release
+
 on:
-  workflow_dispatch:
+    workflow_dispatch:
+        inputs:
+            releasePr:
+                description: "Merged machine-generated release PR number to recover"
+                required: true
+                type: string
+
+permissions: {}
+
 concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-permissions:
-  contents: read
+    group: release
+    cancel-in-progress: false
+
 jobs:
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-      id-token: write
-      attestations: write
-    steps:
-      - uses: actions/checkout@v4
+    release:
+        permissions:
+            actions: read
+            attestations: write
+            contents: write
+            id-token: write
+            pull-requests: read
+        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/release.yml@v2
         with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      - run: pnpm run test
-      - name: Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm semantic-release
-      # After semantic-release: its npm `version` lifecycle bumps
-      # manifest.json/versions.json, so attesting earlier would sign a
-      # digest that no longer matches the uploaded asset. Attestations are
-      # digest-based, so attesting after upload is valid.
-      - name: Attest release artifacts
-        uses: actions/attest-build-provenance@v4
-        with:
-          subject-path: |
-            main.js
-            manifest.json
-            styles.css
+            release-pr: ${{ inputs.releasePr }}
+            plugin-name: notetweet
+            package-manager: pnpm
+            default-branch: master
+            node-version: "22"
+            release-bot-app-slug: notetweet-release-bot
+            release-assets: '["main.js","manifest.json","styles.css"]'
+            build-command: pnpm run build
+            verify-commands: |
+                pnpm run lint
+                pnpm run test
+                pnpm run typecheck:e2e
+            workflows-ref: v2
+        secrets:
+            # Optional: unset secrets resolve to '' and the notify job skips them.
+            slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
+            discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}

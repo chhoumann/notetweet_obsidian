@@ -2,9 +2,10 @@ name: PR Title
 
 # Caller for the shared reusable PR-title workflow.
 #
-# NoteTweet squash-merges PRs and releases with semantic-release, so the squashed
-# PR title becomes the commit semantic-release parses to pick the next version.
-# This validates that title is a Conventional Commit before it can be merged.
+# NoteTweet squash-merges PRs, and the shared release pipeline picks the next
+# version from the Conventional Commits on master, so the squashed PR title
+# becomes the commit the release planner parses. This validates that title is a
+# Conventional Commit before it can be merged.
 #
 # MUST be pull_request_target: the title of a fork PR is only reliably readable,
 # and GITHUB_TOKEN only carries the right context, under this trigger. The

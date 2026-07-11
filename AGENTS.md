@@ -34,8 +34,8 @@ release asset.
 - When resolving a GitHub issue, use `gh issue develop <issue-number>` to
   create/link the working branch before implementation.
 - Follow Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`,
-  `release(version): ...`) so semantic-release can determine versions. PRs are
-  squash-merged and the PR title becomes the squash commit that drives the
+  `release(version): ...`) so the shared release pipeline can determine versions.
+  PRs are squash-merged and the PR title becomes the squash commit that drives the
   released version; the `PR Title` CI check enforces this.
 - GitHub does not allow approving your own PR from the same account; do not block
   merge waiting for self-approval.
@@ -148,13 +148,17 @@ exists) before launching, so you rarely need `stop` by hand.
   image upload is desktop only).
 
 ## Release & PR Expectations
-Releases are semantic-release based and cut manually via the Release workflow
-(Actions tab or `gh workflow run release.yml`); pushes to `master` do not
-auto-release. `version-bump.mjs` keeps `manifest.json` and `versions.json` in
-sync with the package version and Obsidian `minAppVersion`. Release assets are
-`main.js`, `manifest.json`, and `styles.css`, and each release is attested with
-build provenance. Treat unexpected diffs in `package.json`, `pnpm-lock.yaml`,
-`manifest.json`, or `versions.json` as blockers until understood.
+Releases run on the shared forensic PR-to-release pipeline
+(`chhoumann/obsidian-plugin-workflows`). After a green CI run on `master`, a
+per-repo GitHub App bot opens or refreshes a single standing release PR that
+touches only the version files (`package.json`, `manifest.json`, `versions.json`);
+merging that PR is the sole release act. There is no manual dispatch on the happy
+path and pushes to `master` do not auto-release. The pipeline keeps
+`manifest.json` and `versions.json` in sync with the package version and Obsidian
+`minAppVersion`. Release assets are `main.js`, `manifest.json`, and `styles.css`,
+and each release is attested with build provenance. Treat unexpected diffs in
+`package.json`, `pnpm-lock.yaml`, `manifest.json`, or `versions.json` as blockers
+until understood.
 
 Pull requests should include: a concise summary of the user-facing change; linked
 issues when relevant; screenshots or recordings for visible UI changes; the exact
