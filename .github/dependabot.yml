@@ -1,0 +1,42 @@
+version: 2
+# Grouped weekly updates for an Obsidian plugin repo.
+#
+# COPY-IN TEMPLATE: place at .github/dependabot.yml. Grouping keeps the SHA pins
+# and dependency tree fresh in a small number of PRs rather than one-per-bump.
+# Commit prefixes align with the Conventional Commit types the release toolkit
+# expects: `ci` for Actions, `build` for package dependencies.
+updates:
+  # GitHub Actions across all workflows. Keeps SHA pins from rotting - a Node
+  # runtime deprecation slips in precisely when nothing watches these.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+    labels:
+      - dependencies
+      - github-actions
+
+  # Plugin dependencies (root package.json + lockfile).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types: ["minor", "patch"]
+      prod-dependencies:
+        dependency-type: production
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: build
+    labels:
+      - dependencies
