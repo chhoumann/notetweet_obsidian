@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
 	createNoteTweetE2EHarness,
-	evalJsonAsync,
 	PLUGIN_ID,
 	WAIT_OPTS,
 } from "./harness";
@@ -34,14 +33,13 @@ describe("NoteTweet runtime", () => {
 		const probeId = "notetweet-e2e-probe";
 		const probeValue = "notetweet-e2e-secret-value";
 
-		const result = await evalJsonAsync<{
+		const result = await obsidian.dev.evalJsonAsync<{
 			hasSetSecret: boolean;
 			hasGetSecret: boolean;
 			hasListSecrets: boolean;
 			readBack: string | null;
 			listedAfterSet: boolean;
 		}>(
-			obsidian,
 			`
 			(async () => {
 				const storage = app.secretStorage;
@@ -200,8 +198,7 @@ describe("NoteTweet runtime", () => {
 		await obsidian.dev.evalJson<boolean>(
 			`(() => { for (let i=0;i<12 && document.querySelector(".modal-container");i++){ (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",code:"Escape",keyCode:27,which:27,bubbles:true})); } return true; })()`,
 		);
-		await evalJsonAsync<boolean>(
-			obsidian,
+		await obsidian.dev.evalJsonAsync<boolean>(
 			`(async () => {
 				const bin = atob(${JSON.stringify(png)}); const bytes = new Uint8Array(bin.length);
 				for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
@@ -282,8 +279,7 @@ describe("NoteTweet runtime", () => {
 			await obsidian.dev.evalJson<boolean>(
 				`(() => { for (let i=0;i<12 && document.querySelector(".modal-container");i++){ (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",code:"Escape",keyCode:27,which:27,bubbles:true})); } return true; })()`,
 			);
-			await evalJsonAsync<boolean>(
-				obsidian,
+			await obsidian.dev.evalJsonAsync<boolean>(
 				`(async () => {
 					for (const file of app.vault.getFiles()) {
 						if (file.path === "nt-e2e-temp.png" || file.name.startsWith("Pasted image ")) {

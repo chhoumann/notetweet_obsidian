@@ -184,48 +184,6 @@ export async function waitForNoteTweetReady(
 	);
 }
 
-type AsyncEvalEnvelope<T> = {
-	ok: boolean;
-	value?: T;
-	error?: { message: string; stack?: string };
-};
-
-export async function evalJsonAsync<T>(
-	obsidian: ObsidianClient,
-	code: string,
-): Promise<T> {
-	const envelope = await obsidian.dev.eval<AsyncEvalEnvelope<T>>(`
-		(async () => {
-			const code = ${JSON.stringify(code)};
-			try {
-				const value = await (0, eval)(code);
-				return JSON.stringify({ ok: true, value });
-			} catch (error) {
-				return JSON.stringify({
-					ok: false,
-					error: {
-						message: error instanceof Error ? error.message : String(error),
-						stack: error instanceof Error ? error.stack : undefined,
-					},
-				});
-			}
-		})()
-	`);
-
-	if (!envelope.ok) {
-		throw new Error(
-			[
-				`Failed to evaluate async Obsidian code: ${envelope.error?.message ?? "unknown error"}`,
-				envelope.error?.stack ?? "",
-			]
-				.filter(Boolean)
-				.join("\n"),
-		);
-	}
-
-	return envelope.value as T;
-}
-
 async function assertDevVaultSymlinks(vaultPath: string): Promise<void> {
 	const pluginDir = path.join(vaultPath, ".obsidian", "plugins", PLUGIN_ID);
 

@@ -42,7 +42,7 @@
 		"eslint-plugin-obsidianmd": "^0.3.0",
 		"globals": "^17.7.0",
 		"obsidian": "1.13.1",
-		"obsidian-e2e": "^0.7.0",
+		"obsidian-e2e": "^0.8.2",
 		"obsidian-test-kit": "^0.1.0",
 		"tslib": "^2.8.1",
 		"typescript": "^6.0.3",
