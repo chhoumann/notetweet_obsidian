@@ -6,6 +6,7 @@
  */
 
 import { arrayBufferToBase64, requestUrl } from "obsidian";
+import { deferred } from "./deferred";
 import { oauth1Header, percentEncode, type OAuth1Credentials } from "./oauth1";
 
 export interface PostedTweet {
@@ -119,7 +120,7 @@ function processingInfoOf(json: unknown): ProcessingInfo | undefined {
 }
 
 function sleep(ms: number): Promise<void> {
-	const { promise, resolve } = Promise.withResolvers<void>();
+	const { promise, resolve } = deferred<void>();
 	window.setTimeout(resolve, ms);
 	return promise;
 }

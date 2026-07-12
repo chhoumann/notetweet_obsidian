@@ -5,6 +5,7 @@ import {
 	type TFile,
 	setIcon,
 } from "obsidian";
+import { deferred } from "../deferred";
 import { log } from "../log";
 import {
 	MAX_TWEET_LENGTH,
@@ -121,7 +122,7 @@ export class ComposeTweetModal extends Modal {
 		app: App,
 		options: ComposeOptions = {},
 	): Promise<ComposeResult | null> {
-		const { promise, resolve } = Promise.withResolvers<ComposeResult | null>();
+		const { promise, resolve } = deferred<ComposeResult | null>();
 		new ComposeTweetModal(app, options, resolve).open();
 		return promise;
 	}

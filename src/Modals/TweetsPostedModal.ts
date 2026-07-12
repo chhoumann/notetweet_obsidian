@@ -1,4 +1,5 @@
 import { type App, Modal, Notice, Setting } from "obsidian";
+import { deferred } from "../deferred";
 import type { PostedTweet } from "../xApi";
 import type { TwitterClient } from "../twitter";
 
@@ -18,7 +19,7 @@ export class TweetsPostedModal extends Modal {
 		private readonly twitter: TwitterClient,
 	) {
 		super(app);
-		const { promise, resolve } = Promise.withResolvers<void>();
+		const { promise, resolve } = deferred<void>();
 		this.waitForClose = promise;
 		this.resolveClose = resolve;
 	}
