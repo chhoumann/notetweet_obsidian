@@ -256,6 +256,129 @@ describe("NoteTweet runtime", () => {
 		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
 	});
 
+	test("uses X-weighted counts for composer validation, paste splitting, and Enter", async () => {
+		const { obsidian } = getContext();
+		const result = await obsidian.dev.evalJson<{
+			states: Record<
+				string,
+				{ count: string; over: boolean; postDisabled: boolean }
+			>;
+			pasteLongUrlPrevented: boolean;
+			pasteSplit: { prevented: boolean; values: string[] };
+			enterCjkRows: number;
+			enterLongUrlRows: number;
+		}>(
+			`(() => {
+				const selector = ".postTweetModal textarea.tweetArea";
+				const close = () => {
+					for (let i = 0; i < 12 && document.querySelector(".postTweetModal"); i++) {
+						(document.activeElement ?? document.body).dispatchEvent(
+							new KeyboardEvent("keydown", { key: "Escape", code: "Escape", keyCode: 27, which: 27, bubbles: true }),
+						);
+					}
+				};
+				const open = () => {
+					close();
+					app.commands.executeCommandById(${JSON.stringify(`${PLUGIN_ID}:post-tweet`)});
+					return document.querySelector(selector);
+				};
+				const setValue = (value) => {
+					const area = document.querySelector(selector);
+					const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+					setter.call(area, value);
+					area.dispatchEvent(new Event("input", { bubbles: true }));
+					return area;
+				};
+				const state = (value) => {
+					open();
+					setValue(value);
+					const result = {
+						count: document.querySelector(".postTweetModal .nt-count")?.textContent ?? "",
+						over: document.querySelector(".postTweetModal .nt-post")?.classList.contains("is-over") ?? false,
+						postDisabled: document.querySelector(".postTweetModal .nt-btn-cta")?.disabled ?? true,
+					};
+					close();
+					return result;
+				};
+				const paste = (value) => {
+					open();
+					const area = document.querySelector(selector);
+					const transfer = new DataTransfer();
+					transfer.setData("text/plain", value);
+					const event = new ClipboardEvent("paste", { clipboardData: transfer, bubbles: true, cancelable: true });
+					area.dispatchEvent(event);
+					const result = {
+						prevented: event.defaultPrevented,
+						values: Array.from(document.querySelectorAll(selector)).map((el) => el.value),
+					};
+					close();
+					return result;
+				};
+				const enterRows = (value) => {
+					open();
+					const area = setValue(value);
+					area.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true }));
+					const rows = document.querySelectorAll(selector).length;
+					close();
+					return rows;
+				};
+
+				const longUrl = "https://example.com/" + "a".repeat(300);
+				const pasteSplit = paste("a".repeat(258) + " " + longUrl + " tail");
+				const result = {
+					states: {
+						longUrlAtLimit: state("a".repeat(256) + " " + longUrl),
+						familyEmoji: state("👨‍👩‍👧‍👦".repeat(140)),
+						cjkOver: state("界".repeat(141)),
+						combiningAtLimit: state("e\\u0301".repeat(280)),
+						latinAtLimit: state("a".repeat(280)),
+					},
+					pasteLongUrlPrevented: paste(longUrl).prevented,
+					pasteSplit,
+					enterCjkRows: enterRows("界".repeat(140)),
+					enterLongUrlRows: enterRows(longUrl),
+				};
+				close();
+				return result;
+			})()`,
+		);
+
+		expect(result.states.longUrlAtLimit).toEqual({
+			count: "0",
+			over: false,
+			postDisabled: false,
+		});
+		expect(result.states.familyEmoji).toEqual({
+			count: "0",
+			over: false,
+			postDisabled: false,
+		});
+		expect(result.states.cjkOver).toEqual({
+			count: "-2",
+			over: true,
+			postDisabled: true,
+		});
+		expect(result.states.combiningAtLimit).toEqual({
+			count: "0",
+			over: false,
+			postDisabled: false,
+		});
+		expect(result.states.latinAtLimit).toEqual({
+			count: "0",
+			over: false,
+			postDisabled: false,
+		});
+		expect(result.pasteLongUrlPrevented).toBe(false);
+		expect(result.pasteSplit.prevented).toBe(true);
+		expect(result.pasteSplit.values).toHaveLength(2);
+		expect(result.pasteSplit.values[1]).toContain(
+			`https://example.com/${"a".repeat(300)}`,
+		);
+		expect(result.enterCjkRows).toBe(2);
+		expect(result.enterLongUrlRows).toBe(1);
+		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
+	});
+
 	test("splits a post into two on a triple line break", async () => {
 		const { obsidian } = getContext();
 		const areaSelector = ".postTweetModal textarea.tweetArea";
