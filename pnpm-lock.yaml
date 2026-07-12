@@ -40,8 +40,8 @@ importers:
         specifier: 1.13.1
         version: 1.13.1(@codemirror/state@6.5.0)(@codemirror/view@6.38.6)
       obsidian-e2e:
-        specifier: ^0.8.2
-        version: 0.8.2(vite-plus@0.1.24(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(esbuild@0.28.1)(typescript@6.0.3)(vite@8.1.3(@types/node@26.1.1)(esbuild@0.28.1)(yaml@2.9.0))(yaml@2.9.0))(vitest@4.1.10)
+        specifier: ^0.9.0
+        version: 0.9.0(vite-plus@0.1.24(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(esbuild@0.28.1)(typescript@6.0.3)(vite@8.1.3(@types/node@26.1.1)(esbuild@0.28.1)(yaml@2.9.0))(yaml@2.9.0))(vitest@4.1.10)
       obsidian-test-kit:
         specifier: ^0.1.0
         version: 0.1.0(vitest@4.1.10)
@@ -1914,8 +1914,8 @@ packages:
     resolution: {integrity: sha512-gXah6aZrcUxjWg2zR2MwouP2eHlCBzdV4pygudehaKXSGW4v2AsRQUK+lwwXhii6KFZcunEnmSUoYp5CXibxtA==}
     engines: {node: '>= 0.4'}
 
-  obsidian-e2e@0.8.2:
-    resolution: {integrity: sha512-3fWfWJoyjNJVjoD0K+6ohvBOilGCC0BRYwzRLKU4kZ3ZDGW7VUDiTSL46SgnAx/kXCW/teVV1OMw5UcazcXEGQ==}
+  obsidian-e2e@0.9.0:
+    resolution: {integrity: sha512-eolHF8eiwidRmT8JK+KLzv2o28ckKLUvBhwfiz5rfxx5mmbGqaJyNnne8uQ5YaURowX9u7T7Jga1Q6jihUv2eQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -2028,8 +2028,8 @@ packages:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
 
-  postcss@8.5.17:
-    resolution: {integrity: sha512-J7EF+8X+CzRPaJPOv9Ck2wNWJvGnnl3PcNPAdGg6GTLjyVpyQ0yATMSXRFRV01BviT/9Gwuc3rjEyJbDJG9a4w==}
+  postcss@8.5.18:
+    resolution: {integrity: sha512-xdB1oSLHbz1vRWgCDalrCqEFTWzFlhqFC5tIHLMOSUIjhm3XXQ1qrFy8S/ESr1JYRRXqM3c1QFiMZUJdUTqyMQ==}
     engines: {node: ^10 || ^12 || >=14}
 
   prelude-ls@1.2.1:
@@ -3121,7 +3121,7 @@ snapshots:
       '@oxc-project/runtime': 0.133.0
       '@oxc-project/types': 0.133.0
       lightningcss: 1.32.0
-      postcss: 8.5.17
+      postcss: 8.5.18
     optionalDependencies:
       '@types/node': 26.1.1
       esbuild: 0.28.1
@@ -4285,7 +4285,7 @@ snapshots:
       define-properties: 1.2.1
       es-object-atoms: 1.1.2
 
-  obsidian-e2e@0.8.2(vite-plus@0.1.24(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(esbuild@0.28.1)(typescript@6.0.3)(vite@8.1.3(@types/node@26.1.1)(esbuild@0.28.1)(yaml@2.9.0))(yaml@2.9.0))(vitest@4.1.10):
+  obsidian-e2e@0.9.0(vite-plus@0.1.24(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(esbuild@0.28.1)(typescript@6.0.3)(vite@8.1.3(@types/node@26.1.1)(esbuild@0.28.1)(yaml@2.9.0))(yaml@2.9.0))(vitest@4.1.10):
     dependencies:
       vite-plus: 0.1.24(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(esbuild@0.28.1)(typescript@6.0.3)(vite@8.1.3(@types/node@26.1.1)(esbuild@0.28.1)(yaml@2.9.0))(yaml@2.9.0)
       yaml: 2.9.0
@@ -4410,7 +4410,7 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
-  postcss@8.5.17:
+  postcss@8.5.18:
     dependencies:
       nanoid: 3.3.16
       picocolors: 1.1.1
@@ -4834,7 +4834,7 @@ snapshots:
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.5
-      postcss: 8.5.17
+      postcss: 8.5.18
       rolldown: 1.1.5
       tinyglobby: 0.2.17
     optionalDependencies:
