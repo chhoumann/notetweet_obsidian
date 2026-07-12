@@ -24,6 +24,7 @@ type SettingsSnapshot = {
 	found: boolean;
 	headings: string[];
 	migrationVisible: boolean;
+	defaultOptions: Record<string, string>;
 };
 
 // Reads the live declarative settings tab (via app.setting.pluginTabs, which is
@@ -33,7 +34,7 @@ type SettingsSnapshot = {
 const SETTINGS_SNAPSHOT = `
 	(() => {
 		const tab = app.setting.pluginTabs.find((t) => t.id === ${JSON.stringify(PLUGIN_ID)});
-		if (!tab) return { found: false, headings: [], migrationVisible: false };
+		if (!tab) return { found: false, headings: [], migrationVisible: false, defaultOptions: {} };
 		const definitions = tab.getSettingDefinitions();
 		const groupVisible = (group) =>
 			typeof group.visible === "function"
@@ -42,10 +43,13 @@ const SETTINGS_SNAPSHOT = `
 		const migration = definitions.find(
 			(group) => group.heading === "Migrate credentials",
 		);
+		const accounts = definitions.find((group) => group.heading === "X accounts");
+		const defaultAccount = accounts?.items?.find((item) => item.name === "Default account");
 		return {
 			found: true,
 			headings: definitions.map((group) => group.heading),
 			migrationVisible: migration ? groupVisible(migration) : false,
+			defaultOptions: defaultAccount?.control?.options ?? {},
 		};
 	})()
 `;
@@ -58,7 +62,7 @@ describe("NoteTweet settings tab", () => {
 			await obsidian.dev.evalJson<SettingsSnapshot>(SETTINGS_SNAPSHOT);
 
 		expect(snapshot.found).toBe(true);
-		expect(snapshot.headings).toContain("X API credentials");
+		expect(snapshot.headings).toContain("X accounts");
 		expect(snapshot.headings).toContain("Posting");
 		expect(snapshot.headings).toContain("Scheduling");
 		// The migration group is always part of the definitions; with no legacy
@@ -66,6 +70,31 @@ describe("NoteTweet settings tab", () => {
 		// renders. This distinguishes "present but hidden" from "absent".
 		expect(snapshot.headings).toContain("Migrate credentials");
 		expect(snapshot.migrationVisible).toBe(false);
+		expect(snapshot.defaultOptions).toEqual({});
+		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
+	});
+
+	test("renders named account groups and the configured default choices", async () => {
+		const { obsidian, plugin } = getContext();
+		await plugin.updateDataAndReload(
+			() => ({
+				accounts: [
+					{ id: "personal", name: "Personal" },
+					{ id: "work", name: "Work" },
+				],
+				defaultAccountId: "work",
+				postTweetTag: "",
+				autoSplitTweets: true,
+				scheduling: { enabled: false, url: "" },
+			}),
+			RELOAD_OPTIONS,
+		);
+
+		const snapshot =
+			await obsidian.dev.evalJson<SettingsSnapshot>(SETTINGS_SNAPSHOT);
+		expect(snapshot.headings).toContain("Personal");
+		expect(snapshot.headings).toContain("Work");
+		expect(snapshot.defaultOptions).toEqual({ personal: "Personal", work: "Work" });
 		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
 	});
 
@@ -103,5 +132,88 @@ describe("NoteTweet settings tab", () => {
 		const snapshot =
 			await obsidian.dev.evalJson<SettingsSnapshot>(SETTINGS_SNAPSHOT);
 		expect(snapshot.migrationVisible).toBe(true);
+	});
+
+	test("migrates the four fixed secrets into one named account and clears the old keys", async () => {
+		const { obsidian, plugin } = getContext();
+		const oldIds = {
+			apiKey: "notetweet-api-key",
+			apiSecret: "notetweet-api-secret",
+			accessToken: "notetweet-access-token",
+			accessTokenSecret: "notetweet-access-token-secret",
+		};
+		const newIds = Object.fromEntries(
+			Object.entries({
+				apiKey: "api-key",
+				apiSecret: "api-secret",
+				accessToken: "access-token",
+				accessTokenSecret: "access-token-secret",
+			}).map(([field, suffix]) => [
+				field,
+				`notetweet-account-migrated-account-${suffix}`,
+			]),
+		);
+		const values = {
+			apiKey: "migration-ak",
+			apiSecret: "migration-as",
+			accessToken: "migration-at",
+			accessTokenSecret: "migration-ats",
+		};
+
+		try {
+			await obsidian.dev.evalJson<boolean>(
+				`(() => {
+					const ids = ${JSON.stringify(oldIds)};
+					const values = ${JSON.stringify(values)};
+					for (const key of Object.keys(ids)) app.secretStorage.setSecret(ids[key], values[key]);
+					return true;
+				})()`,
+			);
+			await plugin.updateDataAndReload(
+				() => ({
+					accounts: [],
+					defaultAccountId: "",
+					postTweetTag: "",
+					autoSplitTweets: true,
+					scheduling: { enabled: false, url: "" },
+				}),
+				RELOAD_OPTIONS,
+			);
+
+			const result = await obsidian.dev.evalJson<{
+				accounts: { id: string; name: string }[];
+				defaultAccountId: string;
+				oldValues: Record<string, string | null>;
+				newValues: Record<string, string | null>;
+			}>(
+				`(() => {
+					const plugin = app.plugins.plugins.${PLUGIN_ID};
+					const oldIds = ${JSON.stringify(oldIds)};
+					const newIds = ${JSON.stringify(newIds)};
+					return {
+						accounts: plugin.settings.accounts,
+						defaultAccountId: plugin.settings.defaultAccountId,
+						oldValues: Object.fromEntries(Object.entries(oldIds).map(([key, id]) => [key, app.secretStorage.getSecret(id)])),
+						newValues: Object.fromEntries(Object.entries(newIds).map(([key, id]) => [key, app.secretStorage.getSecret(id)])),
+					};
+				})()`,
+			);
+
+			expect(result.accounts).toEqual([
+				{ id: "migrated-account", name: "Default" },
+			]);
+			expect(result.defaultAccountId).toBe("migrated-account");
+			expect(result.newValues).toEqual(values);
+			expect(Object.values(result.oldValues).every((value) => value === "")).toBe(
+				true,
+			);
+		} finally {
+			await obsidian.dev.evalJson<boolean>(
+				`(() => {
+					for (const id of [...Object.values(${JSON.stringify(oldIds)}), ...Object.values(${JSON.stringify(newIds)})]) app.secretStorage.setSecret(id, "");
+					return true;
+				})()`,
+			);
+		}
 	});
 });

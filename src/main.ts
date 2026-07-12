@@ -1,6 +1,10 @@
 import { type Editor, MarkdownView, Notice, Plugin } from "obsidian";
 import type { PostedTweet } from "./xApi";
-import { DEFAULT_SETTINGS, type NoteTweetSettings } from "./settings";
+import {
+	DEFAULT_SETTINGS,
+	normalizeAccountSettings,
+	type NoteTweetSettings,
+} from "./settings";
 import { NoteTweetSettingsTab } from "./settingsTab";
 import { TwitterClient } from "./twitter";
 import { SelfHostedScheduler } from "./scheduler";
@@ -9,11 +13,13 @@ import { TweetsPostedModal } from "./Modals/TweetsPostedModal";
 import { log } from "./log";
 import { parseThread, type ScheduledTweet } from "./tweet";
 import {
+	clearFixedTwitterSecrets,
 	type LegacyCredentialData,
 	legacyCredentialsPresent,
-	resolveCredentials,
 	resolveSchedulerPassword,
+	stageFixedSecretMigration,
 } from "./migration";
+import { getAccountCredentials, type TwitterCredentials } from "./secrets";
 
 function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
@@ -21,14 +27,18 @@ function errorMessage(error: unknown): string {
 
 export default class NoteTweet extends Plugin {
 	settings!: NoteTweetSettings;
-	twitter!: TwitterClient;
 	scheduler: SelfHostedScheduler | null = null;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
-
-		this.twitter = new TwitterClient(this.app);
-		await this.reconnect();
+		const migrated = stageFixedSecretMigration(this.app, this.settings);
+		if (migrated) {
+			await this.saveSettings();
+			clearFixedTwitterSecrets(this.app);
+			new Notice(
+				`NoteTweet: existing credentials moved to the ${migrated.name} account.`,
+			);
+		}
 		this.refreshScheduler();
 
 		this.addCommand({
@@ -59,20 +69,31 @@ export default class NoteTweet extends Plugin {
 	async loadSettings(): Promise<void> {
 		const loaded = ((await this.loadData()) ?? {}) as Record<string, unknown>;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded);
+		this.settings.accounts = Array.isArray(loaded.accounts)
+			? (loaded.accounts as NoteTweetSettings["accounts"])
+			: [];
 		this.settings.scheduling = Object.assign(
 			{},
 			DEFAULT_SETTINGS.scheduling,
 			this.settings.scheduling,
 		);
+		normalizeAccountSettings(this.settings);
 	}
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
 	}
 
-	/** Connect using SecretStorage credentials (falling back to legacy plaintext). */
-	async reconnect(): Promise<boolean> {
-		return this.twitter.connect(resolveCredentials(this.app, this.legacyData()));
+	/** Build and verify an account-scoped client for one direct posting action. */
+	async connectAccount(accountId: string): Promise<TwitterClient> {
+		const client = new TwitterClient(this.app);
+		const exists = this.settings.accounts.some(({ id }) => id === accountId);
+		if (exists) await client.connect(getAccountCredentials(this.app, accountId));
+		return client;
+	}
+
+	async verifyCredentials(credentials: TwitterCredentials): Promise<boolean> {
+		return new TwitterClient(this.app).connect(credentials);
 	}
 
 	/** Rebuild the scheduler from current settings, or clear it when disabled. */
@@ -101,6 +122,8 @@ export default class NoteTweet extends Plugin {
 		const options: ComposeOptions = {
 			allowSchedule: this.settings.scheduling.enabled,
 			autoSplit: this.settings.autoSplitTweets,
+			accounts: this.settings.accounts,
+			selectedAccountId: this.settings.defaultAccountId,
 		};
 
 		const selection = this.currentSelection();
@@ -120,9 +143,10 @@ export default class NoteTweet extends Plugin {
 			return;
 		}
 
-		if (!(await this.ensureConnected())) return;
+		const client = await this.clientForAccount(result.accountId);
+		if (!client) return;
 		try {
-			await this.showPosted(await this.twitter.postThread(result.content));
+			await this.showPosted(await client.postThread(result.content), client);
 		} catch (error) {
 			log.error(`Failed to post tweet: ${errorMessage(error)}`);
 		}
@@ -133,11 +157,12 @@ export default class NoteTweet extends Plugin {
 			log.warning("Nothing is selected.");
 			return;
 		}
-		if (!(await this.ensureConnected())) return;
+		const client = await this.clientForAccount(this.settings.defaultAccountId);
+		if (!client) return;
 
 		try {
-			const posted = await this.twitter.postTweet(editor.getSelection());
-			await this.showPosted([posted]);
+			const posted = await client.postTweet(editor.getSelection());
+			await this.showPosted([posted], client);
 		} catch (error) {
 			log.error(`Failed to post tweet: ${errorMessage(error)}`);
 		}
@@ -158,9 +183,10 @@ export default class NoteTweet extends Plugin {
 			return;
 		}
 
-		if (!(await this.ensureConnected())) return;
+		const client = await this.clientForAccount(this.settings.defaultAccountId);
+		if (!client) return;
 		try {
-			await this.showPosted(await this.twitter.postThread(thread));
+			await this.showPosted(await client.postThread(thread), client);
 		} catch (error) {
 			log.error(`Failed to post thread: ${errorMessage(error)}`);
 		}
@@ -185,20 +211,28 @@ export default class NoteTweet extends Plugin {
 		}
 	}
 
-	private async ensureConnected(): Promise<boolean> {
-		if (this.twitter.isConnected) return true;
-		await this.reconnect();
-		if (this.twitter.isConnected) return true;
+	private async clientForAccount(
+		accountId: string | undefined,
+	): Promise<TwitterClient | null> {
+		if (!accountId) {
+			new Notice("NoteTweet: add an X account in settings first.");
+			return null;
+		}
+		const client = await this.connectAccount(accountId);
+		if (client.isConnected) return client;
 		new Notice(
-			"NoteTweet: not connected to X. Add your credentials in settings.",
+			"NoteTweet: that X account is not connected. Check its credentials in settings.",
 		);
-		return false;
+		return null;
 	}
 
-	private async showPosted(posts: PostedTweet[]): Promise<void> {
+	private async showPosted(
+		posts: PostedTweet[],
+		client: TwitterClient,
+	): Promise<void> {
 		if (posts.length === 0) return;
 
-		const modal = new TweetsPostedModal(this.app, posts, this.twitter);
+		const modal = new TweetsPostedModal(this.app, posts, client);
 		modal.open();
 		await modal.waitForClose;
 

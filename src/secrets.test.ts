@@ -1,8 +1,8 @@
 import type { App } from "obsidian";
 import {
-	SECRET_IDS,
+	accountSecretId,
 	getSecret,
-	getTwitterCredentials,
+	getAccountCredentials,
 	hasCompleteCredentials,
 	hasSecretStorage,
 	setSecret,
@@ -58,28 +58,31 @@ describe("getSecret / setSecret", () => {
 	it("round-trips a stored value", () => {
 		const app = makeApp();
 
-		setSecret(app, SECRET_IDS.apiKey, "secret-value");
+		setSecret(app, accountSecretId("personal", "apiKey"), "secret-value");
 
-		expect(getSecret(app, SECRET_IDS.apiKey)).toBe("secret-value");
+		expect(getSecret(app, accountSecretId("personal", "apiKey"))).toBe(
+			"secret-value",
+		);
 	});
 
 	it("returns an empty string for an unset id", () => {
-		expect(getSecret(makeApp(), SECRET_IDS.apiSecret)).toBe("");
+		expect(
+			getSecret(makeApp(), accountSecretId("personal", "apiSecret")),
+		).toBe("");
 	});
 });
 
-describe("getTwitterCredentials", () => {
-	it("reads the four Twitter secret ids into a credentials object", () => {
+describe("getAccountCredentials", () => {
+	it("reads four credentials scoped to the requested account", () => {
 		const app = makeApp({
-			[SECRET_IDS.apiKey]: "ak",
-			[SECRET_IDS.apiSecret]: "as",
-			[SECRET_IDS.accessToken]: "at",
-			[SECRET_IDS.accessTokenSecret]: "ats",
-			// The scheduler password lives outside TwitterCredentials.
-			[SECRET_IDS.schedulerPassword]: "should-not-appear",
+			[accountSecretId("personal", "apiKey")]: "ak",
+			[accountSecretId("personal", "apiSecret")]: "as",
+			[accountSecretId("personal", "accessToken")]: "at",
+			[accountSecretId("personal", "accessTokenSecret")]: "ats",
+			[accountSecretId("work", "apiKey")]: "other-ak",
 		});
 
-		expect(getTwitterCredentials(app)).toEqual({
+		expect(getAccountCredentials(app, "personal")).toEqual({
 			apiKey: "ak",
 			apiSecret: "as",
 			accessToken: "at",

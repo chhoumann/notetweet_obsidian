@@ -14,6 +14,8 @@ export default {
 	// compiled main.js, so all three plugin artifacts are symlinked into the vault.
 	pluginArtifacts: ["manifest.json", "main.js", "styles.css"],
 	defaultData: {
+		accounts: [],
+		defaultAccountId: "",
 		postTweetTag: "",
 		autoSplitTweets: true,
 		scheduling: {

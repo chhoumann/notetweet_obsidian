@@ -2,7 +2,9 @@ import { describe, expect, test } from "vitest";
 import {
 	createNoteTweetE2EHarness,
 	PLUGIN_ID,
+	RELOAD_OPTIONS,
 	WAIT_OPTS,
+	waitForNoteTweetReady,
 } from "./harness";
 
 const getContext = createNoteTweetE2EHarness("notetweet-runtime");
@@ -46,11 +48,18 @@ describe("NoteTweet runtime", () => {
 			`(() => {
 				const plugin = app.plugins.plugins.${PLUGIN_ID};
 				window.__notetweetE2ECapturedThread = null;
-				plugin.twitter.isConnected = true;
-				plugin.twitter.postThread = async (thread) => {
-					window.__notetweetE2ECapturedThread = thread;
-					return [];
-				};
+				window.__notetweetE2ECapturedAccount = null;
+				plugin.settings.accounts = [{ id: "parser-account", name: "Parser account" }];
+				plugin.settings.defaultAccountId = "parser-account";
+				plugin.connectAccount = async (accountId) => ({
+					isConnected: true,
+					lastError: null,
+					postThread: async (thread) => {
+						window.__notetweetE2ECapturedAccount = accountId;
+						window.__notetweetE2ECapturedThread = thread;
+						return [];
+					},
+				});
 				return true;
 			})()`,
 		);
@@ -78,6 +87,11 @@ describe("NoteTweet runtime", () => {
 			].join("\n"),
 			"a stark contrast to the final words of his ancestor Augustus, but Latin makes everything seem like a great play",
 		]);
+		expect(
+			await obsidian.dev.evalJson<string>(
+				"window.__notetweetE2ECapturedAccount",
+			),
+		).toBe("parser-account");
 		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
 	});
 
@@ -96,11 +110,18 @@ describe("NoteTweet runtime", () => {
 			`(() => {
 				const plugin = app.plugins.plugins.${PLUGIN_ID};
 				window.__notetweetE2ECapturedThread = null;
-				plugin.twitter.isConnected = true;
-				plugin.twitter.postThread = async (thread) => {
-					window.__notetweetE2ECapturedThread = thread;
-					return [];
-				};
+				window.__notetweetE2ECapturedAccount = null;
+				plugin.settings.accounts = [{ id: "parser-account", name: "Parser account" }];
+				plugin.settings.defaultAccountId = "parser-account";
+				plugin.connectAccount = async (accountId) => ({
+					isConnected: true,
+					lastError: null,
+					postThread: async (thread) => {
+						window.__notetweetE2ECapturedAccount = accountId;
+						window.__notetweetE2ECapturedThread = thread;
+						return [];
+					},
+				});
 				return true;
 			})()`,
 		);
@@ -130,6 +151,11 @@ describe("NoteTweet runtime", () => {
 			].join("\n"),
 			"second post",
 		]);
+		expect(
+			await obsidian.dev.evalJson<string>(
+				"window.__notetweetE2ECapturedAccount",
+			),
+		).toBe("parser-account");
 		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
 	});
 
@@ -269,6 +295,9 @@ describe("NoteTweet runtime", () => {
 			enterLongUrlRows: number;
 		}>(
 			`(() => {
+				const plugin = app.plugins.plugins.${PLUGIN_ID};
+				plugin.settings.accounts = [{ id: "weighted-account", name: "Weighted account" }];
+				plugin.settings.defaultAccountId = "weighted-account";
 				const selector = ".postTweetModal textarea.tweetArea";
 				const close = () => {
 					for (let i = 0; i < 12 && document.querySelector(".postTweetModal"); i++) {
@@ -341,6 +370,7 @@ describe("NoteTweet runtime", () => {
 				close();
 				return result;
 			})()`,
+			{ timeoutMs: 60_000 },
 		);
 
 		expect(result.states.longUrlAtLimit).toEqual({
@@ -432,6 +462,180 @@ describe("NoteTweet runtime", () => {
 				),
 			{ ...WAIT_OPTS, message: "Compose post modal did not close." },
 		);
+		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
+	});
+
+	test("posts through the account selected in the composer and explains scheduler identity", async () => {
+		const { obsidian, plugin } = getContext();
+		await plugin.updateDataAndReload(
+			() => ({
+				accounts: [
+					{ id: "personal", name: "Personal" },
+					{ id: "work", name: "Work" },
+				],
+				defaultAccountId: "personal",
+				postTweetTag: "",
+				autoSplitTweets: true,
+				scheduling: { enabled: true, url: "https://scheduler.example" },
+			}),
+			RELOAD_OPTIONS,
+		);
+		await waitForNoteTweetReady(obsidian);
+
+		try {
+			await obsidian.dev.evalJson<boolean>(
+				`(() => {
+					const plugin = app.plugins.plugins.${PLUGIN_ID};
+					window.__ntOriginalConnectAccount = plugin.connectAccount;
+					window.__ntAccountProbe = null;
+					plugin.connectAccount = async (accountId) => ({
+						isConnected: true,
+						lastError: null,
+						postThread: async (content) => {
+							window.__ntAccountProbe = { accountId, content };
+							return [{ data: { id: "e2e-post", text: content[0] } }];
+						},
+						postTweet: async (text) => ({ data: { id: "e2e-post", text } }),
+						deleteTweets: async () => true,
+					});
+					return app.commands.executeCommandById(${JSON.stringify(`${PLUGIN_ID}:post-tweet`)});
+				})()`,
+			);
+			await obsidian.waitFor(
+				() =>
+					obsidian.dev.evalJson<boolean>(
+						`Boolean(document.querySelector(".nt-account-select"))`,
+					),
+				{ ...WAIT_OPTS, message: "Composer account selector did not render." },
+			);
+
+			const composer = await obsidian.dev.evalJson<{
+				initialAccount: string;
+				schedulerCopy: string;
+			}>(
+				`(() => ({
+					initialAccount: document.querySelector(".nt-account-select").value,
+					schedulerCopy: document.querySelector(".nt-scheduler-identity")?.textContent ?? "",
+				}))()`,
+			);
+			expect(composer.initialAccount).toBe("personal");
+			expect(composer.schedulerCopy).toContain("scheduler's posting identity");
+
+			await obsidian.dev.evalJson<boolean>(
+				`(() => {
+					const select = document.querySelector(".nt-account-select");
+					select.value = "work";
+					select.dispatchEvent(new Event("change", { bubbles: true }));
+					const area = document.querySelector(".postTweetModal textarea.tweetArea");
+					area.value = "Posted from work";
+					area.dispatchEvent(new Event("input", { bubbles: true }));
+					document.querySelector(".postTweetModal .nt-btn-cta").click();
+					return true;
+				})()`,
+			);
+			await obsidian.waitFor(
+				() =>
+					obsidian.dev.evalJson<boolean>(
+						`Boolean(window.__ntAccountProbe && document.querySelector(".nt-posted-list"))`,
+					),
+				{ ...WAIT_OPTS, message: "Selected-account post did not complete." },
+			);
+			const posted = await obsidian.dev.evalJson<{
+				accountId: string;
+				content: string[];
+			}>(`window.__ntAccountProbe`);
+			expect(posted).toEqual({
+				accountId: "work",
+				content: ["Posted from work"],
+			});
+		} finally {
+			await obsidian.dev.evalJson<boolean>(
+				`(() => {
+					const plugin = app.plugins.plugins.${PLUGIN_ID};
+					if (window.__ntOriginalConnectAccount) plugin.connectAccount = window.__ntOriginalConnectAccount;
+					for (const button of document.querySelectorAll("button")) {
+						if (button.textContent === "Great!") button.click();
+					}
+					delete window.__ntOriginalConnectAccount;
+					delete window.__ntAccountProbe;
+					return true;
+				})()`,
+			);
+		}
+		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
+	});
+
+	test("quick-post selection uses the configured default account", async () => {
+		const { obsidian, plugin } = getContext();
+		const notePath = "nt-e2e-default-account.md";
+		await plugin.updateDataAndReload(
+			() => ({
+				accounts: [
+					{ id: "personal", name: "Personal" },
+					{ id: "work", name: "Work" },
+				],
+				defaultAccountId: "work",
+				postTweetTag: "",
+				autoSplitTweets: true,
+				scheduling: { enabled: false, url: "" },
+			}),
+			RELOAD_OPTIONS,
+		);
+
+		try {
+			await obsidian.dev.evalJsonAsync<boolean>(
+				`(async () => {
+					const existing = app.vault.getAbstractFileByPath(${JSON.stringify(notePath)});
+					if (existing) await app.vault.delete(existing);
+					const file = await app.vault.create(${JSON.stringify(notePath)}, "Quick post text");
+					await app.workspace.getLeaf(false).openFile(file);
+					const editor = app.workspace.activeLeaf.view.editor;
+					editor.setSelection({ line: 0, ch: 0 }, { line: 0, ch: 10 });
+					const plugin = app.plugins.plugins.${PLUGIN_ID};
+					window.__ntOriginalConnectAccount = plugin.connectAccount;
+					window.__ntQuickProbe = null;
+					plugin.connectAccount = async (accountId) => ({
+						isConnected: true,
+						lastError: null,
+						postTweet: async (text) => {
+							window.__ntQuickProbe = { accountId, text };
+							return { data: { id: "e2e-quick", text } };
+						},
+						postThread: async () => [],
+						deleteTweets: async () => true,
+					});
+					app.commands.executeCommandById(${JSON.stringify(`${PLUGIN_ID}:post-selected-as-tweet`)});
+					return true;
+				})()`,
+			);
+			await obsidian.waitFor(
+				() =>
+					obsidian.dev.evalJson<boolean>(
+						`Boolean(window.__ntQuickProbe && document.querySelector(".nt-posted-list"))`,
+					),
+				{ ...WAIT_OPTS, message: "Default-account quick post did not complete." },
+			);
+			const posted = await obsidian.dev.evalJson<{
+				accountId: string;
+				text: string;
+			}>(`window.__ntQuickProbe`);
+			expect(posted).toEqual({ accountId: "work", text: "Quick post" });
+		} finally {
+			await obsidian.dev.evalJsonAsync<boolean>(
+				`(async () => {
+					const plugin = app.plugins.plugins.${PLUGIN_ID};
+					if (window.__ntOriginalConnectAccount) plugin.connectAccount = window.__ntOriginalConnectAccount;
+					for (const button of document.querySelectorAll("button")) {
+						if (button.textContent === "Great!") button.click();
+					}
+					const file = app.vault.getAbstractFileByPath(${JSON.stringify(notePath)});
+					if (file) await app.vault.delete(file);
+					delete window.__ntOriginalConnectAccount;
+					delete window.__ntQuickProbe;
+					return true;
+				})()`,
+			);
+		}
 		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
 	});
 
