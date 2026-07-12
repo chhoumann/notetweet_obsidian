@@ -37,9 +37,9 @@ describe("parseThread", () => {
 
 	it("recognizes markers with surrounding whitespace", () => {
 		const text = [
-			"  THREAD START\t",
+			"   THREAD START\t",
 			"first tweet",
-			"\tTHREAD END  ",
+			"  THREAD END\t",
 		].join("\n");
 
 		expect(parseThread(text)).toEqual(["first tweet"]);
@@ -49,12 +49,41 @@ describe("parseThread", () => {
 		const text = [
 			"THREAD START",
 			"first tweet",
-			" \t---  ",
+			"   --- \t",
 			"second tweet",
 			"THREAD END",
 		].join("\n");
 
 		expect(parseThread(text)).toEqual(["first tweet", "second tweet"]);
+	});
+
+	it("preserves four-space and tab-indented code that resembles structure", () => {
+		const text = [
+			"THREAD START",
+			"first paragraph",
+			"",
+			"    THREAD END",
+			"    ---",
+			"\tTHREAD START",
+			"\t---",
+			"content after indented code",
+			"---",
+			"second tweet",
+			"THREAD END",
+		].join("\n");
+
+		expect(parseThread(text)).toEqual([
+			[
+				"first paragraph",
+				"",
+				"    THREAD END",
+				"    ---",
+				"\tTHREAD START",
+				"\t---",
+				"content after indented code",
+			].join("\n"),
+			"second tweet",
+		]);
 	});
 
 	it("removes structural blank lines without changing tweet body lines", () => {

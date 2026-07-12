@@ -21,9 +21,10 @@ export interface ComposeResult {
 
 /**
  * Extract the tweets of a thread delimited by `THREAD START` / `THREAD END`,
- * split on a `---` line. Structural lines may have surrounding whitespace and
- * use LF or CRLF newlines. Marker-like lines inside fenced code are content,
- * not structure.
+ * split on a `---` line. Structural lines may have up to three leading spaces
+ * plus trailing spaces or tabs, matching Markdown's non-code indentation, and
+ * use LF or CRLF newlines. Marker-like lines inside fenced or indented code are
+ * content, not structure.
  *
  * Blank lines directly beside a marker or separator are structural padding and
  * are removed. Every other body character is preserved. Missing, reversed, and
@@ -33,10 +34,12 @@ export function parseThread(text: string): string[] {
 	const lines = text.split(/\r\n|\n|\r/);
 	const structuralLines = linesOutsideFencedCode(lines);
 	const startIndex = lines.findIndex(
-		(line, index) => structuralLines[index] && line.trim() === THREAD_START,
+		(line, index) =>
+			structuralLines[index] && isStructuralLine(line, THREAD_START),
 	);
 	const endIndex = lines.findIndex(
-		(line, index) => structuralLines[index] && line.trim() === THREAD_END,
+		(line, index) =>
+			structuralLines[index] && isStructuralLine(line, THREAD_END),
 	);
 
 	if (startIndex === -1) {
@@ -52,7 +55,7 @@ export function parseThread(text: string): string[] {
 	const segments: string[][] = [[]];
 	for (let index = startIndex + 1; index < endIndex; index++) {
 		const line = lines[index];
-		if (structuralLines[index] && line.trim() === "---") {
+		if (structuralLines[index] && isStructuralLine(line, "---")) {
 			segments.push([]);
 		} else {
 			segments[segments.length - 1].push(line);
@@ -72,6 +75,13 @@ export function parseThread(text: string): string[] {
 		}
 		return linesInTweet.join("\n");
 	});
+}
+
+/** Match a whole structural line without reclassifying Markdown indented code. */
+function isStructuralLine(line: string, structure: string): boolean {
+	const leadingSpaces = /^ */.exec(line)?.[0].length ?? 0;
+	if (leadingSpaces > 3) return false;
+	return line.slice(leadingSpaces).replace(/[ \t]+$/, "") === structure;
 }
 
 type Fence = { character: "`" | "~"; length: number };
