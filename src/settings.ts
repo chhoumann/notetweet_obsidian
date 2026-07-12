@@ -1,3 +1,5 @@
+import { MAX_ACCOUNT_ID_LENGTH } from "./secrets";
+
 export interface XAccount {
 	id: string;
 	name: string;
@@ -30,6 +32,7 @@ export const DEFAULT_SETTINGS: NoteTweetSettings = {
 };
 
 const ACCOUNT_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ACCOUNT_ID_BYTES = 12;
 
 /** Keep persisted account metadata safe for use in SecretStorage identifiers. */
 export function normalizeAccountSettings(settings: NoteTweetSettings): void {
@@ -39,6 +42,7 @@ export function normalizeAccountSettings(settings: NoteTweetSettings): void {
 			if (
 				!account ||
 				typeof account.id !== "string" ||
+				account.id.length > MAX_ACCOUNT_ID_LENGTH ||
 				!ACCOUNT_ID.test(account.id) ||
 				typeof account.name !== "string" ||
 				account.name.trim() === "" ||
@@ -58,5 +62,9 @@ export function normalizeAccountSettings(settings: NoteTweetSettings): void {
 }
 
 export function createAccount(name: string): XAccount {
-	return { id: crypto.randomUUID(), name: name.trim() };
+	const bytes = crypto.getRandomValues(new Uint8Array(ACCOUNT_ID_BYTES));
+	const id = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+		"",
+	);
+	return { id, name: name.trim() };
 }

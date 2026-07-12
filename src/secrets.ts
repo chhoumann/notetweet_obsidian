@@ -17,6 +17,22 @@ export const SECRET_IDS = {
 
 export type SecretId = string;
 
+const SECRET_ID_MAX_LENGTH = 64;
+const ACCOUNT_SECRET_PREFIX = "notetweet-account";
+
+const ACCOUNT_SECRET_SUFFIX = {
+	apiKey: "api-key",
+	apiSecret: "api-secret",
+	accessToken: "access-token",
+	accessTokenSecret: "access-token-secret",
+} as const satisfies Record<keyof TwitterCredentials, string>;
+
+export const MAX_ACCOUNT_ID_LENGTH =
+	SECRET_ID_MAX_LENGTH -
+	ACCOUNT_SECRET_PREFIX.length -
+	2 -
+	Math.max(...Object.values(ACCOUNT_SECRET_SUFFIX).map(({ length }) => length));
+
 export interface TwitterCredentials {
 	apiKey: string;
 	apiSecret: string;
@@ -46,12 +62,6 @@ export function setSecret(app: App, id: SecretId, value: string): void {
 	app.secretStorage?.setSecret(id, value);
 }
 
-const ACCOUNT_SECRET_SUFFIX = {
-	apiKey: "api-key",
-	apiSecret: "api-secret",
-	accessToken: "access-token",
-	accessTokenSecret: "access-token-secret",
-} as const satisfies Record<keyof TwitterCredentials, string>;
 const TWITTER_CREDENTIAL_FIELDS = Object.keys(
 	ACCOUNT_SECRET_SUFFIX,
 ) as (keyof TwitterCredentials)[];
@@ -60,7 +70,7 @@ export function accountSecretId(
 	accountId: string,
 	field: keyof TwitterCredentials,
 ): string {
-	return `notetweet-account-${accountId}-${ACCOUNT_SECRET_SUFFIX[field]}`;
+	return `${ACCOUNT_SECRET_PREFIX}-${accountId}-${ACCOUNT_SECRET_SUFFIX[field]}`;
 }
 
 export function getAccountCredentials(
