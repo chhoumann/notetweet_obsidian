@@ -1,4 +1,5 @@
 import { type App, Modal, Setting } from "obsidian";
+import { deferred } from "../deferred";
 
 interface InputPromptOptions {
 	placeholder?: string;
@@ -19,7 +20,7 @@ export class InputPromptModal extends Modal {
 		header: string,
 		options: InputPromptOptions = {},
 	): Promise<string | null> {
-		const { promise, resolve } = Promise.withResolvers<string | null>();
+		const { promise, resolve } = deferred<string | null>();
 		new InputPromptModal(app, header, options, resolve).open();
 		return promise;
 	}
