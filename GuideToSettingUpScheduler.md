@@ -25,7 +25,7 @@ You should now see a page such as this one:
 On this page, follow these steps:
 1. Set an app name.
 2. Choose the region closest to you.
-3. Set the `ACCESS_SECRET`, `ACCESS_TOKEN`, `API_KEY`, and `API_SECRET`. These are the same credentials you entered into NoteTweet - use the plain values you got from the X (Twitter) developer portal.
+3. Set the `ACCESS_SECRET`, `ACCESS_TOKEN`, `API_KEY`, and `API_SECRET` for the X account that should publish every scheduled post. The scheduler owns this posting identity independently from the named accounts in NoteTweet. Choosing an account in the NoteTweet composer does not change which account the scheduler uses.
 4. Set the `Origin` to `https://<YOUR_APP_NAME>.herokuapp.com`, where `<YOUR_APP_NAME>` should be replaced by the name of your app that you specified in (1). Save this somewhere, you'll need it in a bit.
 5. Set a password for your scheduler. Anyone with this password can tweet on your behalf, so make it secure. And I'd also recommend that it isn't your Twitter password.
 6. Click 'Deploy app' and wait for it to deploy.

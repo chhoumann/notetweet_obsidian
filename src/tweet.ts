@@ -18,6 +18,8 @@ export interface ScheduledTweet {
  */
 export interface ComposeResult {
 	content: string[];
+	/** Named account selected for immediate posting. Omitted for scheduling. */
+	accountId?: string;
 	postAt?: number;
 }
 

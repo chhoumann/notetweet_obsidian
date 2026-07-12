@@ -14,6 +14,7 @@ import {
 } from "../tweet";
 import { promptForDateTime } from "../datetime";
 import { analyzeTweetText } from "../textAnalysis";
+import type { XAccount } from "../settings";
 
 export interface ComposeOptions {
 	/** Pre-filled thread, one entry per post (edit / thread-from-selection). */
@@ -26,6 +27,10 @@ export interface ComposeOptions {
 	submitLabel?: string;
 	/** Whether to split content at the character limit. Defaults to true. */
 	autoSplit?: boolean;
+	/** Accounts available for immediate posting. */
+	accounts?: XAccount[];
+	/** Account preselected when the composer opens. */
+	selectedAccountId?: string;
 }
 
 /** Character count starts showing once this many remain. */
@@ -116,6 +121,7 @@ export class ComposeTweetModal extends Modal {
 	private statusEl!: HTMLElement;
 	private postButton!: HTMLButtonElement;
 	private scheduleButton: HTMLButtonElement | null = null;
+	private selectedAccountId = "";
 	private submitted = false;
 	private result: ComposeResult | null = null;
 
@@ -140,6 +146,40 @@ export class ComposeTweetModal extends Modal {
 		return this.options.autoSplit ?? true;
 	}
 
+	private buildAccountPicker(root: HTMLElement): void {
+		const accounts = this.options.accounts ?? [];
+		if (this.options.submitLabel === "Update") return;
+
+		const picker = root.createDiv({ cls: "nt-account-picker" });
+		picker.createEl("label", { text: "Post from", attr: { for: "nt-account" } });
+		if (accounts.length === 0) {
+			picker.createSpan({
+				cls: "nt-account-empty",
+				text: "Add an X account in settings",
+			});
+			return;
+		}
+
+		const selected = accounts.some(
+			({ id }) => id === this.options.selectedAccountId,
+		)
+			? this.options.selectedAccountId
+			: accounts[0].id;
+		this.selectedAccountId = selected ?? "";
+		const select = picker.createEl("select", {
+			cls: "nt-account-select dropdown",
+			attr: { id: "nt-account", "aria-label": "X account" },
+		});
+		for (const account of accounts) {
+			select.createEl("option", { text: account.name, value: account.id });
+		}
+		select.value = this.selectedAccountId;
+		select.addEventListener("change", () => {
+			this.selectedAccountId = select.value;
+			this.refreshState();
+		});
+	}
+
 	onOpen(): void {
 		this.modalEl.addClass("nt-compose-modal");
 		this.contentEl.addClass("postTweetModal");
@@ -148,6 +188,7 @@ export class ComposeTweetModal extends Modal {
 				? "Edit scheduled post"
 				: "Compose post",
 		);
+		this.buildAccountPicker(this.contentEl);
 
 		this.thread = this.contentEl.createDiv({ cls: "nt-thread" });
 
@@ -278,7 +319,14 @@ export class ComposeTweetModal extends Modal {
 
 	private buildFooter(root: HTMLElement): void {
 		const footer = root.createDiv({ cls: "nt-footer" });
-		this.statusEl = footer.createDiv({ cls: "nt-footer-status" });
+		const context = footer.createDiv({ cls: "nt-footer-context" });
+		this.statusEl = context.createDiv({ cls: "nt-footer-status" });
+		if (this.options.allowSchedule) {
+			context.createDiv({
+				cls: "nt-scheduler-identity",
+				text: "Scheduled posts use the scheduler's posting identity.",
+			});
+		}
 
 		const actions = footer.createDiv({ cls: "nt-footer-actions" });
 		if (this.options.allowSchedule) {
@@ -378,7 +426,9 @@ export class ComposeTweetModal extends Modal {
 		const { ok, reason } = this.validate();
 		this.statusEl.setText(reason ?? "");
 		this.statusEl.toggleClass("is-blocked", Boolean(reason));
-		this.postButton.disabled = !ok;
+		const requiresAccount = this.options.submitLabel !== "Update";
+		this.postButton.disabled =
+			!ok || (requiresAccount && this.selectedAccountId === "");
 		if (this.scheduleButton) this.scheduleButton.disabled = !ok;
 	}
 
@@ -624,8 +674,14 @@ export class ComposeTweetModal extends Modal {
 	}
 
 	private submitPost(): void {
-		if (!this.validate().ok) return;
-		this.result = { content: this.collectContent() };
+		const requiresAccount = this.options.submitLabel !== "Update";
+		if (!this.validate().ok || (requiresAccount && !this.selectedAccountId)) return;
+		this.result = {
+			content: this.collectContent(),
+			...(this.selectedAccountId
+				? { accountId: this.selectedAccountId }
+				: {}),
+		};
 		this.submitted = true;
 		this.close();
 	}

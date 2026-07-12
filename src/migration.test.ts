@@ -6,12 +6,19 @@ import {
 	legacyCredentialsEncrypted,
 	legacyCredentialsPresent,
 	readLegacyCredentials,
-	resolveCredentials,
 	resolveSchedulerPassword,
+	stageFixedSecretMigration,
+	clearFixedTwitterSecrets,
 	storeCredentials,
 	stripLegacyCredentials,
 } from "./migration";
-import { SECRET_IDS } from "./secrets";
+import {
+	LEGACY_TWITTER_SECRET_IDS,
+	SECRET_IDS,
+	accountSecretId,
+	getAccountCredentials,
+} from "./secrets";
+import { DEFAULT_SETTINGS } from "./settings";
 
 interface FakeSecretStorage {
 	getSecret(id: string): string | null;
@@ -131,10 +138,10 @@ describe("decryptLegacyValue", () => {
 });
 
 describe("storeCredentials", () => {
-	it("writes non-empty credentials and skips empty ones", () => {
+	it("writes credentials into one account namespace", () => {
 		const { app, store } = makeApp();
 
-		storeCredentials(app, {
+		storeCredentials(app, "personal", {
 			apiKey: "ak",
 			apiSecret: "",
 			accessToken: "at",
@@ -142,12 +149,14 @@ describe("storeCredentials", () => {
 			schedulerPassword: "sched-pw",
 		});
 
-		expect(store.get(SECRET_IDS.apiKey)).toBe("ak");
-		expect(store.get(SECRET_IDS.accessToken)).toBe("at");
-		expect(store.get(SECRET_IDS.accessTokenSecret)).toBe("ats");
+		expect(store.get(accountSecretId("personal", "apiKey"))).toBe("ak");
+		expect(store.get(accountSecretId("personal", "accessToken"))).toBe("at");
+		expect(store.get(accountSecretId("personal", "accessTokenSecret"))).toBe(
+			"ats",
+		);
 		expect(store.get(SECRET_IDS.schedulerPassword)).toBe("sched-pw");
-		// Empty credential is not persisted.
-		expect(store.has(SECRET_IDS.apiSecret)).toBe(false);
+		expect(store.get(accountSecretId("personal", "apiSecret"))).toBe("");
+		expect(store.has("notetweet-account-personal-undefined")).toBe(false);
 	});
 });
 
@@ -177,23 +186,22 @@ describe("stripLegacyCredentials", () => {
 	});
 });
 
-describe("resolveCredentials", () => {
-	it("returns SecretStorage credentials when all four are present", () => {
+describe("fixed SecretStorage migration", () => {
+	it("copies all four fixed secrets into a named default account", () => {
 		const { app } = makeApp({
-			[SECRET_IDS.apiKey]: "stored-ak",
-			[SECRET_IDS.apiSecret]: "stored-as",
-			[SECRET_IDS.accessToken]: "stored-at",
-			[SECRET_IDS.accessTokenSecret]: "stored-ats",
+			[LEGACY_TWITTER_SECRET_IDS.apiKey]: "stored-ak",
+			[LEGACY_TWITTER_SECRET_IDS.apiSecret]: "stored-as",
+			[LEGACY_TWITTER_SECRET_IDS.accessToken]: "stored-at",
+			[LEGACY_TWITTER_SECRET_IDS.accessTokenSecret]: "stored-ats",
 		});
-		// Legacy plaintext also present, but SecretStorage must win.
-		const data: LegacyCredentialData = {
-			apiKey: "legacy-ak",
-			apiSecret: "legacy-as",
-			accessToken: "legacy-at",
-			accessTokenSecret: "legacy-ats",
-		};
+		const settings = structuredClone(DEFAULT_SETTINGS);
 
-		expect(resolveCredentials(app, data)).toEqual({
+		const account = stageFixedSecretMigration(app, settings);
+
+		expect(account).toEqual({ id: "migrated-account", name: "Default" });
+		expect(settings.accounts).toEqual([account]);
+		expect(settings.defaultAccountId).toBe(account?.id);
+		expect(getAccountCredentials(app, account?.id ?? "")).toEqual({
 			apiKey: "stored-ak",
 			apiSecret: "stored-as",
 			accessToken: "stored-at",
@@ -201,39 +209,19 @@ describe("resolveCredentials", () => {
 		});
 	});
 
-	it("falls back to legacy plaintext when SecretStorage is empty and data is unencrypted", () => {
-		const { app } = makeApp();
-		const data: LegacyCredentialData = {
-			apiKey: "legacy-ak",
-			apiSecret: "legacy-as",
-			accessToken: "legacy-at",
-			accessTokenSecret: "legacy-ats",
-		};
-
-		expect(resolveCredentials(app, data)).toEqual({
-			apiKey: "legacy-ak",
-			apiSecret: "legacy-as",
-			accessToken: "legacy-at",
-			accessTokenSecret: "legacy-ats",
+	it("is idempotent and clears fixed secrets only when explicitly finalized", () => {
+		const { app, store } = makeApp({
+			[LEGACY_TWITTER_SECRET_IDS.apiKey]: "stored-ak",
 		});
-	});
+		const settings = structuredClone(DEFAULT_SETTINGS);
 
-	it("does not return encrypted legacy values, yielding the empty stored credentials instead", () => {
-		const { app } = makeApp();
-		const data: LegacyCredentialData = {
-			apiKey: "encrypted-ak",
-			apiSecret: "encrypted-as",
-			accessToken: "encrypted-at",
-			accessTokenSecret: "encrypted-ats",
-			secureMode: true,
-		};
+		stageFixedSecretMigration(app, settings);
+		stageFixedSecretMigration(app, settings);
+		expect(settings.accounts).toHaveLength(1);
+		expect(store.get(LEGACY_TWITTER_SECRET_IDS.apiKey)).toBe("stored-ak");
 
-		expect(resolveCredentials(app, data)).toEqual({
-			apiKey: "",
-			apiSecret: "",
-			accessToken: "",
-			accessTokenSecret: "",
-		});
+		clearFixedTwitterSecrets(app);
+		expect(store.get(LEGACY_TWITTER_SECRET_IDS.apiKey)).toBe("");
 	});
 });
 

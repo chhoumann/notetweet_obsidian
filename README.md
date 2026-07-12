@@ -8,6 +8,7 @@ This plugin allows you to post to X (formerly Twitter) directly from Obsidian.
 - **Composer** (`Post tweet`) - a modal for writing single tweets or threads. It pre-fills from your current selection: a `THREAD START`/`THREAD END` block becomes a pre-split thread, and other text is auto-split for you.
 - **Post selection as tweet** - posts the current editor selection as a single tweet, immediately.
 - **Post file as thread** - parses the first `THREAD START`/`THREAD END` block in the active note and posts it as a thread.
+- **Multiple X accounts** - define named accounts, choose one in the composer, and set the default used by quick-post commands.
 - **Encrypted credentials** - your API keys are kept in Obsidian's built-in encrypted Secret Storage, not in the plugin's `data.json`.
 - **Auto-split** - long text is split into a thread at 280 characters (toggle in settings). Disabling it allows longer tweets, which require a paid X plan.
 - **Images** - attach images to a post in the composer: hover a post and click the image button to pick one from your vault, or just paste an image straight in (it's saved to your vault, then uploaded). You can also embed one by typing a `[[wikilink]]` to an image file (gif, jpg, jpeg, png, webp, bmp) in the text. Uploads are desktop only.
@@ -46,22 +47,22 @@ If you want to watch a video on how to set up this plugin, click [here](https://
    - To save, X also requires a **Callback URI / Redirect URL**, a **Website URL**, and a **Type of App**. The plugin uses OAuth 1.0a with the Access Token below and never uses the callback redirect, so any valid values work: put `https://github.com/chhoumann/notetweet_obsidian` in both URL fields and pick **Web App, Automated App or Bot** for the type.
    - Open the **Keys and tokens** tab, find **Access Token and Secret**, and click **Generate**. This gives you the **Access Token** and **Access Token Secret**.
    - If you change App permissions *after* generating the Access Token, regenerate the Access Token - otherwise it stays read-only.
-5. Paste all four values - **API Key**, **API Key Secret**, **Access Token**, and **Access Token Secret** - into the plugin settings in Obsidian. They are stored in Obsidian's encrypted Secret Storage (see 'Credentials & security' below).
+5. In NoteTweet settings, add a named X account and paste all four values - **API Key**, **API Key Secret**, **Access Token**, and **Access Token Secret** - into that account. They are stored in Obsidian's encrypted Secret Storage (see 'Credentials & security' below). Repeat this setup for each X account you want to post from.
 
 **Important Notes:**
 - Credentials are shown only once in the developer portal - if you lose them, regenerate new ones.
 - Ensure your App has **Read and write** permissions, not just Read, and regenerate the Access Token after changing permissions.
 - Your App must be attached to a Project (required for X API v2). New apps are enrolled automatically; legacy apps must be attached manually.
 
-You'll see a connection indicator that tells you whether you're connected and, when a connection fails, the exact reason X returned (for example the `client-not-enrolled` message).
+Each account has its own connection test, which shows the exact reason X returned when verification fails (for example the `client-not-enrolled` message).
 
 ### Credentials & security
-Your API key, API secret, access token, and access token secret are kept in Obsidian's built-in encrypted Secret Storage (`app.secretStorage`), not in the plugin's `data.json`. Because Secret Storage is used, this plugin requires **Obsidian 1.13.0 or newer**.
+Account names, IDs, and the default account are stored in the plugin's `data.json`. Every account's API key, API secret, access token, and access token secret are kept separately in Obsidian's built-in encrypted Secret Storage (`app.secretStorage`). Because Secret Storage is used, this plugin requires **Obsidian 1.13.0 or newer**.
 
-**Migrating from an older version.** If you're upgrading from a version that stored credentials in `data.json`, the settings tab shows a **Migrate credentials** section at the top with a **Migrate now** button. Click it to move your existing credentials into Secret Storage. If you previously enabled the old password-based Secure Mode, the button first prompts for that password so it can decrypt your credentials before storing them - the migration is lossless. A one-time notice on load points you to settings, and once you've migrated, your credentials no longer live in `data.json`.
+**Migrating from an older version.** Credentials already held in NoteTweet's four fixed Secret Storage entries are moved automatically into a named **Default** account. If you're upgrading from a version that stored credentials in `data.json`, the settings tab instead shows a **Migrate credentials** section with a **Migrate now** button. If you previously enabled the old password-based Secure Mode, the button first prompts for that password so it can decrypt the values. Both paths preserve all four X credentials and remove the old credential path after migration.
 
 ## Composer
-Run the `Post tweet` command to open the composer, where you can craft threads or single tweets. If you have text selected, it is ported into the composer automatically: a `THREAD START`/`THREAD END` block opens as a pre-split thread, and any other text is auto-split into tweets when it exceeds 280 characters. You can also paste text in, and anything longer than 280 characters is split for you. The composer has a **Post** button, and a **Schedule** button when scheduling is enabled.
+Run the `Post tweet` command to open the composer, where you can choose a named X account and craft threads or single tweets. The configured default account is selected initially. If you have text selected, it is ported into the composer automatically: a `THREAD START`/`THREAD END` block opens as a pre-split thread, and any other text is auto-split into tweets when it exceeds 280 characters. You can also paste text in, and anything longer than 280 characters is split for you. The composer has a **Post** button, and a **Schedule** button when scheduling is enabled.
 
 ### Composer Shortcuts
 - `Backspace` to delete an empty post
@@ -74,9 +75,9 @@ Run the `Post tweet` command to open the composer, where you can craft threads o
 - `Ctrl + Shift + Delete` to delete the focused post
 
 ## Quick posts
-Single tweets are simple. Just select some text and run the `Post selection as tweet` command to post it immediately.
+Single tweets are simple. Select some text and run the `Post selection as tweet` command to post it immediately through the default account configured in NoteTweet settings.
 
-To post a thread straight from a note, run the `Post file as thread` command. It detects the first `THREAD START`/`THREAD END` block in the active note and posts it.
+To post a thread straight from a note, run the `Post file as thread` command. It detects the first `THREAD START`/`THREAD END` block in the active note and posts it through the same default account.
 
 **Threads** have a specific format. Only the first thread block in a file is detected.
 
@@ -100,7 +101,7 @@ THREAD END
 Threads must start with `THREAD START` and end with `THREAD END`, and individual tweets are separated by a line containing only `---`.
 
 ## Scheduling Posts
-Scheduling is optional and advanced. It posts through a self-hosted scheduler endpoint, and it requires the **Natural Language Dates** community plugin for entering times. Follow [this guide](./GuideToSettingUpScheduler.md) to set it up.
+Scheduling is optional and advanced. The self-hosted scheduler owns its own X credentials and therefore its own posting identity. Choosing an account in NoteTweet affects immediate posting only - a scheduled post is always sent by the account configured on the scheduler server. Scheduling also requires the **Natural Language Dates** community plugin for entering times. Follow [this guide](./GuideToSettingUpScheduler.md) to set it up.
 
 ## Troubleshooting
 

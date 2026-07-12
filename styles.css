@@ -16,6 +16,27 @@
 	padding: 0 2px;
 }
 
+.nt-account-picker {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	margin: 0.25rem 0 0.75rem;
+	font-size: var(--font-ui-small);
+}
+
+.nt-account-picker label {
+	color: var(--text-muted);
+	font-weight: var(--font-semibold);
+}
+
+.nt-account-select {
+	min-width: 10rem;
+}
+
+.nt-account-empty {
+	color: var(--text-error);
+}
+
 /* ---- Thread ---- */
 .nt-thread {
 	display: flex;
@@ -324,10 +345,21 @@
 	background: var(--background-primary);
 }
 
-.nt-footer-status {
+.nt-footer-context {
 	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	font-size: var(--font-ui-smaller);
+}
+
+.nt-footer-status {
 	font-size: var(--font-ui-small);
 	color: var(--text-error);
+}
+
+.nt-scheduler-identity {
+	color: var(--text-faint);
 }
 
 .nt-footer-actions {

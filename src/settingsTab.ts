@@ -12,9 +12,12 @@ import { log } from "./log";
 import {
 	SECRET_IDS,
 	type SecretId,
+	accountSecretId,
+	clearAccountCredentials,
 	getSecret,
 	hasSecretStorage,
 	setSecret,
+	type TwitterCredentials,
 } from "./secrets";
 import {
 	type LegacyCredentialData,
@@ -26,6 +29,7 @@ import {
 } from "./migration";
 import { InputPromptModal } from "./Modals/InputPromptModal";
 import { ScheduledTweetsModal } from "./Modals/ScheduledTweetsModal";
+import { createAccount, type XAccount } from "./settings";
 
 const RECONNECT_DELAY_MS = 800;
 
@@ -37,7 +41,7 @@ const RECONNECT_DELAY_MS = 800;
  * in the plugin's data file.
  */
 export class NoteTweetSettingsTab extends PluginSettingTab {
-	private statusEl: HTMLElement | null = null;
+	private readonly statusEls = new Map<string, HTMLElement>();
 	private reconnectTimer: number | null = null;
 
 	constructor(app: App, private readonly noteTweet: NoteTweet) {
@@ -47,6 +51,8 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 	override getControlValue(key: string): unknown {
 		const settings = this.noteTweet.settings;
 		switch (key) {
+			case "defaultAccountId":
+				return settings.defaultAccountId;
 			case "postTweetTag":
 				return settings.postTweetTag;
 			case "autoSplitTweets":
@@ -63,6 +69,9 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 	override async setControlValue(key: string, value: unknown): Promise<void> {
 		const settings = this.noteTweet.settings;
 		switch (key) {
+			case "defaultAccountId":
+				settings.defaultAccountId = String(value);
+				break;
 			case "postTweetTag":
 				settings.postTweetTag = String(value);
 				break;
@@ -89,7 +98,10 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 	override getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
 			this.migrationGroup(),
-			this.credentialsGroup(),
+			this.accountsGroup(),
+			...this.noteTweet.settings.accounts.map((account) =>
+				this.accountCredentialsGroup(account),
+			),
 			this.postingGroup(),
 			this.schedulingGroup(),
 		];
@@ -118,10 +130,10 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 		};
 	}
 
-	private credentialsGroup(): SettingDefinitionGroup {
+	private accountsGroup(): SettingDefinitionGroup {
 		return {
 			type: "group",
-			heading: "X API credentials",
+			heading: "X accounts",
 			items: [
 				{
 					name: "Secret storage unavailable",
@@ -129,37 +141,105 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 					visible: () => !hasSecretStorage(this.app),
 				},
 				{
+					name: "Default account",
+					desc: "Used by Post selection as tweet and Post file as thread. The composer lets you choose per post.",
+					visible: () => this.noteTweet.settings.accounts.length > 0,
+					control: {
+						type: "dropdown",
+						key: "defaultAccountId",
+						options: Object.fromEntries(
+							this.noteTweet.settings.accounts.map(({ id, name }) => [id, name]),
+						),
+					},
+				},
+				{
+					name: "Add account",
+					desc: "Create a named X account. Its four credentials are stored only in Obsidian Secret Storage.",
+					render: (setting: Setting) => {
+						setting.addButton((button) =>
+							button
+								.setButtonText("Add account")
+								.setCta()
+								.onClick(() => this.addAccount()),
+						);
+					},
+				},
+			],
+		};
+	}
+
+	private accountCredentialsGroup(account: XAccount): SettingDefinitionGroup {
+		return {
+			type: "group",
+			heading: account.name,
+			items: [
+				{
+					name: "Account name",
+					render: (setting: Setting) => {
+						setting.addText((text) =>
+							text.setValue(account.name).onChange(async (value) => {
+								const name = value.trim();
+								if (!name) return;
+								account.name = name;
+								await this.noteTweet.saveSettings();
+							}),
+						);
+					},
+				},
+				{
 					name: "Connection",
 					searchable: false,
 					render: (setting: Setting) => {
-						this.statusEl = setting.controlEl.createSpan();
-						this.refreshStatus();
+						const status = setting.controlEl.createSpan();
+						this.statusEls.set(account.id, status);
+						this.refreshStatus(account.id);
+						setting.addButton((button) =>
+							button
+								.setButtonText("Test")
+								.onClick(() => this.testConnection(account.id)),
+						);
 					},
 				},
-				this.secretRow(
+				this.accountSecretRow(
+					account.id,
 					"API key",
-					SECRET_IDS.apiKey,
+					"apiKey",
 					"Enter your API key",
 					"Your app's API Key (also called the Consumer Key), from Keys and tokens in the X developer portal.",
 				),
-				this.secretRow(
+				this.accountSecretRow(
+					account.id,
 					"API secret",
-					SECRET_IDS.apiSecret,
+					"apiSecret",
 					"Enter your API secret",
 					"Your app's API Key Secret (the Consumer Secret).",
 				),
-				this.secretRow(
+				this.accountSecretRow(
+					account.id,
 					"Access token",
-					SECRET_IDS.accessToken,
+					"accessToken",
 					"Enter your access token",
 					"Generate under Keys and tokens -> Access Token and Secret (requires Read and Write user authentication).",
 				),
-				this.secretRow(
+				this.accountSecretRow(
+					account.id,
 					"Access token secret",
-					SECRET_IDS.accessTokenSecret,
+					"accessTokenSecret",
 					"Enter your access token secret",
 					"The Access Token Secret shown when you generate the access token.",
 				),
+				{
+					name: "Remove account",
+					desc: "Remove this account and clear its credentials from Secret Storage.",
+					render: (setting: Setting) => {
+						setting.addButton((button) =>
+							button
+								.setButtonText("Remove")
+								.setDestructive()
+								.onClick(() => this.removeAccount(account)),
+						);
+					},
+				},
 			],
 		};
 	}
@@ -232,9 +312,10 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 		};
 	}
 
-	private secretRow(
+	private accountSecretRow(
+		accountId: string,
 		name: string,
-		id: SecretId,
+		field: keyof TwitterCredentials,
 		placeholder: string,
 		desc?: string,
 	): SettingDefinition {
@@ -242,8 +323,11 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 			name,
 			...(desc ? { desc } : {}),
 			render: (setting: Setting) =>
-				this.renderSecretInput(setting, id, placeholder, () =>
-					this.scheduleReconnect(),
+				this.renderSecretInput(
+					setting,
+					accountSecretId(accountId, field),
+					placeholder,
+					() => this.scheduleReconnect(accountId),
 				),
 		};
 	}
@@ -270,32 +354,72 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 		return this.noteTweet.settings as unknown as LegacyCredentialData;
 	}
 
-	private refreshStatus(message?: string): void {
-		if (!this.statusEl) return;
-		if (message) {
-			this.statusEl.setText(message);
-			this.statusEl.removeClass("nt-status--ok", "nt-status--err");
-			return;
-		}
-		const { isConnected, lastError } = this.noteTweet.twitter;
-		let text: string;
-		if (isConnected) text = "Connected to X.";
-		else if (lastError) text = `Not connected: ${lastError}`;
-		else text = "Not connected. Enter your credentials.";
-		this.statusEl.setText(text);
-		this.statusEl.toggleClass("nt-status--ok", isConnected);
-		this.statusEl.toggleClass("nt-status--err", !isConnected);
+	private refreshStatus(
+		accountId: string,
+		message = "Not checked.",
+		connected?: boolean,
+	): void {
+		const statusEl = this.statusEls.get(accountId);
+		if (!statusEl) return;
+		statusEl.setText(message);
+		statusEl.toggleClass("nt-status--ok", connected === true);
+		statusEl.toggleClass("nt-status--err", connected === false);
 	}
 
-	private scheduleReconnect(): void {
+	private async testConnection(accountId: string): Promise<void> {
+		this.refreshStatus(accountId, "Verifying credentials...");
+		const client = await this.noteTweet.connectAccount(accountId);
+		if (client.isConnected) {
+			this.refreshStatus(accountId, "Connected to X.", true);
+			return;
+		}
+		const message = client.lastError
+			? `Not connected: ${client.lastError}`
+			: "Not connected. Enter all four credentials.";
+		this.refreshStatus(accountId, message, false);
+	}
+
+	private scheduleReconnect(accountId: string): void {
 		if (this.reconnectTimer !== null) window.clearTimeout(this.reconnectTimer);
-		this.refreshStatus("Verifying credentials...");
+		this.refreshStatus(accountId, "Waiting to verify...");
 		this.reconnectTimer = window.setTimeout(() => {
 			this.reconnectTimer = null;
-			void this.noteTweet.reconnect()
-				.catch(() => {})
-				.then(() => this.refreshStatus());
+			void this.testConnection(accountId);
 		}, RECONNECT_DELAY_MS);
+	}
+
+	private async addAccount(): Promise<void> {
+		const settings = this.noteTweet.settings;
+		const used = new Set(settings.accounts.map(({ name }) => name));
+		let number = settings.accounts.length + 1;
+		while (used.has(`Account ${number}`)) number += 1;
+		const account = createAccount(`Account ${number}`);
+		settings.accounts.push(account);
+		if (!settings.defaultAccountId) settings.defaultAccountId = account.id;
+		await this.noteTweet.saveSettings();
+		this.update();
+	}
+
+	private async removeAccount(account: XAccount): Promise<void> {
+		if (!window.confirm(`Remove the X account "${account.name}"?`)) return;
+
+		const settings = this.noteTweet.settings;
+		const previousAccounts = settings.accounts;
+		const previousDefault = settings.defaultAccountId;
+		settings.accounts = settings.accounts.filter(({ id }) => id !== account.id);
+		if (settings.defaultAccountId === account.id) {
+			settings.defaultAccountId = settings.accounts[0]?.id ?? "";
+		}
+		try {
+			await this.noteTweet.saveSettings();
+		} catch (error) {
+			settings.accounts = previousAccounts;
+			settings.defaultAccountId = previousDefault;
+			throw error;
+		}
+		clearAccountCredentials(this.app, account.id);
+		this.statusEls.delete(account.id);
+		this.update();
 	}
 
 	private openScheduledTweets(): void {
@@ -331,7 +455,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 		}
 
 		if (encrypted) {
-			const ok = await this.noteTweet.twitter.connect(credentials);
+			const ok = await this.noteTweet.verifyCredentials(credentials);
 			if (!ok) {
 				log.error(
 					"Those credentials did not work. Check your password and try again.",
@@ -340,17 +464,17 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 			}
 		}
 
-		storeCredentials(this.app, credentials);
+		const settings = this.noteTweet.settings;
+		const account = createAccount(
+			settings.accounts.length === 0 ? "Default" : "Imported account",
+		);
+		settings.accounts.push(account);
+		if (!settings.defaultAccountId) settings.defaultAccountId = account.id;
+		storeCredentials(this.app, account.id, credentials);
 		stripLegacyCredentials(data);
 		await this.noteTweet.saveSettings();
-		// Re-run the connection test with the credentials we just migrated rather
-		// than reading them back from SecretStorage: the read can race its async
-		// write and leave the status stuck on "Not connected" right after a
-		// successful migration.
-		await this.noteTweet.twitter.connect(credentials);
 		this.noteTweet.refreshScheduler(credentials.schedulerPassword);
-		new Notice("NoteTweet: credentials moved to secure storage.");
-		this.refreshStatus();
+		new Notice(`NoteTweet: credentials moved to the ${account.name} account.`);
 		this.update();
 	}
 }
