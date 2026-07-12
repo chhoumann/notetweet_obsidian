@@ -1,5 +1,6 @@
 import extractUrlsWithIndices from "twitter-text/dist/esm/extractUrlsWithIndices.js";
 import parseTweet from "twitter-text/dist/esm/parseTweet.js";
+import { graphemeSegments } from "unicode-segmenter/grapheme";
 
 // Deep ESM imports are deliberate: twitter-text's default export eagerly pulls
 // every autolinking API into the Obsidian bundle. The dependency is pinned so
@@ -23,8 +24,6 @@ export interface TweetTextAnalysis {
 	boundaries: TextBoundary[];
 }
 
-const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
-
 /**
  * Analyze post text with X's official twitter-text rules. This is the sole
  * counting boundary used by the composer and splitter.
@@ -38,7 +37,7 @@ export function analyzeTweetText(text: string): TweetTextAnalysis {
 	let weightedLength = 0;
 	let skipUntil = 0;
 
-	for (const part of segmenter.segment(normalizedText)) {
+	for (const part of graphemeSegments(normalizedText)) {
 		if (part.index < skipUntil) continue;
 
 		const url = urlAt.get(part.index);
