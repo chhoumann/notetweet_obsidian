@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import CryptoES from "crypto-es";
+import { AES } from "crypto-es";
 import { decryptLegacyValue } from "./legacyCrypt";
 import {
 	type LegacyCredentialData,
@@ -96,8 +96,7 @@ describe("readLegacyCredentials", () => {
 
 	it("decrypts the four Twitter keys but reads the scheduler password as plaintext", () => {
 		const password = "migration-pass";
-		const encrypt = (value: string) =>
-			CryptoES.AES.encrypt(value, password).toString();
+		const encrypt = (value: string) => AES.encrypt(value, password).toString();
 
 		const data: LegacyCredentialData = {
 			apiKey: encrypt("ak"),

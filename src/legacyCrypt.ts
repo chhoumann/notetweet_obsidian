@@ -1,4 +1,4 @@
-import CryptoES from "crypto-es";
+import { AES, Utf8 } from "crypto-es";
 
 /**
  * Decrypts values that were encrypted by the old "Secure Mode" feature
@@ -7,5 +7,5 @@ import CryptoES from "crypto-es";
  * them. Nothing writes new encrypted values anymore.
  */
 export function decryptLegacyValue(value: string, password: string): string {
-	return CryptoES.AES.decrypt(value, password).toString(CryptoES.enc.Utf8);
+	return AES.decrypt(value, password).toString(Utf8);
 }
