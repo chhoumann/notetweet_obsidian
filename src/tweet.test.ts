@@ -1,3 +1,4 @@
+import { analyzeTweetText } from "./textAnalysis";
 import { parseThread, splitIntoTweets } from "./tweet";
 
 describe("parseThread", () => {
@@ -250,5 +251,58 @@ describe("splitIntoTweets", () => {
 			"33333\n44444",
 			"55555\n66666",
 		]);
+	});
+
+	it("keeps a long URL whole and counts it as 23", () => {
+		const url = `https://example.com/${"a".repeat(300)}`;
+		const text = `prefix ${url} suffix`;
+
+		expect(splitIntoTweets(text)).toEqual([text]);
+		expect(analyzeTweetText(text).weightedLength).toBe(37);
+	});
+
+	it("never splits a URL when surrounding text crosses the limit", () => {
+		const url = `https://example.com/${"a".repeat(300)}`;
+		const chunks = splitIntoTweets(`${"a".repeat(258)} ${url} tail`);
+
+		expect(chunks).toHaveLength(2);
+		expect(chunks[1]).toContain(url);
+		expect(chunks.filter((chunk) => chunk.includes("https://"))).toHaveLength(1);
+		for (const chunk of chunks) {
+			expect(analyzeTweetText(chunk).weightedLength).toBeLessThanOrEqual(280);
+		}
+	});
+
+	it("splits CJK text at its weighted boundary", () => {
+		const chunks = splitIntoTweets("界".repeat(141));
+
+		expect(chunks).toEqual(["界".repeat(140), "界"]);
+	});
+
+	it("keeps extended emoji graphemes intact while splitting", () => {
+		const family = "👨‍👩‍👧‍👦";
+		const chunks = splitIntoTweets(family.repeat(141));
+
+		expect(chunks).toEqual([family.repeat(140), family]);
+		for (const chunk of chunks) {
+			expect(analyzeTweetText(chunk).weightedLength).toBeLessThanOrEqual(280);
+		}
+	});
+
+	it("normalizes combining sequences without changing their meaning", () => {
+		const chunks = splitIntoTweets("e\u0301".repeat(281));
+
+		expect(chunks).toEqual(["é".repeat(280), "é"]);
+	});
+
+	it("produces non-empty weighted-valid posts for mixed text", () => {
+		const text = `${"Latin ".repeat(60)}${"界".repeat(60)} ${"👨‍🎤".repeat(60)}`;
+		const chunks = splitIntoTweets(text);
+
+		expect(chunks.length).toBeGreaterThan(1);
+		for (const chunk of chunks) {
+			expect(chunk.trim()).not.toBe("");
+			expect(analyzeTweetText(chunk).weightedLength).toBeLessThanOrEqual(280);
+		}
 	});
 });

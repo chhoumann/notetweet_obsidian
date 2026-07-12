@@ -13,6 +13,7 @@ import {
 	type ComposeResult,
 } from "../tweet";
 import { promptForDateTime } from "../datetime";
+import { analyzeTweetText } from "../textAnalysis";
 
 export interface ComposeOptions {
 	/** Pre-filled thread, one entry per post (edit / thread-from-selection). */
@@ -345,9 +346,9 @@ export class ComposeTweetModal extends Modal {
 		}
 	}
 
-	/** Repaint one row's character count from its current length. */
+	/** Repaint one row's X-weighted character count. */
 	private update(row: PostRow): void {
-		const length = row.textarea.value.length;
+		const length = analyzeTweetText(row.textarea.value).weightedLength;
 		const remaining = MAX_TWEET_LENGTH - length;
 		const shown = remaining <= COUNTDOWN_FROM;
 		const over = this.autoSplit && length > MAX_TWEET_LENGTH;
@@ -393,10 +394,25 @@ export class ComposeTweetModal extends Modal {
 
 		if (!this.autoSplit) return;
 		const pasted = event.clipboardData?.getData("text") ?? "";
-		if (pasted.length + row.textarea.value.length <= MAX_TWEET_LENGTH) return;
+		const start = row.textarea.selectionStart;
+		const end = row.textarea.selectionEnd;
+		const combined =
+			row.textarea.value.slice(0, start) +
+			pasted +
+			row.textarea.value.slice(end);
+		if (analyzeTweetText(combined).weightedLength <= MAX_TWEET_LENGTH) return;
 		event.preventDefault();
-		this.fillPosts(splitIntoTweets(pasted), row);
+		this.replaceRowWithPosts(row, splitIntoTweets(combined));
 		this.refreshState();
+	}
+
+	private replaceRowWithPosts(row: PostRow, chunks: string[]): void {
+		const index = this.rows.indexOf(row);
+		row.textarea.value = chunks[0] ?? "";
+		this.update(row);
+		for (let offset = 1; offset < chunks.length; offset++) {
+			this.makeRow(chunks[offset], index + offset);
+		}
 	}
 
 	/** Save clipboard images into the vault, then attach them to the post. */
@@ -438,7 +454,8 @@ export class ComposeTweetModal extends Modal {
 
 		if (
 			(event.code === "Enter" &&
-				row.textarea.value.length >= MAX_TWEET_LENGTH &&
+				analyzeTweetText(row.textarea.value).weightedLength >=
+					MAX_TWEET_LENGTH &&
 				this.autoSplit) ||
 			(enter && event.altKey)
 		) {
@@ -582,7 +599,11 @@ export class ComposeTweetModal extends Modal {
 		}
 		if (
 			this.autoSplit &&
-			this.rows.some((row) => row.textarea.value.length > MAX_TWEET_LENGTH)
+			this.rows.some(
+				(row) =>
+					analyzeTweetText(row.textarea.value).weightedLength >
+					MAX_TWEET_LENGTH,
+			)
 		) {
 			return { ok: false, reason: "A post is over 280 characters" };
 		}

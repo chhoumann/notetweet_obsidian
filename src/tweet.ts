@@ -1,3 +1,5 @@
+import { analyzeTweetText, type TextBoundary } from "./textAnalysis";
+
 export const MAX_TWEET_LENGTH = 280;
 
 export const THREAD_START = "THREAD START";
@@ -128,60 +130,92 @@ function trimStructuralBlankLines(lines: string[]): string[] {
 }
 
 /**
- * Greedily pack newline-separated lines into chunks no longer than `maxLength`,
- * preserving the newline between packed lines. A single line that is itself too
- * long is split on sentence boundaries and re-packed recursively, falling back
- * to a hard word/character wrap for unbreakable text.
+ * Split text into posts within X's weighted limit. Sentence and whitespace
+ * boundaries are preferred, while official URL entities and Unicode graphemes
+ * remain indivisible. Text is normalized to NFC, matching X's counting rules.
  */
 export function splitIntoTweets(
 	text: string,
 	maxLength: number = MAX_TWEET_LENGTH,
 ): string[] {
-	const chunks: string[] = [];
-
-	for (const line of text.split("\n")) {
-		if (line.length > maxLength) {
-			// `replace` instead of a lookbehind split: lookbehinds crash the
-			// regex engine on iOS < 16.4, which Obsidian still supports.
-			const bySentence = line.replace(/([.?!])\s/g, "$1\n");
-			// A line with no sentence boundary won't shrink by re-splitting, so
-			// fall back to a hard word/character wrap to guarantee progress.
-			const pieces =
-				bySentence === line
-					? hardWrap(line, maxLength)
-					: splitIntoTweets(bySentence, maxLength);
-			chunks.push(...pieces);
-			continue;
-		}
-
-		const last = chunks.length - 1;
-		const combined = last < 0 ? line : `${chunks[last]}\n${line}`;
-		if (last >= 0 && combined.length <= maxLength) {
-			chunks[last] = combined;
-		} else {
-			chunks.push(line);
-		}
+	if (!Number.isFinite(maxLength) || maxLength <= 0) {
+		throw new RangeError("Tweet length must be a positive number.");
 	}
 
-	return chunks.filter((chunk) => chunk.trim().length > 0);
+	const analysis = analyzeTweetText(text);
+	const { normalizedText, boundaries } = analysis;
+	if (analysis.weightedLength <= maxLength) {
+		return normalizedText.trim().length > 0 ? [normalizedText] : [];
+	}
+
+	const chunks: string[] = [];
+	let startIndex = 0;
+	let startBoundary = 0;
+	let consumedWeight = 0;
+
+	while (startBoundary < boundaries.length) {
+		const limit = findLimit(boundaries, startBoundary, consumedWeight, maxLength);
+		if (limit === startBoundary) {
+			throw new Error("A single URL or grapheme exceeds the tweet length limit.");
+		}
+
+		const endBoundary = chooseBreak(
+			normalizedText,
+			boundaries,
+			startBoundary,
+			limit,
+			startIndex,
+		);
+		const endIndex = boundaries[endBoundary - 1].index;
+		const chunk = normalizedText.slice(startIndex, endIndex).trim();
+		if (chunk.length > 0) chunks.push(chunk);
+
+		consumedWeight = boundaries[endBoundary - 1].weightedLength;
+		startBoundary = endBoundary;
+		startIndex = endIndex;
+	}
+
+	return chunks;
 }
 
-/**
- * Break an unbreakable line into pieces no longer than `maxLength`, preferring
- * the last space inside the window and falling back to a hard cut when a single
- * word exceeds the limit.
- */
-function hardWrap(text: string, maxLength: number): string[] {
-	const pieces: string[] = [];
-	let rest = text;
+function findLimit(
+	boundaries: TextBoundary[],
+	start: number,
+	consumedWeight: number,
+	maxLength: number,
+): number {
+	let end = start;
+	while (
+		end < boundaries.length &&
+		boundaries[end].weightedLength - consumedWeight <= maxLength
+	) {
+		end++;
+	}
+	return end;
+}
 
-	while (rest.length > maxLength) {
-		let cut = rest.lastIndexOf(" ", maxLength);
-		if (cut <= 0) cut = maxLength;
-		pieces.push(rest.slice(0, cut));
-		rest = rest.slice(cut).replace(/^\s+/, "");
+function chooseBreak(
+	text: string,
+	boundaries: TextBoundary[],
+	start: number,
+	limit: number,
+	startIndex: number,
+): number {
+	if (limit === boundaries.length) return limit;
+
+	let sentenceBreak = -1;
+	let whitespaceBreak = -1;
+	for (let index = start; index < limit; index++) {
+		const unitStart = index === start ? startIndex : boundaries[index - 1].index;
+		const unit = text.slice(unitStart, boundaries[index].index);
+		if (/^\s+$/u.test(unit)) whitespaceBreak = index + 1;
+		if (/[.?!]$/u.test(unit) && index + 1 < limit) {
+			const nextStart = boundaries[index].index;
+			const next = text.slice(nextStart, boundaries[index + 1].index);
+			if (/^\s+$/u.test(next)) sentenceBreak = index + 1;
+		}
 	}
 
-	if (rest.length > 0) pieces.push(rest);
-	return pieces;
+	if (sentenceBreak > start) return sentenceBreak;
+	return whitespaceBreak > start ? whitespaceBreak : limit;
 }
