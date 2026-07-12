@@ -21,28 +21,110 @@ export interface ComposeResult {
 
 /**
  * Extract the tweets of a thread delimited by `THREAD START` / `THREAD END`,
- * split on a `---` line. Throws when the markers are missing or the thread is
- * empty.
+ * split on a `---` line. Structural lines may have up to three leading spaces
+ * plus trailing spaces or tabs, matching Markdown's non-code indentation, and
+ * use LF or CRLF newlines. Marker-like lines inside fenced or indented code are
+ * content, not structure.
+ *
+ * Blank lines directly beside a marker or separator are structural padding and
+ * are removed. Every other body character is preserved. Missing, reversed, and
+ * empty thread structures are rejected instead of producing malformed posts.
  */
 export function parseThread(text: string): string[] {
-	const lines = text.split("\n");
-	const startIndex = lines.indexOf(THREAD_START) + 1;
-	const endIndex = lines.indexOf(THREAD_END);
+	const lines = text.split(/\r\n|\n|\r/);
+	const structuralLines = linesOutsideFencedCode(lines);
+	const startIndex = lines.findIndex(
+		(line, index) =>
+			structuralLines[index] && isStructuralLine(line, THREAD_START),
+	);
+	const endIndex = lines.findIndex(
+		(line, index) =>
+			structuralLines[index] && isStructuralLine(line, THREAD_END),
+	);
 
-	if (startIndex === 0 || endIndex === -1) {
-		throw new Error("Failed to detect THREAD START or THREAD END");
+	if (startIndex === -1) {
+		throw new Error("Thread is missing a THREAD START marker.");
+	}
+	if (endIndex === -1) {
+		throw new Error("Thread is missing a THREAD END marker.");
+	}
+	if (endIndex < startIndex) {
+		throw new Error("THREAD END appears before THREAD START.");
 	}
 
-	const content = lines
-		.slice(startIndex, endIndex)
-		.join("\n")
-		.split("\n---\n");
-
-	if (content.length === 1 && content[0] === "") {
-		throw new Error("Please write something in your thread.");
+	const segments: string[][] = [[]];
+	for (let index = startIndex + 1; index < endIndex; index++) {
+		const line = lines[index];
+		if (structuralLines[index] && isStructuralLine(line, "---")) {
+			segments.push([]);
+		} else {
+			segments[segments.length - 1].push(line);
+		}
 	}
 
-	return content.map((tweet) => tweet.trim());
+	const normalized = segments.map(trimStructuralBlankLines);
+	if (normalized.length === 1 && normalized[0].length === 0) {
+		throw new Error("Thread is empty. Add content between the thread markers.");
+	}
+
+	return normalized.map((linesInTweet, index) => {
+		if (linesInTweet.length === 0) {
+			throw new Error(
+				`Tweet ${index + 1} is empty. Add content between thread separators.`,
+			);
+		}
+		return linesInTweet.join("\n");
+	});
+}
+
+/** Match a whole structural line without reclassifying Markdown indented code. */
+function isStructuralLine(line: string, structure: string): boolean {
+	const leadingSpaces = /^ */.exec(line)?.[0].length ?? 0;
+	if (leadingSpaces > 3) return false;
+	return line.slice(leadingSpaces).replace(/[ \t]+$/, "") === structure;
+}
+
+type Fence = { character: "`" | "~"; length: number };
+
+/** Mark lines whose Markdown position is outside a backtick or tilde fence. */
+function linesOutsideFencedCode(lines: string[]): boolean[] {
+	const outside: boolean[] = [];
+	let fence: Fence | null = null;
+
+	for (const line of lines) {
+		outside.push(fence === null);
+		if (fence) {
+			if (closesFence(line, fence)) fence = null;
+		} else {
+			fence = opensFence(line);
+		}
+	}
+
+	return outside;
+}
+
+function opensFence(line: string): Fence | null {
+	const match = /^[ \t]{0,3}(`{3,}|~{3,})/.exec(line);
+	if (!match) return null;
+	return {
+		character: match[1][0] as Fence["character"],
+		length: match[1].length,
+	};
+}
+
+function closesFence(line: string, fence: Fence): boolean {
+	const match = /^[ \t]{0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
+	return (
+		match?.[1][0] === fence.character && match[1].length >= fence.length
+	);
+}
+
+function trimStructuralBlankLines(lines: string[]): string[] {
+	let start = 0;
+	let end = lines.length;
+	while (start < end && lines[start].trim() === "") start++;
+	while (end > start && lines[end - 1].trim() === "") end--;
+	return lines.slice(start, end);
 }
 
 /**

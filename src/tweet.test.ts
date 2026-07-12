@@ -1,11 +1,55 @@
 import { parseThread, splitIntoTweets } from "./tweet";
 
 describe("parseThread", () => {
-	it("returns each tweet in order, trimmed", () => {
+	it("parses the exact issue #23 Markdown and its whitespace separator", () => {
 		const text = [
 			"THREAD START",
-			"  first tweet  ",
+			"When one of the horsemen entered and saw that Nero was dying, he attempted to stop the bleeding, but efforts to save Nero's life were unsuccessful. Nero's final words were \"Too late! This is fidelity!\"",
+			"",
+			"[Nero](https://en.wikipedia.org/wiki/Nero?wprov=sfti1)",
+			"",
+			"--- ",
+			"a stark contrast to the final words of his ancestor Augustus, but Latin makes everything seem like a great play",
+			"THREAD END",
+		].join("\n");
+
+		expect(parseThread(text)).toEqual([
+			[
+				"When one of the horsemen entered and saw that Nero was dying, he attempted to stop the bleeding, but efforts to save Nero's life were unsuccessful. Nero's final words were \"Too late! This is fidelity!\"",
+				"",
+				"[Nero](https://en.wikipedia.org/wiki/Nero?wprov=sfti1)",
+			].join("\n"),
+			"a stark contrast to the final words of his ancestor Augustus, but Latin makes everything seem like a great play",
+		]);
+	});
+
+	it("accepts CRLF newlines", () => {
+		const text = [
+			"THREAD START",
+			"first tweet",
 			"---",
+			"second tweet",
+			"THREAD END",
+		].join("\r\n");
+
+		expect(parseThread(text)).toEqual(["first tweet", "second tweet"]);
+	});
+
+	it("recognizes markers with surrounding whitespace", () => {
+		const text = [
+			"   THREAD START\t",
+			"first tweet",
+			"  THREAD END\t",
+		].join("\n");
+
+		expect(parseThread(text)).toEqual(["first tweet"]);
+	});
+
+	it("recognizes a separator with surrounding whitespace", () => {
+		const text = [
+			"THREAD START",
+			"first tweet",
+			"   --- \t",
 			"second tweet",
 			"THREAD END",
 		].join("\n");
@@ -13,22 +57,111 @@ describe("parseThread", () => {
 		expect(parseThread(text)).toEqual(["first tweet", "second tweet"]);
 	});
 
+	it("preserves four-space and tab-indented code that resembles structure", () => {
+		const text = [
+			"THREAD START",
+			"first paragraph",
+			"",
+			"    THREAD END",
+			"    ---",
+			"\tTHREAD START",
+			"\t---",
+			"content after indented code",
+			"---",
+			"second tweet",
+			"THREAD END",
+		].join("\n");
+
+		expect(parseThread(text)).toEqual([
+			[
+				"first paragraph",
+				"",
+				"    THREAD END",
+				"    ---",
+				"\tTHREAD START",
+				"\t---",
+				"content after indented code",
+			].join("\n"),
+			"second tweet",
+		]);
+	});
+
+	it("removes structural blank lines without changing tweet body lines", () => {
+		const text = [
+			"THREAD START",
+			"",
+			"  indented first line  ",
+			"",
+			"second paragraph",
+			"",
+			"---",
+			"",
+			"second tweet",
+			"",
+			"THREAD END",
+		].join("\n");
+
+		expect(parseThread(text)).toEqual([
+			"  indented first line  \n\nsecond paragraph",
+			"second tweet",
+		]);
+	});
+
+	it("ignores marker-like lines in surrounding fenced code", () => {
+		const text = [
+			"```text",
+			"THREAD START",
+			"not a thread",
+			"THREAD END",
+			"```",
+			"",
+			"THREAD START",
+			"actual first tweet",
+			"---",
+			"```text",
+			"---",
+			"THREAD END",
+			"```",
+			"actual second tweet",
+			"THREAD END",
+		].join("\n");
+
+		expect(parseThread(text)).toEqual([
+			"actual first tweet",
+			"```text\n---\nTHREAD END\n```\nactual second tweet",
+		]);
+	});
+
 	it("throws when THREAD START is missing", () => {
 		const text = ["some tweet", "THREAD END"].join("\n");
 
-		expect(() => parseThread(text)).toThrow(/THREAD START or THREAD END/);
+		expect(() => parseThread(text)).toThrow(/missing a THREAD START marker/);
 	});
 
 	it("throws when THREAD END is missing", () => {
 		const text = ["THREAD START", "some tweet"].join("\n");
 
-		expect(() => parseThread(text)).toThrow(/THREAD START or THREAD END/);
+		expect(() => parseThread(text)).toThrow(/missing a THREAD END marker/);
+	});
+
+	it("throws when the markers are reversed", () => {
+		const text = ["THREAD END", "some tweet", "THREAD START"].join("\n");
+
+		expect(() => parseThread(text)).toThrow(/appears before THREAD START/);
 	});
 
 	it("throws when the thread body is empty", () => {
 		const text = ["THREAD START", "THREAD END"].join("\n");
 
-		expect(() => parseThread(text)).toThrow(/write something/);
+		expect(() => parseThread(text)).toThrow(/thread is empty/i);
+	});
+
+	it.each([
+		["first", ["THREAD START", "---", "second", "THREAD END"]],
+		["middle", ["THREAD START", "first", "---", "", "---", "third", "THREAD END"]],
+		["last", ["THREAD START", "first", "---", "THREAD END"]],
+	])("throws when the %s tweet is empty", (_position, lines) => {
+		expect(() => parseThread(lines.join("\n"))).toThrow(/Tweet \d+ is empty/);
 	});
 });
 

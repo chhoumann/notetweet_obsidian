@@ -7,7 +7,132 @@ import {
 
 const getContext = createNoteTweetE2EHarness("notetweet-runtime");
 
+const ISSUE_23_THREAD = [
+	"THREAD START",
+	"When one of the horsemen entered and saw that Nero was dying, he attempted to stop the bleeding, but efforts to save Nero's life were unsuccessful. Nero's final words were \"Too late! This is fidelity!\"",
+	"",
+	"[Nero](https://en.wikipedia.org/wiki/Nero?wprov=sfti1)",
+	"",
+	"--- ",
+	"a stark contrast to the final words of his ancestor Augustus, but Latin makes everything seem like a great play",
+	"THREAD END",
+].join("\n");
+
+const INDENTED_CODE_THREAD = [
+	"THREAD START",
+	"first paragraph",
+	"",
+	"    THREAD END",
+	"    ---",
+	"content after indented code",
+	"---",
+	"second post",
+	"THREAD END",
+].join("\n");
+
 describe("NoteTweet runtime", () => {
+	test("passes the issue #23 file to X as two posts", async () => {
+		const { obsidian, sandbox } = getContext();
+		const notePath = sandbox.path("issue-23-thread.md");
+
+		await sandbox.writeNote({
+			path: "issue-23-thread.md",
+			body: ISSUE_23_THREAD,
+		});
+		await obsidian.open({ path: notePath });
+		await obsidian.waitForActiveFile(notePath);
+
+		await obsidian.dev.evalJson<boolean>(
+			`(() => {
+				const plugin = app.plugins.plugins.${PLUGIN_ID};
+				window.__notetweetE2ECapturedThread = null;
+				plugin.twitter.isConnected = true;
+				plugin.twitter.postThread = async (thread) => {
+					window.__notetweetE2ECapturedThread = thread;
+					return [];
+				};
+				return true;
+			})()`,
+		);
+
+		await obsidian.command(`${PLUGIN_ID}:post-file-as-thread`).run();
+		await obsidian.waitFor(
+			() =>
+				obsidian.dev.evalJson<boolean>(
+					"Array.isArray(window.__notetweetE2ECapturedThread)",
+				),
+			{
+					...WAIT_OPTS,
+					message: "Post file as thread did not reach the X posting boundary.",
+			},
+		);
+
+		const thread = await obsidian.dev.evalJson<string[]>(
+			"window.__notetweetE2ECapturedThread",
+		);
+		expect(thread).toEqual([
+			[
+				"When one of the horsemen entered and saw that Nero was dying, he attempted to stop the bleeding, but efforts to save Nero's life were unsuccessful. Nero's final words were \"Too late! This is fidelity!\"",
+				"",
+				"[Nero](https://en.wikipedia.org/wiki/Nero?wprov=sfti1)",
+			].join("\n"),
+			"a stark contrast to the final words of his ancestor Augustus, but Latin makes everything seem like a great play",
+		]);
+		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
+	});
+
+	test("preserves indented code that resembles thread structure", async () => {
+		const { obsidian, sandbox } = getContext();
+		const notePath = sandbox.path("indented-code-thread.md");
+
+		await sandbox.writeNote({
+			path: "indented-code-thread.md",
+			body: INDENTED_CODE_THREAD,
+		});
+		await obsidian.open({ path: notePath });
+		await obsidian.waitForActiveFile(notePath);
+
+		await obsidian.dev.evalJson<boolean>(
+			`(() => {
+				const plugin = app.plugins.plugins.${PLUGIN_ID};
+				window.__notetweetE2ECapturedThread = null;
+				plugin.twitter.isConnected = true;
+				plugin.twitter.postThread = async (thread) => {
+					window.__notetweetE2ECapturedThread = thread;
+					return [];
+				};
+				return true;
+			})()`,
+		);
+
+		await obsidian.command(`${PLUGIN_ID}:post-file-as-thread`).run();
+		await obsidian.waitFor(
+			() =>
+				obsidian.dev.evalJson<boolean>(
+					"Array.isArray(window.__notetweetE2ECapturedThread)",
+				),
+			{
+					...WAIT_OPTS,
+					message: "Indented-code thread did not reach the X posting boundary.",
+			},
+		);
+
+		const thread = await obsidian.dev.evalJson<string[]>(
+			"window.__notetweetE2ECapturedThread",
+		);
+		expect(thread).toEqual([
+			[
+				"first paragraph",
+				"",
+				"    THREAD END",
+				"    ---",
+				"content after indented code",
+			].join("\n"),
+			"second post",
+		]);
+		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
+	});
+
 	test("registers its three production commands and omits the dev reload command", async () => {
 		const { obsidian } = getContext();
 
