@@ -17,7 +17,7 @@ permissions:
 
 jobs:
     ci:
-        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/ci.yml@v1
+        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/ci.yml@v4
         with:
             package-manager: pnpm
             # Matches .mise.toml (node = "22").
