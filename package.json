@@ -35,7 +35,7 @@
 		"url": "git+https://github.com/chhoumann/notetweet_obsidian.git"
 	},
 	"devDependencies": {
-		"@types/node": "^26.1.1",
+		"@types/node": "^26.1.2",
 		"@vitest/coverage-v8": "^4.1.10",
 		"esbuild": "0.28.1",
 		"eslint": "^9.39.4",
