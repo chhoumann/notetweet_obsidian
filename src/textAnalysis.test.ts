@@ -42,4 +42,10 @@ describe("analyzeTweetText", () => {
 			analysis.weightedLength,
 		);
 	});
+
+	it("uses Unicode-conformant boundaries around Gurmukhi virama", () => {
+		const analysis = analyzeTweetText("\u0915\u0A4D\u0915");
+
+		expect(analysis.boundaries.map(({ index }) => index)).toEqual([2, 3]);
+	});
 });
