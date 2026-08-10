@@ -52,7 +52,7 @@
 	"dependencies": {
 		"crypto-es": "^2.1.0",
 		"twitter-text": "3.1.0",
-		"unicode-segmenter": "0.17.2"
+		"unicode-segmenter": "0.17.3"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
