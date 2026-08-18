@@ -1,3 +1,5 @@
+
+
 ## NoteTweet for Obsidian
 This plugin allows you to post to X (formerly Twitter) directly from Obsidian.
 
@@ -150,4 +152,4 @@ If you're seeing "TypeError: Cannot read properties of undefined (reading 'data'
    - Check your usage limits in the developer portal if you're hitting rate limits
 
 ### Common Issues
-- **Media upload failures**: Ensure your image files are in a supported format (gif, jpg, jpeg, png, webp, bmp) and accessible in your vault.
+- **Media upload failures**: Ensure your image files are in a supported format (gif, jpg, jpeg, png, webp, bmp, tif, tiff) and accessible in your vault.
