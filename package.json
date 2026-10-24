@@ -35,17 +35,17 @@
 		"url": "git+https://github.com/chhoumann/notetweet_obsidian.git"
 	},
 	"devDependencies": {
-		"@types/node": "^26.6.2",
+		"@types/node": "24.19.2",
 		"@vitest/coverage-v8": "5.0.5",
 		"esbuild": "0.28.2",
 		"eslint": "10.13.0",
-		"eslint-plugin-obsidianmd": "^0.4.2",
-		"globals": "^17.12.0",
+		"eslint-plugin-obsidianmd": "0.4.2",
+		"globals": "17.13.0",
 		"obsidian": "1.14.4",
 		"obsidian-e2e": "0.14.0",
-		"obsidian-test-kit": "^0.1.0",
-		"typescript": "^6.0.3",
-		"typescript-eslint": "^8.70.1",
+		"obsidian-test-kit": "0.1.0",
+		"typescript": "6.0.3",
+		"typescript-eslint": "8.71.2",
 		"vitest": "5.0.5"
 	},
 	"dependencies": {
