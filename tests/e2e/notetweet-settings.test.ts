@@ -95,6 +95,24 @@ describe("NoteTweet settings tab", () => {
 		expect(snapshot.headings).toContain("Personal");
 		expect(snapshot.headings).toContain("Work");
 		expect(snapshot.defaultOptions).toEqual({ personal: "Personal", work: "Work" });
+
+		// The connection status is the row's description, not squeezed beside Test.
+		const connection = await obsidian.dev.evalJson<{ desc: string; control: string }>(
+			`(() => {
+				app.setting.open();
+				app.setting.openTabById(${JSON.stringify(PLUGIN_ID)});
+				const row = [...document.querySelectorAll(".setting-item")].find(
+					(item) => item.querySelector(".setting-item-name")?.textContent === "Connection",
+				);
+				const result = {
+					desc: row.querySelector(".setting-item-description").textContent,
+					control: row.querySelector(".setting-item-control").textContent,
+				};
+				app.setting.close();
+				return result;
+			})()`,
+		);
+		expect(connection).toEqual({ desc: "Not checked.", control: "Test" });
 		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
 	});
 
