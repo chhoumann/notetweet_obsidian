@@ -22,6 +22,16 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 	bmp: "image/bmp",
 };
 
+/** A thread that failed while posting. `posted` holds the tweets already live. */
+export class ThreadPostError extends Error {
+	constructor(
+		readonly posted: PostedTweet[],
+		cause: unknown,
+	) {
+		super(cause instanceof Error ? cause.message : String(cause));
+	}
+}
+
 /** Thin wrapper around the X API client that owns the connection state. */
 export class TwitterClient {
 	private client: XApiClient | null = null;
@@ -86,7 +96,11 @@ export class TwitterClient {
 			if (previous) {
 				payload.reply = { in_reply_to_tweet_id: previous.data.id };
 			}
-			posted.push(await client.createTweet(payload));
+			try {
+				posted.push(await client.createTweet(payload));
+			} catch (error) {
+				throw new ThreadPostError(posted, error);
+			}
 		}
 		return posted;
 	}

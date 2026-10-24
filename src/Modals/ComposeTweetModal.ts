@@ -31,6 +31,11 @@ export interface ComposeOptions {
 	accounts?: XAccount[];
 	/** Account preselected when the composer opens. */
 	selectedAccountId?: string;
+	/**
+	 * Sends the thread while the composer stays open. Resolve `false` when
+	 * nothing went out, which keeps the draft open for another try.
+	 */
+	send?: (result: ComposeResult) => Promise<boolean>;
 }
 
 /** Character count starts showing once this many remain. */
@@ -123,6 +128,7 @@ export class ComposeTweetModal extends Modal {
 	private scheduleButton: HTMLButtonElement | null = null;
 	private selectedAccountId = "";
 	private submitted = false;
+	private sending = false;
 	private result: ComposeResult | null = null;
 
 	static compose(
@@ -428,8 +434,8 @@ export class ComposeTweetModal extends Modal {
 		this.statusEl.toggleClass("is-blocked", Boolean(reason));
 		const requiresAccount = this.options.submitLabel !== "Update";
 		this.postButton.disabled =
-			!ok || (requiresAccount && this.selectedAccountId === "");
-		if (this.scheduleButton) this.scheduleButton.disabled = !ok;
+			!ok || this.sending || (requiresAccount && this.selectedAccountId === "");
+		if (this.scheduleButton) this.scheduleButton.disabled = !ok || this.sending;
 	}
 
 	private handlePaste(event: ClipboardEvent, row: PostRow): void {
@@ -675,19 +681,22 @@ export class ComposeTweetModal extends Modal {
 
 	private submitPost(): void {
 		const requiresAccount = this.options.submitLabel !== "Update";
-		if (!this.validate().ok || (requiresAccount && !this.selectedAccountId)) return;
-		this.result = {
+		if (
+			this.sending ||
+			!this.validate().ok ||
+			(requiresAccount && !this.selectedAccountId)
+		)
+			return;
+		void this.submit({
 			content: this.collectContent(),
 			...(this.selectedAccountId
 				? { accountId: this.selectedAccountId }
 				: {}),
-		};
-		this.submitted = true;
-		this.close();
+		});
 	}
 
 	private async submitSchedule(): Promise<void> {
-		if (!this.validate().ok) return;
+		if (this.sending || !this.validate().ok) return;
 
 		let postAt: number | null;
 		try {
@@ -698,7 +707,21 @@ export class ComposeTweetModal extends Modal {
 		}
 		if (postAt === null) return;
 
-		this.result = { content: this.collectContent(), postAt };
+		await this.submit({ content: this.collectContent(), postAt });
+	}
+
+	private async submit(result: ComposeResult): Promise<void> {
+		if (this.options.send) {
+			this.sending = true;
+			this.refreshState();
+			const sent = await this.options.send(result);
+			this.sending = false;
+			if (!sent) {
+				this.refreshState();
+				return;
+			}
+		}
+		this.result = result;
 		this.submitted = true;
 		this.close();
 	}
