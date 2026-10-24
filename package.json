@@ -12,7 +12,7 @@
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
 		"typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json",
-		"test:e2e": "pnpm run build && pnpm run typecheck:e2e && vitest run --config vitest.e2e.config.ts",
+		"test:e2e": "pnpm run build && pnpm run typecheck:e2e && vitest run --config vitest.e2e.config.mts",
 		"obsidian:e2e": "obsidian-e2e run",
 		"provision:e2e-vault": "obsidian-e2e provision",
 		"start:e2e-obsidian": "obsidian-e2e start",
