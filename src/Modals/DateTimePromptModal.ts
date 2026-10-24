@@ -15,8 +15,11 @@ export function promptForDateTime(
 	return promise;
 }
 
+let instances = 0;
+
 /** Picks a future date and time with the platform's native picker. */
 class DateTimePromptModal extends Modal {
+	private readonly errorId = `nt-schedule-error-${++instances}`;
 	private value: number | null;
 	private submitted = false;
 	private button!: ButtonComponent;
@@ -40,7 +43,7 @@ class DateTimePromptModal extends Modal {
 			type: "datetime-local",
 			attr: {
 				"aria-label": "Post at",
-				"aria-describedby": "nt-schedule-error",
+				"aria-describedby": this.errorId,
 				min: toDateTimeInput(Date.now()),
 			},
 			value: toDateTimeInput(this.initial),
@@ -58,7 +61,7 @@ class DateTimePromptModal extends Modal {
 		});
 		this.errorEl = this.contentEl.createDiv({
 			cls: "nt-schedule-error",
-			attr: { id: "nt-schedule-error", "aria-live": "polite" },
+			attr: { id: this.errorId, "aria-live": "polite" },
 		});
 
 		const buttons = this.modalEl.createDiv({ cls: "modal-button-container" });
@@ -77,7 +80,8 @@ class DateTimePromptModal extends Modal {
 		const valid = this.valid;
 		this.button.setDisabled(!valid);
 		this.input.setAttr("aria-invalid", String(!valid));
-		this.errorEl.setText(valid ? "" : "Pick a valid time in the future.");
+		const message = valid ? "" : "Pick a valid time in the future.";
+		if (this.errorEl.textContent !== message) this.errorEl.setText(message);
 	}
 
 	private submit(): void {

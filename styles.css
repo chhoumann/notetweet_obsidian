@@ -532,5 +532,5 @@
 }
 
 .nt-schedule-modal .nt-schedule-error:empty {
-	display: none;
+	margin-top: 0;
 }
