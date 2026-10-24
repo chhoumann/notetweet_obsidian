@@ -13,9 +13,15 @@
 	max-height: calc(100vh - var(--safe-area-inset-top) - var(--keyboard-height));
 }
 
-/* Keep the caret clear of the sticky footer while typing. */
-.is-mobile .postTweetModal {
-	scroll-padding-bottom: 7rem;
+/* Keep the caret clear of the sticky footer while typing, and let the footer
+   sit flush with the bottom of the scroll area. */
+.is-mobile .modal-content.postTweetModal {
+	padding-bottom: 0;
+	scroll-padding-bottom: 6rem;
+}
+
+.is-mobile .nt-footer {
+	padding-bottom: 1rem;
 }
 
 .postTweetModal {
