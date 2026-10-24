@@ -3,9 +3,13 @@ allowBuilds:
   core-js: false
 
 # Refuse to resolve versions published less than 7 days ago. Most malicious
-# npm publishes are detected and pulled within that window. The excluded
-# packages are our own shared tooling, released in lockstep with this repo.
+# npm publishes are detected and pulled within that window. Exclusions are our
+# own shared tooling, released in lockstep with this repo, and exact versions
+# of vetted security releases.
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   - obsidian-e2e
   - obsidian-test-kit
+  # GHSA-333x-w4r6-6crp, GHSA-wjr9-j795-jxcr, GHSA-xhq7-xmqj-769h,
+  # GHSA-w74x-v6f9-j3xg. Trusted-publisher release with SLSA provenance.
+  - fast-uri@3.1.9
