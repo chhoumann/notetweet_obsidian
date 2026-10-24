@@ -13,6 +13,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns: ["*"]
@@ -29,6 +31,10 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    # Matches minimumReleaseAge in pnpm-workspace.yaml, which would otherwise
+    # fail the frozen install for any version younger than 7 days.
+    cooldown:
+      default-days: 7
     groups:
       dev-dependencies:
         dependency-type: development
