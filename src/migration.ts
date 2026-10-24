@@ -86,9 +86,12 @@ export function storeCredentials(
 		setSchedulerPassword(app, settings, credentials.schedulerPassword);
 }
 
-const PASSWORD_KEY = /^[a-f0-9]{24}$/;
+const PASSWORD_KEY = /^[a-f0-9]+$/;
+
 /** Device-local marker: this vault's scheduler password was set on this device. */
-const PASSWORD_SET_HERE = "notetweet-scheduler-password-set";
+function passwordSetHere(settings: NoteTweetSettings): string {
+	return `notetweet-scheduler-password-set-${settings.scheduling.passwordKey}`;
+}
 
 /**
  * Give this vault its own scheduler password secret. Secret storage is shared
@@ -113,7 +116,7 @@ export function setSchedulerPassword(
 	password: string,
 ): void {
 	setSecret(app, schedulerPasswordSecretId(settings.scheduling.passwordKey), password);
-	app.saveLocalStorage(PASSWORD_SET_HERE, true);
+	app.saveLocalStorage(passwordSetHere(settings), true);
 }
 
 const MIGRATED_ACCOUNT_ID = "migrated-account";
@@ -183,7 +186,9 @@ export function resolveSchedulerPassword(
 	if (stored) return stored;
 	// Once a password is set for this vault on this device, even an empty one,
 	// the older sources no longer apply.
-	if (app.loadLocalStorage(PASSWORD_SET_HERE)) return "";
+	if (app.loadLocalStorage(passwordSetHere(settings))) return "";
+	// A pre-0.6 plaintext password belongs to this vault, so it outranks the
+	// shared secret, which may have been saved by another vault.
 	if (!data.secureMode && data.scheduling?.password) {
 		return data.scheduling.password;
 	}
