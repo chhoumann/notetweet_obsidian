@@ -190,8 +190,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 					name: "Connection",
 					searchable: false,
 					render: (setting: Setting) => {
-						const status = setting.controlEl.createSpan();
-						this.statusEls.set(account.id, status);
+						this.statusEls.set(account.id, setting.descEl);
 						this.refreshStatus(account.id);
 						setting.addButton((button) =>
 							button

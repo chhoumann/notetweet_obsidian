@@ -74,7 +74,7 @@ describe("NoteTweet settings tab", () => {
 		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
 	});
 
-	test("renders named account groups and the configured default choices", async () => {
+	test("renders named account groups, default choices, and each connection status", async () => {
 		const { obsidian, plugin } = getContext();
 		await plugin.updateDataAndReload(
 			() => ({
@@ -95,6 +95,27 @@ describe("NoteTweet settings tab", () => {
 		expect(snapshot.headings).toContain("Personal");
 		expect(snapshot.headings).toContain("Work");
 		expect(snapshot.defaultOptions).toEqual({ personal: "Personal", work: "Work" });
+
+		// The connection status is the row's description, not squeezed beside Test.
+		const connection = await obsidian.dev.evalJson<{ desc: string; control: string }>(
+			`(() => {
+				app.setting.open();
+				app.setting.openTabById(${JSON.stringify(PLUGIN_ID)});
+				try {
+					const row = [...document.querySelectorAll(".setting-item")].find(
+						(item) => item.querySelector(".setting-item-name")?.textContent === "Connection",
+					);
+					if (!row) throw new Error("No Connection row in the NoteTweet settings tab.");
+					return {
+						desc: row.querySelector(".setting-item-description").textContent,
+						control: row.querySelector(".setting-item-control").textContent,
+					};
+				} finally {
+					app.setting.close();
+				}
+			})()`,
+		);
+		expect(connection).toEqual({ desc: "Not checked.", control: "Test" });
 		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
 	});
 
