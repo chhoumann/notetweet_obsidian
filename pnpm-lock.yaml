@@ -198,8 +198,8 @@ importers:
         specifier: 0.14.0
         version: 0.14.0(vitest@5.0.5)
       obsidian-test-kit:
-        specifier: 0.1.0
-        version: 0.1.0(vitest@5.0.5)
+        specifier: 0.2.0
+        version: 0.2.0(vitest@5.0.5)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -1576,9 +1576,9 @@ packages:
       vitest:
         optional: true
 
-  obsidian-test-kit@0.1.0:
-    resolution: {integrity: sha512-F+J+Q9PWTqY+I/1adR0G+IZSLI/5b6KNcdobAFNS17hr4SljPoKOGGgtZ4mDzBRwyT+uSLjUANzOM7DKOKtxHA==}
-    engines: {node: '>=20'}
+  obsidian-test-kit@0.2.0:
+    resolution: {integrity: sha512-vvmFLICiIkLmhktDkHVL9/0CJSdzW6P+7jbxeKXDo26WiTCN81SDidZm0ElmiSJURUJOza9N12v57Kxb3RKXSg==}
+    engines: {node: '>=22'}
     peerDependencies:
       '@testing-library/jest-dom': '>=6.0.0'
       vitest: '>=1.0.0'
@@ -3550,7 +3550,7 @@ snapshots:
     optionalDependencies:
       vitest: 5.0.5(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
 
-  obsidian-test-kit@0.1.0(vitest@5.0.5):
+  obsidian-test-kit@0.2.0(vitest@5.0.5):
     dependencies:
       vitest: 5.0.5(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
 
