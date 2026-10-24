@@ -623,7 +623,8 @@ describe("NoteTweet runtime", () => {
 				() =>
 					obsidian.dev.evalJson<boolean>(
 						`[...document.querySelectorAll(".notice")].some((n) => n.textContent.includes("not connected")) &&
-							!document.querySelector(".postTweetModal .nt-btn-cta").disabled`,
+							!document.querySelector(".postTweetModal .nt-btn-cta").disabled &&
+							!document.querySelector(".postTweetModal").hasAttribute("inert")`,
 					),
 				{ ...WAIT_OPTS, message: "Failed post did not settle." },
 			);
