@@ -215,7 +215,7 @@
 	display: block;
 }
 
-.nt-attachment-remove {
+.postTweetModal .nt-attachment-remove {
 	position: absolute;
 	top: 0.1875rem;
 	right: 0.1875rem;
@@ -265,7 +265,7 @@
 	opacity: 1;
 }
 
-.nt-icon-btn {
+.postTweetModal .nt-icon-btn {
 	width: 1.5rem;
 	height: 1.5rem;
 	display: grid;
@@ -279,9 +279,11 @@
 	box-shadow: none;
 }
 
-.nt-icon-btn:hover:not(:disabled) {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
+@media (hover: hover) {
+	.nt-icon-btn:hover:not(:disabled) {
+		background: var(--background-modifier-hover);
+		color: var(--text-normal);
+	}
 }
 
 .nt-icon-btn:disabled {
@@ -289,8 +291,10 @@
 	cursor: default;
 }
 
-.nt-icon-btn.nt-danger:hover:not(:disabled) {
-	color: var(--text-error);
+@media (hover: hover) {
+	.nt-icon-btn.nt-danger:hover:not(:disabled) {
+		color: var(--text-error);
+	}
 }
 
 .nt-icon-btn .svg-icon {
@@ -299,7 +303,7 @@
 }
 
 /* ---- Add post ---- */
-.nt-add {
+.postTweetModal .nt-add {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
@@ -316,10 +320,12 @@
 	transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
 
-.nt-add:hover {
-	color: var(--text-normal);
-	border-color: var(--background-modifier-border-hover);
-	background: var(--background-modifier-hover);
+@media (hover: hover) {
+	.nt-add:hover {
+		color: var(--text-normal);
+		border-color: var(--background-modifier-border-hover);
+		background: var(--background-modifier-hover);
+	}
 }
 
 .nt-add-icon {
@@ -368,7 +374,7 @@
 	gap: 0.5rem;
 }
 
-.nt-btn {
+.postTweetModal .nt-btn {
 	font: inherit;
 	font-size: var(--font-ui-small);
 	font-weight: var(--font-bold);
@@ -380,23 +386,27 @@
 	box-shadow: none;
 }
 
-.nt-btn-ghost {
+.postTweetModal .nt-btn-ghost {
 	background: transparent;
 	color: var(--text-muted);
 }
 
-.nt-btn-ghost:hover:not(:disabled) {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
+@media (hover: hover) {
+	.nt-btn-ghost:hover:not(:disabled) {
+		background: var(--background-modifier-hover);
+		color: var(--text-normal);
+	}
 }
 
-.nt-btn-cta {
+.postTweetModal .nt-btn-cta {
 	background: var(--nt-accent);
 	color: var(--text-on-accent);
 }
 
-.nt-btn-cta:hover:not(:disabled) {
-	background: var(--interactive-accent-hover);
+@media (hover: hover) {
+	.nt-btn-cta:hover:not(:disabled) {
+		background: var(--interactive-accent-hover);
+	}
 }
 
 .nt-btn:disabled {
