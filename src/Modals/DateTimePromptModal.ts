@@ -16,7 +16,7 @@ export function promptForDateTime(
 }
 
 /** Picks a future date and time with the platform's native picker. */
-export class DateTimePromptModal extends Modal {
+class DateTimePromptModal extends Modal {
 	private value: number | null;
 	private submitted = false;
 	private button!: ButtonComponent;
@@ -25,7 +25,7 @@ export class DateTimePromptModal extends Modal {
 
 	constructor(
 		app: App,
-		initial: number,
+		private readonly initial: number,
 		private readonly resolve: (value: number | null) => void,
 	) {
 		super(app);
@@ -43,7 +43,7 @@ export class DateTimePromptModal extends Modal {
 				"aria-describedby": "nt-schedule-error",
 				min: toDateTimeInput(Date.now()),
 			},
-			value: toDateTimeInput(this.value ?? Date.now()),
+			value: toDateTimeInput(this.initial),
 		});
 		this.input = input;
 		input.addEventListener("input", () => {

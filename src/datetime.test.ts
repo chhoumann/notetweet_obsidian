@@ -16,11 +16,11 @@ describe("formatDateTime", () => {
 });
 
 describe("datetime-local input values", () => {
-	it("round-trips a local time through the input format", () => {
-		const ts = local(2026, 11, 31, 23, 5);
+	it("round-trips a local time through the zero-padded input format", () => {
+		const ts = local(2026, 0, 5, 9, 7);
 
-		expect(toDateTimeInput(ts)).toBe("2026-12-31T23:05");
-		expect(fromDateTimeInput("2026-12-31T23:05")).toBe(ts);
+		expect(toDateTimeInput(ts)).toBe("2026-01-05T09:07");
+		expect(fromDateTimeInput("2026-01-05T09:07")).toBe(ts);
 	});
 
 	it("treats a cleared picker as no time", () => {
@@ -47,5 +47,9 @@ describe("datetime-local input values", () => {
 describe("nextFullHour", () => {
 	it("rounds up to the start of the next hour, across midnight", () => {
 		expect(nextFullHour(local(2026, 9, 24, 23, 6))).toBe(local(2026, 9, 25, 0, 0));
+	});
+
+	it("moves an exact hour on to the following one", () => {
+		expect(nextFullHour(local(2026, 9, 24, 23, 0))).toBe(local(2026, 9, 25, 0, 0));
 	});
 });
