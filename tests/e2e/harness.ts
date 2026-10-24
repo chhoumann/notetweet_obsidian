@@ -13,13 +13,14 @@ import {
 	type SandboxApi,
 	type VaultRunLock,
 	resolveObsidianEnvOptions,
+	verifyVaultPath,
 } from "obsidian-e2e";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 
 export const PLUGIN_ID = "notetweet";
 // Reads the OBSIDIAN_E2E_* env that `start:e2e-obsidian --print-env` emits and
 // binds the CLI to that instance's private HOME.
-const obsidianEnv = resolveObsidianEnvOptions();
+const { expectedVaultPath, ...obsidianEnv } = resolveObsidianEnvOptions();
 // styles.css is a hand-written release asset shipped alongside main.js, so the
 // provisioned vault symlinks all three artifacts.
 export const PLUGIN_ARTIFACTS = ["main.js", "manifest.json", "styles.css"];
@@ -65,16 +66,21 @@ export function createNoteTweetE2EHarness(testName: string) {
 			intervalMs: 200,
 		});
 		await state.obsidian.verify();
+		const vaultPath = verifyVaultPath({
+			actualVaultPath: await state.obsidian.vaultPath(),
+			expectedVaultPath,
+			vaultName: obsidianEnv.vault,
+		});
 
 		state.lock = await acquireVaultRunLock({
 			vaultName: obsidianEnv.vault,
-			vaultPath: await state.obsidian.vaultPath(),
+			vaultPath,
 			onBusy: "wait",
 			timeoutMs: 60_000,
 		});
 		await state.lock.publishMarker(state.obsidian);
 
-		await assertDevVaultSymlinks(await state.obsidian.vaultPath());
+		await assertDevVaultSymlinks(vaultPath);
 
 		state.plugin = state.obsidian.plugin(PLUGIN_ID);
 		state.sandbox = await createSandboxApi({
