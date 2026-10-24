@@ -734,7 +734,14 @@ export class ComposeTweetModal extends Modal {
 			} finally {
 				this.setSending(null);
 			}
-			if (!sent) return;
+			if (!sent) {
+				// Going inert dropped focus; hand it back unless another modal took it.
+				if (activeDocument.activeElement === activeDocument.body) {
+					(this.rows.find((row) => row.el.hasClass("is-active")) ?? this.rows[0])
+						?.textarea.focus();
+				}
+				return;
+			}
 		}
 		this.result = result;
 		this.submitted = true;
