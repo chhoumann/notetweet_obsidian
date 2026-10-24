@@ -565,6 +565,103 @@ describe("NoteTweet runtime", () => {
 		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
 	});
 
+	test("keeps the draft open when the account cannot connect, then posts it on retry", async () => {
+		const { obsidian, plugin } = getContext();
+		await plugin.updateDataAndReload(
+			() => ({
+				accounts: [{ id: "personal", name: "Personal" }],
+				defaultAccountId: "personal",
+				postTweetTag: "",
+				autoSplitTweets: true,
+				scheduling: { enabled: false, url: "" },
+			}),
+			RELOAD_OPTIONS,
+		);
+		await waitForNoteTweetReady(obsidian);
+
+		try {
+			await obsidian.dev.evalJson<boolean>(
+				`(() => {
+					const plugin = app.plugins.plugins.${PLUGIN_ID};
+					window.__ntOriginalConnectAccount = plugin.connectAccount;
+					window.__ntAccountProbe = null;
+					let attempts = 0;
+					plugin.connectAccount = async () => ({
+						isConnected: ++attempts > 1,
+						lastError: null,
+						postThread: async (content) => {
+							window.__ntAccountProbe = content;
+							return content.map((text, i) => ({ data: { id: "e2e-" + i, text } }));
+						},
+						deleteTweets: async () => true,
+					});
+					return app.commands.executeCommandById(${JSON.stringify(`${PLUGIN_ID}:post-tweet`)});
+				})()`,
+			);
+			await obsidian.waitFor(
+				() =>
+					obsidian.dev.evalJson<boolean>(
+						`Boolean(document.querySelector(".postTweetModal textarea.tweetArea"))`,
+					),
+				{ ...WAIT_OPTS, message: "Composer did not open." },
+			);
+
+			const clickPost = `(() => {
+				document.querySelector(".postTweetModal .nt-btn-cta").click();
+				return true;
+			})()`;
+			await obsidian.dev.evalJson<boolean>(
+				`(() => {
+					const area = document.querySelector(".postTweetModal textarea.tweetArea");
+					area.value = "Written offline";
+					area.dispatchEvent(new Event("input", { bubbles: true }));
+					return true;
+				})()`,
+			);
+			await obsidian.dev.evalJson<boolean>(clickPost);
+			await obsidian.waitFor(
+				() =>
+					obsidian.dev.evalJson<boolean>(
+						`[...document.querySelectorAll(".notice")].some((n) => n.textContent.includes("not connected")) &&
+							!document.querySelector(".postTweetModal .nt-btn-cta").disabled`,
+					),
+				{ ...WAIT_OPTS, message: "Failed post did not settle." },
+			);
+			const draft = await obsidian.dev.evalJson<string[]>(
+				`[...document.querySelectorAll(".postTweetModal textarea.tweetArea")].map((a) => a.value)`,
+			);
+			expect(draft).toEqual(["Written offline"]);
+
+			await obsidian.dev.evalJson<boolean>(clickPost);
+			await obsidian.waitFor(
+				() =>
+					obsidian.dev.evalJson<boolean>(
+						`Boolean(window.__ntAccountProbe && document.querySelector(".nt-posted-list")) &&
+							!document.querySelector(".postTweetModal")`,
+					),
+				{ ...WAIT_OPTS, message: "Retried post did not complete." },
+			);
+			expect(await obsidian.dev.evalJson<string[]>(`window.__ntAccountProbe`)).toEqual([
+				"Written offline",
+			]);
+		} finally {
+			await obsidian.dev.evalJson<boolean>(
+				`(() => {
+					const plugin = app.plugins.plugins.${PLUGIN_ID};
+					if (window.__ntOriginalConnectAccount) plugin.connectAccount = window.__ntOriginalConnectAccount;
+					for (const button of document.querySelectorAll("button")) {
+						if (button.textContent === "Great!") button.click();
+					}
+					document.querySelector(".postTweetModal")?.closest(".modal")?.querySelector(".modal-close-button")?.click();
+					delete window.__ntOriginalConnectAccount;
+					delete window.__ntAccountProbe;
+					return true;
+				})()`,
+			);
+		}
+		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
+	});
+
 	test("quick-post selection uses the configured default account", async () => {
 		const { obsidian, plugin } = getContext();
 		const notePath = "nt-e2e-default-account.md";

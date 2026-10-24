@@ -149,17 +149,23 @@ export default class NoteTweet extends Plugin {
 		if (!client) return false;
 
 		let posted: PostedTweet[];
+		let sent = true;
 		try {
 			posted = await client.postThread(result.content);
 		} catch (error) {
-			log.error(`Failed to post tweet: ${errorMessage(error)}`);
+			// Keep the whole draft open; the posted list shows what went live.
 			posted = error instanceof ThreadPostError ? error.posted : [];
-			if (posted.length === 0) return false;
+			sent = false;
+			log.error(
+				posted.length > 0
+					? `Posted ${posted.length} of ${result.content.length}, the rest failed: ${errorMessage(error)}`
+					: `Failed to post tweet: ${errorMessage(error)}`,
+			);
 		}
 		this.showPosted(posted, client).catch((error: unknown) =>
 			log.error(`Posted, but could not finish up: ${errorMessage(error)}`),
 		);
-		return true;
+		return sent;
 	}
 
 	private async postSelection(editor: Editor): Promise<void> {

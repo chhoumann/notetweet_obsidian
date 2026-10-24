@@ -7,8 +7,12 @@ import type { PostedTweet } from "./xApi";
 vi.mock("./Modals/ComposeTweetModal", () => ({
 	ComposeTweetModal: { compose: vi.fn() },
 }));
+const shownPosts = vi.hoisted(() => [] as PostedTweet[][]);
 vi.mock("./Modals/TweetsPostedModal", () => ({
 	TweetsPostedModal: class {
+		constructor(_app: unknown, posts: PostedTweet[]) {
+			shownPosts.push(posts);
+		}
 		open() {}
 		waitForClose = new Promise(() => {});
 	},
@@ -44,6 +48,7 @@ describe("Post tweet command", () => {
 	beforeEach(() => {
 		compose.mockReset().mockResolvedValue(null);
 		Notice.reset();
+		shownPosts.length = 0;
 	});
 
 	it("keeps the draft open when the account cannot connect", async () => {
@@ -63,13 +68,25 @@ describe("Post tweet command", () => {
 		expect(Notice.messages.join("\n")).toContain("Failed to post tweet: 429");
 	});
 
-	it("closes the composer once part of a thread is live", async () => {
+	it("keeps the draft open and offers undo when a thread fails part-way", async () => {
 		const { send } = await composerSend({
 			isConnected: true,
 			postThread: vi.fn().mockRejectedValue(new ThreadPostError([tweet("1")], "429")),
 		});
 
+		await expect(send({ content: ["a", "b"], accountId: "acct" })).resolves.toBe(false);
+		expect(shownPosts).toEqual([[tweet("1")]]);
+		expect(Notice.messages.join("\n")).toContain("Posted 1 of 2, the rest failed: 429");
+	});
+
+	it("closes the composer and lists the thread once it is posted", async () => {
+		const { send } = await composerSend({
+			isConnected: true,
+			postThread: vi.fn().mockResolvedValue([tweet("1"), tweet("2")]),
+		});
+
 		await expect(send({ content: ["a", "b"], accountId: "acct" })).resolves.toBe(true);
+		expect(shownPosts).toEqual([[tweet("1"), tweet("2")]]);
 	});
 
 	it("keeps the draft open when scheduling fails", async () => {

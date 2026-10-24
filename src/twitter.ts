@@ -26,9 +26,9 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 export class ThreadPostError extends Error {
 	constructor(
 		readonly posted: PostedTweet[],
-		cause: unknown,
+		error: unknown,
 	) {
-		super(cause instanceof Error ? cause.message : String(cause));
+		super(error instanceof Error ? error.message : String(error));
 	}
 }
 

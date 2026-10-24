@@ -128,7 +128,7 @@ export class ComposeTweetModal extends Modal {
 	private scheduleButton: HTMLButtonElement | null = null;
 	private selectedAccountId = "";
 	private submitted = false;
-	private sending = false;
+	private sending: "post" | "schedule" | null = null;
 	private result: ComposeResult | null = null;
 
 	static compose(
@@ -434,8 +434,20 @@ export class ComposeTweetModal extends Modal {
 		this.statusEl.toggleClass("is-blocked", Boolean(reason));
 		const requiresAccount = this.options.submitLabel !== "Update";
 		this.postButton.disabled =
-			!ok || this.sending || (requiresAccount && this.selectedAccountId === "");
-		if (this.scheduleButton) this.scheduleButton.disabled = !ok || this.sending;
+			!ok ||
+			Boolean(this.sending) ||
+			(requiresAccount && this.selectedAccountId === "");
+		this.postButton.setText(
+			this.sending === "post"
+				? "Posting\u2026"
+				: (this.options.submitLabel ?? "Post"),
+		);
+		if (this.scheduleButton) {
+			this.scheduleButton.disabled = !ok || Boolean(this.sending);
+			this.scheduleButton.setText(
+				this.sending === "schedule" ? "Scheduling\u2026" : "Schedule",
+			);
+		}
 	}
 
 	private handlePaste(event: ClipboardEvent, row: PostRow): void {
@@ -713,14 +725,14 @@ export class ComposeTweetModal extends Modal {
 	private async submit(result: ComposeResult): Promise<void> {
 		if (this.options.send) {
 			// Freeze the draft so edits made mid-send can't be lost on success.
-			this.setSending(true);
+			this.setSending(result.postAt == null ? "post" : "schedule");
 			let sent = false;
 			try {
 				sent = await this.options.send(result);
 			} catch (error) {
 				log.error(String(error));
 			} finally {
-				this.setSending(false);
+				this.setSending(null);
 			}
 			if (!sent) return;
 		}
@@ -729,9 +741,9 @@ export class ComposeTweetModal extends Modal {
 		this.close();
 	}
 
-	private setSending(sending: boolean): void {
+	private setSending(sending: "post" | "schedule" | null): void {
 		this.sending = sending;
-		this.contentEl.toggleAttribute("inert", sending);
+		this.contentEl.toggleAttribute("inert", sending !== null);
 		this.refreshState();
 	}
 
