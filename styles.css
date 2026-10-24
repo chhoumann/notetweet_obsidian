@@ -5,6 +5,19 @@
 	width: min(40rem, 92vw);
 }
 
+/* Obsidian mobile draws the soft keyboard over the page instead of resizing
+   it, so lift the composer above the keyboard to keep the footer reachable. */
+.is-mobile .modal.nt-compose-modal {
+	margin-top: var(--safe-area-inset-top);
+	margin-bottom: var(--keyboard-height);
+	max-height: calc(100vh - var(--safe-area-inset-top) - var(--keyboard-height));
+}
+
+/* Keep the caret clear of the sticky footer while typing. */
+.is-mobile .postTweetModal {
+	scroll-padding-bottom: 7rem;
+}
+
 .postTweetModal {
 	--nt-rail-w: 1.75rem;
 	--nt-gap: 0.75rem;
