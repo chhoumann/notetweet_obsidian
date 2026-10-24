@@ -29,7 +29,7 @@ jobs:
             contents: write
             id-token: write
             pull-requests: read
-        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/release.yml@v4
+        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/release.yml@ebcf84b80dc48ba15e0eec1f3575d41519a78ed5 # v4
         with:
             release-pr: ${{ inputs.releasePr }}
             plugin-name: notetweet
@@ -37,7 +37,7 @@ jobs:
             # Must match the release-policy pinned in release-prepare.yml.
             release-policy: '[{"scope":"deps","type":"build","release":"patch"}]'
             default-branch: master
-            node-version: "22"
+            node-version: "24"
             release-bot-app-slug: notetweet-release-bot
             release-assets: '["main.js","manifest.json","styles.css"]'
             build-command: pnpm run build

@@ -28,7 +28,7 @@ release packaging, not hand-edited. `styles.css` is a hand-written, committed
 release asset.
 
 ## Tooling & GitHub
-- Use `pnpm` for package management and scripts. Avoid npm/yarn/bun. Node 22 and
+- Use `pnpm` for package management and scripts. Avoid npm/yarn/bun. Node 24 and
   the pnpm version are pinned in `.mise.toml`.
 - Use the GitHub CLI (`gh`) for issues, PRs, and releases.
 - When resolving a GitHub issue, use `gh issue develop <issue-number>` to
@@ -109,16 +109,15 @@ pnpm run obsidian:e2e -- dev:errors
   and seeds a clean `DEFAULT_SETTINGS`-shaped `data.json` on first provision.
 - `pnpm run provision:e2e-vault` and `pnpm run start:e2e-obsidian` expose the
   provision/launch steps individually; both accept `--help`.
-- To point the Vitest `tests/e2e` suite at the isolated instance, the `obsidian`
-  CLI routes by `$HOME` (it talks to `$HOME/.obsidian-cli.sock`), so you must
-  remap `HOME` as well as the vault name. `--print-env` emits the canonical
-  `OBSIDIAN_E2E_*` names (the runner also emits legacy `NOTETWEET_E2E_*` aliases
-  during the migration; the harness reads canonical first, then the alias):
+- To point the Vitest `tests/e2e` suite at the isolated instance, export the
+  `OBSIDIAN_E2E_*` names that `--print-env` emits. The harness passes them to
+  `resolveObsidianEnvOptions`, which binds the `obsidian` CLI to the instance's
+  private `HOME` (and, on Linux, `XDG_RUNTIME_DIR`, where the CLI socket lives)
+  without touching your own shell's `HOME`:
 
   ```bash
   pnpm run build                                 # provisioning links main.js
   eval "$(pnpm run --silent start:e2e-obsidian -- --print-env)"
-  export HOME="$OBSIDIAN_E2E_OBSIDIAN_HOME"      # re-point the CLI socket
   pnpm run test:e2e
   ```
 

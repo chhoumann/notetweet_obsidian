@@ -1,3 +1,4 @@
+import { defineConfig } from "eslint/config";
 import globals from "globals";
 import obsidianmd from "eslint-plugin-obsidianmd";
 import tseslint from "typescript-eslint";
@@ -19,7 +20,7 @@ const obsidianGuidelineRules = {
   "obsidianmd/commands/no-plugin-name-in-command-name": "error",
 };
 
-export default tseslint.config(
+export default defineConfig(
   {
     ignores: [
       "node_modules/**",
@@ -33,7 +34,7 @@ export default tseslint.config(
       ".obsidian-e2e-artifacts/**",
     ],
   },
-  ...tseslint.configs.recommended,
+  tseslint.configs.recommended,
   {
     files: ["**/*.{ts,mts,cts}"],
     languageOptions: { globals: sharedGlobals },

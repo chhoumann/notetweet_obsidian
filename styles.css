@@ -48,13 +48,13 @@
 .nt-post {
 	position: relative;
 	display: grid;
-	grid-template-columns: var(--nt-rail-w) 1fr;
+	grid-template-columns: var(--nt-rail-w) minmax(0, 1fr);
 	gap: 0 var(--nt-gap);
 	align-items: start;
 }
 
 .nt-thread.is-single .nt-post {
-	grid-template-columns: 1fr;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 0;
 }
 

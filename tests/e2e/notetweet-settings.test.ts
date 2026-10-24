@@ -134,6 +134,96 @@ describe("NoteTweet settings tab", () => {
 		expect(snapshot.migrationVisible).toBe(true);
 	});
 
+	// Secure Mode ciphertexts of "ak", "as", "at" and "ats", encrypted with
+	// `openssl enc -aes-256-cbc -md md5 -pass pass:migration-pass`.
+	const secureModeData = {
+		apiKey: "U2FsdGVkX19ytuAALII+VARJip+9yIw0ip0GiORnltg=",
+		apiSecret: "U2FsdGVkX1+TZdVBuf1wMOx6ba7NZ6zle/rMK0y93uc=",
+		accessToken: "U2FsdGVkX1+m6hSg59TOht37qR7SixRkfkm70lMzyLk=",
+		accessTokenSecret: "U2FsdGVkX18Zxe2F4wfkFY6dcq2wB174ct0VJs5AhcQ=",
+		secureMode: true,
+		accounts: [],
+		defaultAccountId: "",
+		postTweetTag: "",
+		autoSplitTweets: true,
+		scheduling: { enabled: false, url: "" },
+	};
+
+	// Runs the "Migrate now" flow and answers the Secure Mode password prompt.
+	// Credential verification is stubbed so the flow never calls X.
+	const runSecureModeMigration = (password: string) => `
+		(async () => {
+			const plugin = app.plugins.plugins.${PLUGIN_ID};
+			plugin.verifyCredentials = async () => true;
+			const tab = app.setting.pluginTabs.find((t) => t.id === ${JSON.stringify(PLUGIN_ID)});
+			const migration = tab.migrate();
+			let input = null;
+			for (let i = 0; i < 100 && !input; i++) {
+				await new Promise((resolve) => window.setTimeout(resolve, 50));
+				input = document.querySelector('.modal input[type="password"]');
+			}
+			if (!input) throw new Error("Secure Mode password prompt did not open.");
+			input.value = ${JSON.stringify(password)};
+			input.dispatchEvent(new Event("input"));
+			input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+			const suffixes = ["api-key", "api-secret", "access-token", "access-token-secret"];
+			const secretId = (suffix) => "notetweet-account-" + plugin.settings.accounts[0]?.id + "-" + suffix;
+			try {
+				await migration;
+				const values = plugin.settings.accounts.length
+					? Object.fromEntries(
+						["apiKey", "apiSecret", "accessToken", "accessTokenSecret"].map((field, i) => [field, app.secretStorage.getSecret(secretId(suffixes[i]))]),
+					)
+					: {};
+				return {
+					accounts: plugin.settings.accounts.length,
+					values,
+					notices: [...document.querySelectorAll(".notice")].map((el) => el.textContent),
+				};
+			} finally {
+				if (plugin.settings.accounts.length) for (const suffix of suffixes) app.secretStorage.setSecret(secretId(suffix), "");
+			}
+		})()
+	`;
+
+	type SecureModeResult = {
+		accounts: number;
+		values: Record<string, string | null>;
+		notices: string[];
+	};
+
+	test("migrates Secure Mode credentials after the password prompt", async () => {
+		const { obsidian, plugin } = getContext();
+		await plugin.updateDataAndReload(() => secureModeData, RELOAD_OPTIONS);
+		await waitForNoteTweetReady(obsidian);
+
+		const result = await obsidian.dev.evalJsonAsync<SecureModeResult>(
+			runSecureModeMigration("migration-pass"),
+		);
+
+		expect(result.accounts).toBe(1);
+		expect(result.values).toEqual({
+			apiKey: "ak",
+			apiSecret: "as",
+			accessToken: "at",
+			accessTokenSecret: "ats",
+		});
+		expect(await obsidian.dev.runtimeErrors()).toEqual([]);
+	});
+
+	test("refuses a wrong Secure Mode password without creating an account", async () => {
+		const { obsidian, plugin } = getContext();
+		await plugin.updateDataAndReload(() => secureModeData, RELOAD_OPTIONS);
+		await waitForNoteTweetReady(obsidian);
+
+		const result = await obsidian.dev.evalJsonAsync<SecureModeResult>(
+			runSecureModeMigration("wrong password"),
+		);
+
+		expect(result.accounts).toBe(0);
+		expect(result.notices.join("\n")).toContain("Could not decrypt");
+	});
+
 	test("migrates the four fixed secrets into one named account and clears the old keys", async () => {
 		const { obsidian, plugin } = getContext();
 		const oldIds = {

@@ -17,11 +17,11 @@ permissions:
 
 jobs:
     ci:
-        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/ci.yml@v4
+        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/ci.yml@ebcf84b80dc48ba15e0eec1f3575d41519a78ed5 # v4
         with:
             package-manager: pnpm
-            # Matches .mise.toml (node = "22").
-            node-version: "22"
+            # Matches .mise.toml (node = "24").
+            node-version: "24"
             # test-command defaults to 'pnpm run test'.
             build-command: pnpm run build
             lint-command: pnpm run lint

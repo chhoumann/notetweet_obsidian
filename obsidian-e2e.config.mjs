@@ -24,10 +24,6 @@ export default {
 		},
 	},
 	buildCommand: "pnpm run build",
-	// Emit legacy NOTETWEET_E2E_* env aliases alongside the canonical
-	// OBSIDIAN_E2E_* names while the harness and AGENTS.md playbooks migrate off
-	// them.
-	envPrefix: "NOTETWEET",
 	// Confirm the NoteTweet plugin instance is live in the target vault. NoteTweet
 	// exposes no public API object, so the loaded plugin being present on
 	// app.plugins.plugins is the readiness signal. The launcher waits for stdout

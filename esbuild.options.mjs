@@ -8,6 +8,22 @@ const externalBuiltins = builtinModules.filter(
   (module) => !browserBundledModules.has(module),
 );
 
+// twitter-text's ESM build imports core-js 2 polyfills (side-effect imports
+// only) for ES2015 builtins every supported Obsidian runtime has natively.
+// Bundling them would patch globals shared with Obsidian and other plugins.
+const stripCoreJsPolyfills = {
+  name: "strip-core-js-polyfills",
+  setup(build) {
+    build.onResolve({ filter: /^core-js\/modules\// }, (args) => ({
+      path: args.path,
+      namespace: "stripped-polyfill",
+    }));
+    build.onLoad({ filter: /.*/, namespace: "stripped-polyfill" }, () => ({
+      contents: "",
+    }));
+  },
+};
+
 export function createBuildOptions({ production = false } = {}) {
   return {
     entryPoints: ["src/main.ts"],
@@ -32,6 +48,6 @@ export function createBuildOptions({ production = false } = {}) {
         production ? "production" : "development",
       ),
     },
-    plugins: [],
+    plugins: [stripCoreJsPolyfills],
   };
 }
