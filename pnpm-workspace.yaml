@@ -1,0 +1,11 @@
+allowBuilds:
+  esbuild: true
+  core-js: false
+
+# Refuse to resolve versions published less than 7 days ago. Most malicious
+# npm publishes are detected and pulled within that window. The excluded
+# packages are our own shared tooling, released in lockstep with this repo.
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - obsidian-e2e
+  - obsidian-test-kit

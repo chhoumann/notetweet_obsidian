@@ -26,7 +26,7 @@
 	],
 	"author": "Christian Bager Bach Houmann",
 	"license": "MIT",
-	"packageManager": "pnpm@10.32.1",
+	"packageManager": "pnpm@12.14.0",
 	"engines": {
 		"node": ">=24"
 	},
@@ -53,16 +53,5 @@
 		"crypto-es": "^2.1.0",
 		"twitter-text": "3.1.0",
 		"unicode-segmenter": "0.17.3"
-	},
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"esbuild"
-		],
-		"overrides": {
-			"brace-expansion@<1.1.18": "1.1.18",
-			"brace-expansion@>=2.0.0 <2.1.4": "2.1.4",
-			"fast-uri@>=3.0.0 <3.1.5": "3.1.5",
-			"js-yaml@>=4.0.0 <4.3.1": "4.3.1"
-		}
 	}
 }
