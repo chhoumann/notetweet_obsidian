@@ -20,6 +20,7 @@ export class DateTimePromptModal extends Modal {
 	private value: number | null;
 	private submitted = false;
 	private button!: ButtonComponent;
+	private input!: HTMLInputElement;
 	private errorEl!: HTMLElement;
 
 	constructor(
@@ -37,9 +38,14 @@ export class DateTimePromptModal extends Modal {
 		const input = this.contentEl.createEl("input", {
 			cls: "nt-schedule-input",
 			type: "datetime-local",
-			attr: { "aria-label": "Post at", min: toDateTimeInput(Date.now()) },
+			attr: {
+				"aria-label": "Post at",
+				"aria-describedby": "nt-schedule-error",
+				min: toDateTimeInput(Date.now()),
+			},
 			value: toDateTimeInput(this.value ?? Date.now()),
 		});
+		this.input = input;
 		input.addEventListener("input", () => {
 			this.value = fromDateTimeInput(input.value);
 			this.refresh();
@@ -50,7 +56,10 @@ export class DateTimePromptModal extends Modal {
 				this.submit();
 			}
 		});
-		this.errorEl = this.contentEl.createDiv({ cls: "nt-schedule-error" });
+		this.errorEl = this.contentEl.createDiv({
+			cls: "nt-schedule-error",
+			attr: { id: "nt-schedule-error", "aria-live": "polite" },
+		});
 
 		const buttons = this.modalEl.createDiv({ cls: "modal-button-container" });
 		this.button = new ButtonComponent(buttons)
@@ -65,14 +74,17 @@ export class DateTimePromptModal extends Modal {
 	}
 
 	private refresh(): void {
-		this.button.setDisabled(!this.valid);
-		this.errorEl.setText(
-			this.value === null || this.valid ? "" : "Pick a time in the future.",
-		);
+		const valid = this.valid;
+		this.button.setDisabled(!valid);
+		this.input.setAttr("aria-invalid", String(!valid));
+		this.errorEl.setText(valid ? "" : "Pick a valid time in the future.");
 	}
 
 	private submit(): void {
-		if (!this.valid) return;
+		if (!this.valid) {
+			this.refresh();
+			return;
+		}
 		this.submitted = true;
 		this.close();
 	}

@@ -18,12 +18,16 @@ export function toDateTimeInput(timestamp: number): string {
 	);
 }
 
-/** Parse a `datetime-local` input value as local time, or `null` when empty. */
+/**
+ * Parse a `datetime-local` input value as local time. `null` when empty or
+ * when the time doesn't exist locally, such as in a daylight-saving gap.
+ */
 export function fromDateTimeInput(value: string): number | null {
 	const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
 	if (!match) return null;
 	const [, year, month, day, hour, minute] = match.map(Number);
-	return new Date(year, month - 1, day, hour, minute).getTime();
+	const timestamp = new Date(year, month - 1, day, hour, minute).getTime();
+	return toDateTimeInput(timestamp) === match[0] ? timestamp : null;
 }
 
 /** The start of the next full hour after `now`. */

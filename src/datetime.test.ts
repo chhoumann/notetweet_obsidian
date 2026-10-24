@@ -26,6 +26,22 @@ describe("datetime-local input values", () => {
 	it("treats a cleared picker as no time", () => {
 		expect(fromDateTimeInput("")).toBeNull();
 	});
+
+	it("rejects a time that doesn't exist locally", () => {
+		expect(fromDateTimeInput("2026-02-30T10:00")).toBeNull();
+	});
+
+	it("rejects a time skipped by daylight saving", () => {
+		const zone = process.env.TZ;
+		process.env.TZ = "Europe/Copenhagen";
+		try {
+			expect(fromDateTimeInput("2027-03-28T02:30")).toBeNull();
+			expect(fromDateTimeInput("2027-03-28T03:30")).not.toBeNull();
+		} finally {
+			if (zone === undefined) delete process.env.TZ;
+			else process.env.TZ = zone;
+		}
+	});
 });
 
 describe("nextFullHour", () => {
