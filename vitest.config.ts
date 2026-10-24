@@ -7,10 +7,14 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts", "tests/*.test.ts"],
     exclude: ["node_modules/**", "tests/e2e/**"],
+    // Transform twitter-text so its `punycode` import resolves to the npm
+    // package the production bundle ships, not Node's deprecated builtin.
+    server: { deps: { inline: ["twitter-text"] } },
   },
   resolve: {
     alias: {
       obsidian: path.resolve("./tests/obsidian.ts"),
+      punycode: "punycode/",
     },
   },
 });
