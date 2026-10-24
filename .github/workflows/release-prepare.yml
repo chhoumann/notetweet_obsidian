@@ -47,7 +47,7 @@ jobs:
             # Pin the commit-to-release policy so a toolkit update can never change it.
             release-policy: '[{"scope":"deps","type":"build","release":"patch"}]'
             default-branch: master
-            node-version: "22"
+            node-version: "24"
             target-sha: ${{ github.event.workflow_run.head_sha || inputs.targetSha }}
             release-bot-app-slug: notetweet-release-bot
             app-id: ${{ vars.RELEASE_APP_ID }}

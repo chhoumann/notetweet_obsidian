@@ -28,7 +28,7 @@ release packaging, not hand-edited. `styles.css` is a hand-written, committed
 release asset.
 
 ## Tooling & GitHub
-- Use `pnpm` for package management and scripts. Avoid npm/yarn/bun. Node 22 and
+- Use `pnpm` for package management and scripts. Avoid npm/yarn/bun. Node 24 and
   the pnpm version are pinned in `.mise.toml`.
 - Use the GitHub CLI (`gh`) for issues, PRs, and releases.
 - When resolving a GitHub issue, use `gh issue develop <issue-number>` to

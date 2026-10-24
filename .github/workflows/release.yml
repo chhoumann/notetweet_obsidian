@@ -37,7 +37,7 @@ jobs:
             # Must match the release-policy pinned in release-prepare.yml.
             release-policy: '[{"scope":"deps","type":"build","release":"patch"}]'
             default-branch: master
-            node-version: "22"
+            node-version: "24"
             release-bot-app-slug: notetweet-release-bot
             release-assets: '["main.js","manifest.json","styles.css"]'
             build-command: pnpm run build
