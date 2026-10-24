@@ -6,12 +6,12 @@ import {
 	type NoteTweetSettings,
 } from "./settings";
 import { NoteTweetSettingsTab } from "./settingsTab";
-import { TwitterClient } from "./twitter";
+import { ThreadPostError, TwitterClient } from "./twitter";
 import { SelfHostedScheduler } from "./scheduler";
 import { ComposeTweetModal, type ComposeOptions } from "./Modals/ComposeTweetModal";
 import { TweetsPostedModal } from "./Modals/TweetsPostedModal";
 import { log } from "./log";
-import { parseThread, type ScheduledTweet } from "./tweet";
+import { type ComposeResult, parseThread, type ScheduledTweet } from "./tweet";
 import {
 	clearFixedTwitterSecrets,
 	type LegacyCredentialData,
@@ -124,6 +124,7 @@ export default class NoteTweet extends Plugin {
 			autoSplit: this.settings.autoSplitTweets,
 			accounts: this.settings.accounts,
 			selectedAccountId: this.settings.defaultAccountId,
+			send: (result) => this.send(result),
 		};
 
 		const selection = this.currentSelection();
@@ -135,21 +136,36 @@ export default class NoteTweet extends Plugin {
 			}
 		}
 
-		const result = await ComposeTweetModal.compose(this.app, options);
-		if (!result) return;
+		await ComposeTweetModal.compose(this.app, options);
+	}
 
+	/** Post or schedule a composed thread. False when nothing went out. */
+	private async send(result: ComposeResult): Promise<boolean> {
 		if (result.postAt != null) {
-			await this.schedule(result.content, result.postAt);
-			return;
+			return this.schedule(result.content, result.postAt);
 		}
 
 		const client = await this.clientForAccount(result.accountId);
-		if (!client) return;
+		if (!client) return false;
+
+		let posted: PostedTweet[];
+		let sent = true;
 		try {
-			await this.showPosted(await client.postThread(result.content), client);
+			posted = await client.postThread(result.content);
 		} catch (error) {
-			log.error(`Failed to post tweet: ${errorMessage(error)}`);
+			// Keep the whole draft open; the posted list shows what went live.
+			posted = error instanceof ThreadPostError ? error.posted : [];
+			sent = false;
+			log.error(
+				posted.length > 0
+					? `Posted ${posted.length} of ${result.content.length}, the rest failed: ${errorMessage(error)}`
+					: `Failed to post tweet: ${errorMessage(error)}`,
+			);
 		}
+		this.showPosted(posted, client).catch((error: unknown) =>
+			log.error(`Posted, but could not finish up: ${errorMessage(error)}`),
+		);
+		return sent;
 	}
 
 	private async postSelection(editor: Editor): Promise<void> {
@@ -192,11 +208,11 @@ export default class NoteTweet extends Plugin {
 		}
 	}
 
-	private async schedule(content: string[], postAt: number): Promise<void> {
+	private async schedule(content: string[], postAt: number): Promise<boolean> {
 		this.refreshScheduler();
 		if (!this.scheduler) {
 			new Notice("Set a scheduler URL in settings first.");
-			return;
+			return false;
 		}
 
 		const tweet: ScheduledTweet = {
@@ -206,8 +222,10 @@ export default class NoteTweet extends Plugin {
 		};
 		try {
 			await this.scheduler.scheduleTweet(tweet);
+			return true;
 		} catch (error) {
 			log.error(`Failed to schedule tweet: ${errorMessage(error)}`);
+			return false;
 		}
 	}
 

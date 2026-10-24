@@ -31,6 +31,11 @@ export interface ComposeOptions {
 	accounts?: XAccount[];
 	/** Account preselected when the composer opens. */
 	selectedAccountId?: string;
+	/**
+	 * Sends the thread while the composer stays open. Resolve `false` when
+	 * nothing went out, which keeps the draft open for another try.
+	 */
+	send?: (result: ComposeResult) => Promise<boolean>;
 }
 
 /** Character count starts showing once this many remain. */
@@ -123,6 +128,7 @@ export class ComposeTweetModal extends Modal {
 	private scheduleButton: HTMLButtonElement | null = null;
 	private selectedAccountId = "";
 	private submitted = false;
+	private sending: "post" | "schedule" | null = null;
 	private result: ComposeResult | null = null;
 
 	static compose(
@@ -428,8 +434,20 @@ export class ComposeTweetModal extends Modal {
 		this.statusEl.toggleClass("is-blocked", Boolean(reason));
 		const requiresAccount = this.options.submitLabel !== "Update";
 		this.postButton.disabled =
-			!ok || (requiresAccount && this.selectedAccountId === "");
-		if (this.scheduleButton) this.scheduleButton.disabled = !ok;
+			!ok ||
+			Boolean(this.sending) ||
+			(requiresAccount && this.selectedAccountId === "");
+		this.postButton.setText(
+			this.sending === "post"
+				? "Posting\u2026"
+				: (this.options.submitLabel ?? "Post"),
+		);
+		if (this.scheduleButton) {
+			this.scheduleButton.disabled = !ok || Boolean(this.sending);
+			this.scheduleButton.setText(
+				this.sending === "schedule" ? "Scheduling\u2026" : "Schedule",
+			);
+		}
 	}
 
 	private handlePaste(event: ClipboardEvent, row: PostRow): void {
@@ -675,19 +693,22 @@ export class ComposeTweetModal extends Modal {
 
 	private submitPost(): void {
 		const requiresAccount = this.options.submitLabel !== "Update";
-		if (!this.validate().ok || (requiresAccount && !this.selectedAccountId)) return;
-		this.result = {
+		if (
+			this.sending ||
+			!this.validate().ok ||
+			(requiresAccount && !this.selectedAccountId)
+		)
+			return;
+		void this.submit({
 			content: this.collectContent(),
 			...(this.selectedAccountId
 				? { accountId: this.selectedAccountId }
 				: {}),
-		};
-		this.submitted = true;
-		this.close();
+		});
 	}
 
 	private async submitSchedule(): Promise<void> {
-		if (!this.validate().ok) return;
+		if (this.sending || !this.validate().ok) return;
 
 		let postAt: number | null;
 		try {
@@ -698,9 +719,39 @@ export class ComposeTweetModal extends Modal {
 		}
 		if (postAt === null) return;
 
-		this.result = { content: this.collectContent(), postAt };
+		await this.submit({ content: this.collectContent(), postAt });
+	}
+
+	private async submit(result: ComposeResult): Promise<void> {
+		if (this.options.send) {
+			// Freeze the draft so edits made mid-send can't be lost on success.
+			this.setSending(result.postAt == null ? "post" : "schedule");
+			let sent = false;
+			try {
+				sent = await this.options.send(result);
+			} catch (error) {
+				log.error(String(error));
+			} finally {
+				this.setSending(null);
+			}
+			if (!sent) {
+				// Going inert dropped focus; hand it back unless another modal took it.
+				if (activeDocument.activeElement === activeDocument.body) {
+					(this.rows.find((row) => row.el.hasClass("is-active")) ?? this.rows[0])
+						?.textarea.focus();
+				}
+				return;
+			}
+		}
+		this.result = result;
 		this.submitted = true;
 		this.close();
+	}
+
+	private setSending(sending: "post" | "schedule" | null): void {
+		this.sending = sending;
+		this.contentEl.toggleAttribute("inert", sending !== null);
+		this.refreshState();
 	}
 
 	onClose(): void {
