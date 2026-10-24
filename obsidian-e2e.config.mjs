@@ -21,6 +21,8 @@ export default {
 		scheduling: {
 			enabled: false,
 			url: "",
+			passwordKey: "",
+			legacyPassword: false,
 		},
 	},
 	buildCommand: "pnpm run build",

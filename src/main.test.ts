@@ -26,7 +26,11 @@ const tweet = (id: string) => ({ data: { id, text: id } }) as PostedTweet;
 async function composerSend(
 	client: Partial<TwitterClient>,
 ): Promise<{ plugin: NoteTweet; send: NonNullable<ComposeOptions["send"]> }> {
-	const plugin = new NoteTweet(new App(), { id: "notetweet" } as never);
+	const app = Object.assign(new App(), {
+		loadLocalStorage: () => null,
+		saveLocalStorage: () => {},
+	});
+	const plugin = new NoteTweet(app, { id: "notetweet" } as never);
 	const commands = new Map<string, () => void>();
 	vi.spyOn(plugin, "addCommand").mockImplementation((command) => {
 		if (command.callback) commands.set(command.id, command.callback);

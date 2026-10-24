@@ -1,13 +1,14 @@
 import type { App } from "obsidian";
 import {
+	LEGACY_SCHEDULER_PASSWORD_ID,
 	LEGACY_TWITTER_SECRET_IDS,
-	SECRET_IDS,
 	getSecret,
+	schedulerPasswordSecretId,
 	setAccountCredentials,
 	setSecret,
 	type TwitterCredentials,
 } from "./secrets";
-import type { NoteTweetSettings, XAccount } from "./settings";
+import { randomId, type NoteTweetSettings, type XAccount } from "./settings";
 import { decryptLegacyValue } from "./legacyCrypt";
 
 /**
@@ -76,12 +77,47 @@ export async function readLegacyCredentials(
 /** Write the migrated (already-decrypted) credentials into SecretStorage. */
 export function storeCredentials(
 	app: App,
+	settings: NoteTweetSettings,
 	accountId: string,
 	credentials: MigratableCredentials,
 ): void {
 	setAccountCredentials(app, accountId, credentials);
-	if (credentials.schedulerPassword)
-		setSecret(app, SECRET_IDS.schedulerPassword, credentials.schedulerPassword);
+	// A password already set for this vault here is newer than the legacy one.
+	if (credentials.schedulerPassword && !app.loadLocalStorage(passwordSetHere(settings)))
+		setSchedulerPassword(app, settings, credentials.schedulerPassword);
+}
+
+const PASSWORD_KEY = /^[a-f0-9]+$/;
+
+/** Device-local marker: this vault's scheduler password was set on this device. */
+function passwordSetHere(settings: NoteTweetSettings): string {
+	return `notetweet-scheduler-password-set-${settings.scheduling.passwordKey}`;
+}
+
+/**
+ * Give this vault its own scheduler password secret. Secret storage is shared
+ * by every vault on a device, and NoteTweet 0.7.0 kept the scheduler password
+ * under one fixed id, so vaults pointing at different schedulers overwrote each
+ * other's password. A vault that already used a scheduler is marked so it keeps
+ * reading that old password until one is set for it. Returns true when the
+ * settings changed and need saving.
+ */
+export function assignSchedulerPasswordKey(settings: NoteTweetSettings): boolean {
+	const { scheduling } = settings;
+	if (PASSWORD_KEY.test(scheduling.passwordKey)) return false;
+	scheduling.passwordKey = randomId();
+	scheduling.legacyPassword = Boolean(scheduling.enabled || scheduling.url);
+	return true;
+}
+
+/** Store this vault's scheduler password on this device. */
+export function setSchedulerPassword(
+	app: App,
+	settings: NoteTweetSettings,
+	password: string,
+): void {
+	setSecret(app, schedulerPasswordSecretId(settings.scheduling.passwordKey), password);
+	app.saveLocalStorage(passwordSetHere(settings), true);
 }
 
 const MIGRATED_ACCOUNT_ID = "migrated-account";
@@ -141,12 +177,25 @@ export function stripLegacyCredentials(data: LegacyCredentialData): void {
 
 export function resolveSchedulerPassword(
 	app: App,
-	data: LegacyCredentialData,
+	settings: NoteTweetSettings,
 ): string {
-	const stored = app.secretStorage?.getSecret(SECRET_IDS.schedulerPassword);
+	const data = settings as unknown as LegacyCredentialData;
+	const stored = getSecret(
+		app,
+		schedulerPasswordSecretId(settings.scheduling.passwordKey),
+	);
 	if (stored) return stored;
+	// Once a password is set for this vault on this device, even an empty one,
+	// the older sources no longer apply.
+	if (app.loadLocalStorage(passwordSetHere(settings))) return "";
+	// A pre-0.6 plaintext password belongs to this vault, so it outranks the
+	// shared secret, which may have been saved by another vault.
 	if (!data.secureMode && data.scheduling?.password) {
 		return data.scheduling.password;
+	}
+	// Secrets stay on their device, so each device reads its own old password.
+	if (settings.scheduling.legacyPassword) {
+		return getSecret(app, LEGACY_SCHEDULER_PASSWORD_ID);
 	}
 	return "";
 }
