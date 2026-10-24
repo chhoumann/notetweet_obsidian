@@ -19,6 +19,6 @@ permissions:
 
 jobs:
     pr-title:
-        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/pr-title.yml@149e37801b35c120660a1fd5e78a5471fda55726 # v4.1.0
+        uses: chhoumann/obsidian-plugin-workflows/.github/workflows/pr-title.yml@d6b3b8c2cf460059238043b32a08dcaa3be4828f # v5.0.0
         permissions:
             pull-requests: read
