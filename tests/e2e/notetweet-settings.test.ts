@@ -162,24 +162,27 @@ describe("NoteTweet settings tab", () => {
 				await new Promise((resolve) => window.setTimeout(resolve, 50));
 				input = document.querySelector('.modal input[type="password"]');
 			}
+			if (!input) throw new Error("Secure Mode password prompt did not open.");
 			input.value = ${JSON.stringify(password)};
 			input.dispatchEvent(new Event("input"));
 			input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
-			await migration;
-			const id = plugin.settings.accounts[0]?.id;
-			const secret = (suffix) => (id ? app.secretStorage.getSecret("notetweet-account-" + id + "-" + suffix) : null);
-			const values = {
-				apiKey: secret("api-key"),
-				apiSecret: secret("api-secret"),
-				accessToken: secret("access-token"),
-				accessTokenSecret: secret("access-token-secret"),
-			};
-			if (id) for (const suffix of ["api-key", "api-secret", "access-token", "access-token-secret"]) app.secretStorage.setSecret("notetweet-account-" + id + "-" + suffix, "");
-			return {
-				accounts: plugin.settings.accounts.length,
-				values,
-				notices: [...document.querySelectorAll(".notice")].map((el) => el.textContent),
-			};
+			const suffixes = ["api-key", "api-secret", "access-token", "access-token-secret"];
+			const secretId = (suffix) => "notetweet-account-" + plugin.settings.accounts[0]?.id + "-" + suffix;
+			try {
+				await migration;
+				const values = plugin.settings.accounts.length
+					? Object.fromEntries(
+						["apiKey", "apiSecret", "accessToken", "accessTokenSecret"].map((field, i) => [field, app.secretStorage.getSecret(secretId(suffixes[i]))]),
+					)
+					: {};
+				return {
+					accounts: plugin.settings.accounts.length,
+					values,
+					notices: [...document.querySelectorAll(".notice")].map((el) => el.textContent),
+				};
+			} finally {
+				if (plugin.settings.accounts.length) for (const suffix of suffixes) app.secretStorage.setSecret(secretId(suffix), "");
+			}
 		})()
 	`;
 
