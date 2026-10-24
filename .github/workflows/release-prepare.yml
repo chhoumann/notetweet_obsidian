@@ -51,6 +51,6 @@ jobs:
             target-sha: ${{ github.event.workflow_run.head_sha || inputs.targetSha }}
             release-bot-app-slug: notetweet-release-bot
             app-id: ${{ vars.RELEASE_APP_ID }}
-            # dry-run: true   # plan only; skip opening the PR (smoke test)
+            dry-run: true
         secrets:
             release-app-private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
