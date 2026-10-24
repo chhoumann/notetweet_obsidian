@@ -17,6 +17,10 @@ export interface NoteTweetSettings {
 	scheduling: {
 		enabled: boolean;
 		url: string;
+		/** Keys this vault's scheduler password in the shared secret storage. */
+		passwordKey: string;
+		/** Used a scheduler before 0.7.1, so it may still read the old shared password. */
+		legacyPassword: boolean;
 	};
 }
 
@@ -28,6 +32,8 @@ export const DEFAULT_SETTINGS: NoteTweetSettings = {
 	scheduling: {
 		enabled: false,
 		url: "",
+		passwordKey: "",
+		legacyPassword: false,
 	},
 };
 
@@ -61,10 +67,12 @@ export function normalizeAccountSettings(settings: NoteTweetSettings): void {
 	}
 }
 
-export function createAccount(name: string): XAccount {
+/** A random lowercase hex id that is safe inside SecretStorage identifiers. */
+export function randomId(): string {
 	const bytes = crypto.getRandomValues(new Uint8Array(ACCOUNT_ID_BYTES));
-	const id = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
-		"",
-	);
-	return { id, name: name.trim() };
+	return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export function createAccount(name: string): XAccount {
+	return { id: randomId(), name: name.trim() };
 }

@@ -10,7 +10,6 @@ import {
 import type NoteTweet from "./main";
 import { log } from "./log";
 import {
-	SECRET_IDS,
 	type SecretId,
 	accountSecretId,
 	clearAccountCredentials,
@@ -24,6 +23,8 @@ import {
 	legacyCredentialsEncrypted,
 	legacyCredentialsPresent,
 	readLegacyCredentials,
+	resolveSchedulerPassword,
+	setSchedulerPassword,
 	stripLegacyCredentials,
 	storeCredentials,
 } from "./migration";
@@ -287,13 +288,20 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 					name: "Scheduler password",
 					desc: "Password configured on your scheduler.",
 					visible: whenEnabled,
-					render: (setting: Setting) =>
-						this.renderSecretInput(
-							setting,
-							SECRET_IDS.schedulerPassword,
-							"Scheduler password",
-							() => this.noteTweet.refreshScheduler(),
-						),
+					render: (setting: Setting) => {
+						setting.addText((text) => {
+							text.inputEl.type = "password";
+							text
+								.setPlaceholder("Scheduler password")
+								.setValue(
+									resolveSchedulerPassword(this.app, this.noteTweet.settings),
+								)
+								.onChange((value) => {
+									setSchedulerPassword(this.app, this.noteTweet.settings, value);
+									this.noteTweet.refreshScheduler();
+								});
+						});
+					},
 				},
 				{
 					name: "Scheduled tweets",
@@ -469,7 +477,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 		);
 		settings.accounts.push(account);
 		if (!settings.defaultAccountId) settings.defaultAccountId = account.id;
-		storeCredentials(this.app, account.id, credentials);
+		storeCredentials(this.app, settings, account.id, credentials);
 		stripLegacyCredentials(data);
 		await this.noteTweet.saveSettings();
 		this.noteTweet.refreshScheduler(credentials.schedulerPassword);

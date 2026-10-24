@@ -11,9 +11,13 @@ export const LEGACY_TWITTER_SECRET_IDS = {
 	accessTokenSecret: "notetweet-access-token-secret",
 } as const;
 
-export const SECRET_IDS = {
-	schedulerPassword: "notetweet-scheduler-password",
-} as const;
+/** NoteTweet 0.7.0 kept every vault's scheduler password under this one id. */
+export const LEGACY_SCHEDULER_PASSWORD_ID = "notetweet-scheduler-password";
+
+/** This vault's scheduler password. Secret storage is shared by all vaults. */
+export function schedulerPasswordSecretId(passwordKey: string): string {
+	return `notetweet-scheduler-${passwordKey}-password`;
+}
 
 export type SecretId = string;
 

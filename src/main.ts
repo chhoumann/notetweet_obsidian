@@ -16,6 +16,7 @@ import {
 	clearFixedTwitterSecrets,
 	type LegacyCredentialData,
 	legacyCredentialsPresent,
+	assignSchedulerPasswordKey,
 	resolveSchedulerPassword,
 	stageFixedSecretMigration,
 } from "./migration";
@@ -31,6 +32,9 @@ export default class NoteTweet extends Plugin {
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+		if (assignSchedulerPasswordKey(this.settings)) {
+			await this.saveSettings();
+		}
 		const migrated = stageFixedSecretMigration(this.app, this.settings);
 		if (migrated) {
 			await this.saveSettings();
@@ -104,7 +108,7 @@ export default class NoteTweet extends Plugin {
 			return;
 		}
 		const password =
-			passwordOverride ?? resolveSchedulerPassword(this.app, this.legacyData());
+			passwordOverride ?? resolveSchedulerPassword(this.app, this.settings);
 		this.scheduler = new SelfHostedScheduler(url, password);
 	}
 

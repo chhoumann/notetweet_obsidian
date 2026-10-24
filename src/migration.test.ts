@@ -1,23 +1,40 @@
 import type { App } from "obsidian";
 import { decryptLegacyValue } from "./legacyCrypt";
 import {
+	assignSchedulerPasswordKey,
 	type LegacyCredentialData,
 	legacyCredentialsEncrypted,
 	legacyCredentialsPresent,
 	readLegacyCredentials,
 	resolveSchedulerPassword,
+	setSchedulerPassword,
 	stageFixedSecretMigration,
 	clearFixedTwitterSecrets,
 	storeCredentials,
 	stripLegacyCredentials,
 } from "./migration";
 import {
+	LEGACY_SCHEDULER_PASSWORD_ID,
 	LEGACY_TWITTER_SECRET_IDS,
-	SECRET_IDS,
 	accountSecretId,
 	getAccountCredentials,
+	schedulerPasswordSecretId,
 } from "./secrets";
-import { DEFAULT_SETTINGS } from "./settings";
+import { DEFAULT_SETTINGS, type NoteTweetSettings } from "./settings";
+
+const PASSWORD_KEY = "0123456789abcdef01234567";
+
+/** Vault settings as NoteTweet loads them, plus any legacy fields. */
+function vaultSettings(
+	scheduling: Partial<NoteTweetSettings["scheduling"]> & { password?: string } = {},
+	legacy: Partial<LegacyCredentialData> = {},
+): NoteTweetSettings {
+	return {
+		...structuredClone(DEFAULT_SETTINGS),
+		...legacy,
+		scheduling: { ...DEFAULT_SETTINGS.scheduling, passwordKey: PASSWORD_KEY, ...scheduling },
+	} as NoteTweetSettings;
+}
 
 interface FakeSecretStorage {
 	getSecret(id: string): string | null;
@@ -39,7 +56,13 @@ function makeApp(initial: Record<string, string> = {}): {
 		},
 		listSecrets: () => [...store.keys()],
 	};
-	return { app: { secretStorage } as unknown as App, store };
+	const local = new Map<string, unknown>();
+	const app = {
+		secretStorage,
+		loadLocalStorage: (key: string) => local.get(key) ?? null,
+		saveLocalStorage: (key: string, value: unknown) => local.set(key, value),
+	};
+	return { app: app as unknown as App, store };
 }
 
 describe("legacyCredentialsPresent", () => {
@@ -157,7 +180,7 @@ describe("storeCredentials", () => {
 	it("writes credentials into one account namespace", () => {
 		const { app, store } = makeApp();
 
-		storeCredentials(app, "personal", {
+		storeCredentials(app, vaultSettings(), "personal", {
 			apiKey: "ak",
 			apiSecret: "",
 			accessToken: "at",
@@ -170,7 +193,7 @@ describe("storeCredentials", () => {
 		expect(store.get(accountSecretId("personal", "accessTokenSecret"))).toBe(
 			"ats",
 		);
-		expect(store.get(SECRET_IDS.schedulerPassword)).toBe("sched-pw");
+		expect(store.get(schedulerPasswordSecretId(PASSWORD_KEY))).toBe("sched-pw");
 		expect(store.get(accountSecretId("personal", "apiSecret"))).toBe("");
 		expect(store.has("notetweet-account-personal-undefined")).toBe(false);
 	});
@@ -244,37 +267,93 @@ describe("fixed SecretStorage migration", () => {
 describe("resolveSchedulerPassword", () => {
 	it("prefers the stored secret over the legacy password", () => {
 		const { app } = makeApp({
-			[SECRET_IDS.schedulerPassword]: "stored-pw",
+			[schedulerPasswordSecretId(PASSWORD_KEY)]: "stored-pw",
 		});
-		const data: LegacyCredentialData = {
-			scheduling: { password: "legacy-pw" },
-		};
 
-		expect(resolveSchedulerPassword(app, data)).toBe("stored-pw");
+		expect(resolveSchedulerPassword(app, vaultSettings({ password: "legacy-pw" }))).toBe(
+			"stored-pw",
+		);
 	});
 
 	it("falls back to the legacy password when unencrypted and unstored", () => {
 		const { app } = makeApp();
-		const data: LegacyCredentialData = {
-			scheduling: { password: "legacy-pw" },
-		};
 
-		expect(resolveSchedulerPassword(app, data)).toBe("legacy-pw");
+		expect(resolveSchedulerPassword(app, vaultSettings({ password: "legacy-pw" }))).toBe(
+			"legacy-pw",
+		);
 	});
 
 	it("does not fall back to the legacy password under secureMode", () => {
 		const { app } = makeApp();
-		const data: LegacyCredentialData = {
-			secureMode: true,
-			scheduling: { password: "legacy-pw" },
-		};
+		const settings = vaultSettings({ password: "legacy-pw" }, { secureMode: true });
 
-		expect(resolveSchedulerPassword(app, data)).toBe("");
+		expect(resolveSchedulerPassword(app, settings)).toBe("");
 	});
 
 	it("returns an empty string when neither source has a password", () => {
 		const { app } = makeApp();
 
-		expect(resolveSchedulerPassword(app, {})).toBe("");
+		expect(resolveSchedulerPassword(app, vaultSettings())).toBe("");
+	});
+});
+
+describe("per-vault scheduler password", () => {
+	/** A vault as NoteTweet 0.7.0 left it, upgraded on load. */
+	function upgraded(app: App, scheduling: Partial<NoteTweetSettings["scheduling"]>) {
+		const settings = vaultSettings({ passwordKey: "", ...scheduling });
+		expect(assignSchedulerPasswordKey(settings)).toBe(true);
+		expect(assignSchedulerPasswordKey(settings)).toBe(false);
+		return settings;
+	}
+
+	it("keeps an upgraded vault's password without copying any secret", () => {
+		const { app, store } = makeApp({ [LEGACY_SCHEDULER_PASSWORD_ID]: "shared-pw" });
+		const settings = upgraded(app, { enabled: true, url: "https://a" });
+
+		expect(settings.scheduling.passwordKey).toMatch(/^[a-f0-9]{24}$/);
+		expect(resolveSchedulerPassword(app, settings)).toBe("shared-pw");
+		expect([...store.keys()]).toEqual([LEGACY_SCHEDULER_PASSWORD_ID]);
+	});
+
+	it("does not hand the old shared password to a vault without a scheduler", () => {
+		const { app } = makeApp({ [LEGACY_SCHEDULER_PASSWORD_ID]: "shared-pw" });
+		const settings = upgraded(app, {});
+		settings.scheduling.enabled = true;
+
+		expect(resolveSchedulerPassword(app, settings)).toBe("");
+	});
+
+	it("keeps each vault's password separate in shared storage", () => {
+		const { app } = makeApp({ [LEGACY_SCHEDULER_PASSWORD_ID]: "shared-pw" });
+		const vaultA = upgraded(app, { enabled: true, url: "https://a" });
+		const vaultB = upgraded(app, { enabled: true, url: "https://b" });
+
+		setSchedulerPassword(app, vaultA, "pw-a");
+		setSchedulerPassword(app, vaultB, "pw-b");
+
+		expect(resolveSchedulerPassword(app, vaultA)).toBe("pw-a");
+		expect(resolveSchedulerPassword(app, vaultB)).toBe("pw-b");
+	});
+
+	it("never revives the old password once the user clears theirs", () => {
+		const { app } = makeApp({ [LEGACY_SCHEDULER_PASSWORD_ID]: "shared-pw" });
+		const settings = upgraded(app, { enabled: true, url: "https://a" });
+
+		setSchedulerPassword(app, settings, "");
+		settings.scheduling.url = "https://elsewhere";
+
+		expect(resolveSchedulerPassword(app, settings)).toBe("");
+	});
+
+	it("reads each device's own old password when data.json syncs", () => {
+		const desktop = makeApp({ [LEGACY_SCHEDULER_PASSWORD_ID]: "desktop-pw" });
+		const phone = makeApp({ [LEGACY_SCHEDULER_PASSWORD_ID]: "phone-pw" });
+		const settings = upgraded(desktop.app, { enabled: true, url: "https://a" });
+		setSchedulerPassword(desktop.app, settings, "new-desktop-pw");
+
+		const synced = structuredClone(settings);
+
+		expect(resolveSchedulerPassword(desktop.app, settings)).toBe("new-desktop-pw");
+		expect(resolveSchedulerPassword(phone.app, synced)).toBe("phone-pw");
 	});
 });
