@@ -2,7 +2,8 @@ import { type App, Modal, Setting } from "obsidian";
 import { log } from "../log";
 import type { Scheduler } from "../scheduler";
 import type { ScheduledTweet } from "../tweet";
-import { formatDateTime, promptForDateTime } from "../datetime";
+import { formatDateTime } from "../datetime";
+import { promptForDateTime } from "./DateTimePromptModal";
 import { ComposeTweetModal } from "./ComposeTweetModal";
 
 /** Lists the tweets held by the scheduler and manages them (delete/reschedule/edit). */
@@ -78,13 +79,7 @@ export class ScheduledTweetsModal extends Modal {
 	}
 
 	private async reschedule(tweet: ScheduledTweet): Promise<void> {
-		let postAt: number | null;
-		try {
-			postAt = await promptForDateTime(this.app);
-		} catch (error) {
-			log.error(String(error));
-			return;
-		}
+		const postAt = await promptForDateTime(this.app, tweet.postat);
 		if (postAt === null) return;
 
 		try {

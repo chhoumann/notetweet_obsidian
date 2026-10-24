@@ -12,7 +12,7 @@ import {
 	splitIntoTweets,
 	type ComposeResult,
 } from "../tweet";
-import { promptForDateTime } from "../datetime";
+import { promptForDateTime } from "./DateTimePromptModal";
 import { analyzeTweetText } from "../textAnalysis";
 import type { XAccount } from "../settings";
 
@@ -710,13 +710,7 @@ export class ComposeTweetModal extends Modal {
 	private async submitSchedule(): Promise<void> {
 		if (this.sending || !this.validate().ok) return;
 
-		let postAt: number | null;
-		try {
-			postAt = await promptForDateTime(this.app);
-		} catch (error) {
-			log.error(String(error));
-			return;
-		}
+		const postAt = await promptForDateTime(this.app);
 		if (postAt === null) return;
 
 		await this.submit({ content: this.collectContent(), postAt });

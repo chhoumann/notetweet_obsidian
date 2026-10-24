@@ -517,3 +517,20 @@
 .nt-status--err {
 	color: var(--text-error);
 }
+
+/* ============================================================
+   NoteTweet - schedule time picker
+   ============================================================ */
+.nt-schedule-modal .nt-schedule-input {
+	width: 100%;
+}
+
+.nt-schedule-modal .nt-schedule-error {
+	margin-top: var(--size-4-2);
+	color: var(--text-error);
+	font-size: var(--font-ui-small);
+}
+
+.nt-schedule-modal .nt-schedule-error:empty {
+	display: none;
+}

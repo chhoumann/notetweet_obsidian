@@ -9,8 +9,6 @@ If you desire, you could also create it in any way you want - as long as the API
 
 This is the repository for the [scheduler](https://github.com/chhoumann/notetweet-scheduler).
 
-Scheduling tweets __requires the Natural Language Dates plugin for Obsidian!__
-
 ## Guide
 The first thing you will need to do is to deploy the scheduler server. To do so, first click the ``Deploy`` button.
 
@@ -36,4 +34,4 @@ Now, go back into your NoteTweet settings. Here, you should
 
 Now you're ready to schedule tweets!
 
-As mentioned, we're leveraging [nldates-obsidian](https://github.com/argenos/nldates-obsidian) to set the dates. This means that you could write `today at 15:30` to post today at 15:30. You can always update this date, or unschedule the tweet, by going into NoteTweet settings and opening the Scheduled tweets menu.
+Pick the date and time to post with your device's date picker. You can always update this date, or unschedule the tweet, by going into NoteTweet settings and opening the Scheduled tweets menu.
