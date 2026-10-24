@@ -31,4 +31,19 @@ describe("production bundle compatibility", () => {
 			),
 		).toBe(true);
 	});
+
+	it("does not bundle twitter-text's core-js polyfills", async () => {
+		const result = await esbuild.build({
+			...createBuildOptions({ production: true }),
+			metafile: true,
+			write: false,
+			logLevel: "silent",
+		});
+
+		expect(
+			Object.keys(result.metafile.inputs).filter((path) =>
+				path.includes("/node_modules/core-js/"),
+			),
+		).toEqual([]);
+	});
 });
