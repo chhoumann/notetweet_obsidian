@@ -156,7 +156,9 @@ export default class NoteTweet extends Plugin {
 			posted = error instanceof ThreadPostError ? error.posted : [];
 			if (posted.length === 0) return false;
 		}
-		void this.showPosted(posted, client);
+		this.showPosted(posted, client).catch((error: unknown) =>
+			log.error(`Posted, but could not finish up: ${errorMessage(error)}`),
+		);
 		return true;
 	}
 

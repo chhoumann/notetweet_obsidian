@@ -712,18 +712,27 @@ export class ComposeTweetModal extends Modal {
 
 	private async submit(result: ComposeResult): Promise<void> {
 		if (this.options.send) {
-			this.sending = true;
-			this.refreshState();
-			const sent = await this.options.send(result);
-			this.sending = false;
-			if (!sent) {
-				this.refreshState();
-				return;
+			// Freeze the draft so edits made mid-send can't be lost on success.
+			this.setSending(true);
+			let sent = false;
+			try {
+				sent = await this.options.send(result);
+			} catch (error) {
+				log.error(String(error));
+			} finally {
+				this.setSending(false);
 			}
+			if (!sent) return;
 		}
 		this.result = result;
 		this.submitted = true;
 		this.close();
+	}
+
+	private setSending(sending: boolean): void {
+		this.sending = sending;
+		this.contentEl.toggleAttribute("inert", sending);
+		this.refreshState();
 	}
 
 	onClose(): void {
