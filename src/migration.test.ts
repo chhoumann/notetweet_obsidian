@@ -44,11 +44,14 @@ interface FakeSecretStorage {
 
 // Runtime secret collection: keys are written at test time and iterated back,
 // which is exactly what a Map is for.
-function makeApp(initial: Record<string, string> = {}): {
+function makeApp(
+	initial: Record<string, string> = {},
+	// Secret storage is shared by every vault on a device; local storage is not.
+	store = new Map<string, string>(Object.entries(initial)),
+): {
 	app: App;
 	store: Map<string, string>;
 } {
-	const store = new Map<string, string>(Object.entries(initial));
 	const secretStorage: FakeSecretStorage = {
 		getSecret: (id) => store.get(id) ?? null,
 		setSecret: (id, value) => {
@@ -324,15 +327,27 @@ describe("per-vault scheduler password", () => {
 	});
 
 	it("keeps each vault's password separate in shared storage", () => {
-		const { app } = makeApp({ [LEGACY_SCHEDULER_PASSWORD_ID]: "shared-pw" });
-		const vaultA = upgraded(app, { enabled: true, url: "https://a" });
-		const vaultB = upgraded(app, { enabled: true, url: "https://b" });
+		const a = makeApp({ [LEGACY_SCHEDULER_PASSWORD_ID]: "shared-pw" });
+		const b = makeApp({}, a.store);
+		const vaultA = upgraded(a.app, { enabled: true, url: "https://a" });
+		const vaultB = upgraded(b.app, { enabled: true, url: "https://b" });
 
-		setSchedulerPassword(app, vaultA, "pw-a");
-		setSchedulerPassword(app, vaultB, "pw-b");
+		setSchedulerPassword(a.app, vaultA, "pw-a");
+		expect(resolveSchedulerPassword(b.app, vaultB)).toBe("shared-pw");
 
-		expect(resolveSchedulerPassword(app, vaultA)).toBe("pw-a");
-		expect(resolveSchedulerPassword(app, vaultB)).toBe("pw-b");
+		setSchedulerPassword(b.app, vaultB, "pw-b");
+		expect(resolveSchedulerPassword(a.app, vaultA)).toBe("pw-a");
+		expect(resolveSchedulerPassword(b.app, vaultB)).toBe("pw-b");
+	});
+
+	it("never revives a pre-0.6 plaintext password once the user clears it", () => {
+		const { app } = makeApp();
+		const settings = vaultSettings({ enabled: true, url: "https://a", password: "plain-pw" });
+		expect(resolveSchedulerPassword(app, settings)).toBe("plain-pw");
+
+		setSchedulerPassword(app, settings, "");
+
+		expect(resolveSchedulerPassword(app, settings)).toBe("");
 	});
 
 	it("never revives the old password once the user clears theirs", () => {

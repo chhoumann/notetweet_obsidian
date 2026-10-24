@@ -181,12 +181,14 @@ export function resolveSchedulerPassword(
 		schedulerPasswordSecretId(settings.scheduling.passwordKey),
 	);
 	if (stored) return stored;
+	// Once a password is set for this vault on this device, even an empty one,
+	// the older sources no longer apply.
+	if (app.loadLocalStorage(PASSWORD_SET_HERE)) return "";
 	if (!data.secureMode && data.scheduling?.password) {
 		return data.scheduling.password;
 	}
-	// Secrets stay on their device, so each device reads its own old password
-	// until a password is set for this vault there.
-	if (settings.scheduling.legacyPassword && !app.loadLocalStorage(PASSWORD_SET_HERE)) {
+	// Secrets stay on their device, so each device reads its own old password.
+	if (settings.scheduling.legacyPassword) {
 		return getSecret(app, LEGACY_SCHEDULER_PASSWORD_ID);
 	}
 	return "";
