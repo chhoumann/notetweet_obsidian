@@ -101,14 +101,14 @@ export default class NoteTweet extends Plugin {
 	}
 
 	/** Rebuild the scheduler from current settings, or clear it when disabled. */
-	refreshScheduler(passwordOverride?: string): void {
+	refreshScheduler(): void {
 		const { enabled, url } = this.settings.scheduling;
 		if (!enabled || !url) {
 			this.scheduler = null;
 			return;
 		}
 		const password =
-			passwordOverride ?? resolveSchedulerPassword(this.app, this.settings);
+			resolveSchedulerPassword(this.app, this.settings);
 		this.scheduler = new SelfHostedScheduler(url, password);
 	}
 

@@ -82,7 +82,8 @@ export function storeCredentials(
 	credentials: MigratableCredentials,
 ): void {
 	setAccountCredentials(app, accountId, credentials);
-	if (credentials.schedulerPassword)
+	// A password already set for this vault here is newer than the legacy one.
+	if (credentials.schedulerPassword && !app.loadLocalStorage(passwordSetHere(settings)))
 		setSchedulerPassword(app, settings, credentials.schedulerPassword);
 }
 

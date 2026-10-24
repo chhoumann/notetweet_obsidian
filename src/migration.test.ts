@@ -340,6 +340,33 @@ describe("per-vault scheduler password", () => {
 		expect(resolveSchedulerPassword(b.app, vaultB)).toBe("pw-b");
 	});
 
+	it("scopes the set-here marker to the vault's password key", () => {
+		const { app } = makeApp({ [LEGACY_SCHEDULER_PASSWORD_ID]: "shared-pw" });
+		const settings = upgraded(app, { enabled: true, url: "https://a" });
+		setSchedulerPassword(app, settings, "");
+
+		settings.scheduling.passwordKey = "";
+		assignSchedulerPasswordKey(settings);
+
+		expect(resolveSchedulerPassword(app, settings)).toBe("shared-pw");
+	});
+
+	it("keeps a password set here when legacy credentials are migrated later", () => {
+		const { app } = makeApp();
+		const settings = vaultSettings({ enabled: true, url: "https://a", password: "plain-pw" });
+		setSchedulerPassword(app, settings, "newer-pw");
+
+		storeCredentials(app, settings, "personal", {
+			apiKey: "ak",
+			apiSecret: "as",
+			accessToken: "at",
+			accessTokenSecret: "ats",
+			schedulerPassword: "plain-pw",
+		});
+
+		expect(resolveSchedulerPassword(app, settings)).toBe("newer-pw");
+	});
+
 	it("never revives a pre-0.6 plaintext password once the user clears it", () => {
 		const { app } = makeApp();
 		const settings = vaultSettings({ enabled: true, url: "https://a", password: "plain-pw" });

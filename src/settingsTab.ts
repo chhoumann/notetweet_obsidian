@@ -480,7 +480,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 		storeCredentials(this.app, settings, account.id, credentials);
 		stripLegacyCredentials(data);
 		await this.noteTweet.saveSettings();
-		this.noteTweet.refreshScheduler(credentials.schedulerPassword);
+		this.noteTweet.refreshScheduler();
 		new Notice(`NoteTweet: credentials moved to the ${account.name} account.`);
 		this.update();
 	}
