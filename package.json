@@ -41,7 +41,7 @@
 		"eslint": "^9.39.4",
 		"eslint-plugin-obsidianmd": "^0.4.2",
 		"globals": "^17.12.0",
-		"obsidian": "1.13.1",
+		"obsidian": "1.14.4",
 		"obsidian-e2e": "^0.10.0",
 		"obsidian-test-kit": "^0.1.0",
 		"typescript": "^6.0.3",
