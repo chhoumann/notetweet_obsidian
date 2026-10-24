@@ -12,4 +12,5 @@ minimumReleaseAgeExclude:
   - obsidian-test-kit
   # GHSA-333x-w4r6-6crp, GHSA-wjr9-j795-jxcr, GHSA-xhq7-xmqj-769h,
   # GHSA-w74x-v6f9-j3xg. Trusted-publisher release with SLSA provenance.
+  # Clears the gate on its own from 2026-10-26; remove this entry then.
   - fast-uri@3.1.9
