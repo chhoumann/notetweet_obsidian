@@ -46,23 +46,29 @@ export function legacyCredentialsEncrypted(data: LegacyCredentialData): boolean 
 
 /**
  * Read the legacy credentials, decrypting the four Twitter keys with `password`
- * when they were stored under Secure Mode (throws if the password is wrong).
+ * when they were stored under Secure Mode (rejects if the password is wrong).
  * The scheduler password was never encrypted, so it is always read plaintext.
  */
-export function readLegacyCredentials(
+export async function readLegacyCredentials(
 	data: LegacyCredentialData,
 	password?: string,
-): MigratableCredentials {
-	const decode = (value?: string): string => {
+): Promise<MigratableCredentials> {
+	const decode = async (value?: string): Promise<string> => {
 		if (!value) return "";
 		return password ? decryptLegacyValue(value, password) : value;
 	};
 
+	const [apiKey, apiSecret, accessToken, accessTokenSecret] = await Promise.all([
+		decode(data.apiKey),
+		decode(data.apiSecret),
+		decode(data.accessToken),
+		decode(data.accessTokenSecret),
+	]);
 	return {
-		apiKey: decode(data.apiKey),
-		apiSecret: decode(data.apiSecret),
-		accessToken: decode(data.accessToken),
-		accessTokenSecret: decode(data.accessTokenSecret),
+		apiKey,
+		apiSecret,
+		accessToken,
+		accessTokenSecret,
 		schedulerPassword: data.scheduling?.password ?? "",
 	};
 }

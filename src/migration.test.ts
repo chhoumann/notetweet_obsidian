@@ -1,5 +1,4 @@
 import type { App } from "obsidian";
-import CryptoES from "crypto-es";
 import { decryptLegacyValue } from "./legacyCrypt";
 import {
 	type LegacyCredentialData,
@@ -76,7 +75,7 @@ describe("legacyCredentialsEncrypted", () => {
 });
 
 describe("readLegacyCredentials", () => {
-	it("returns plaintext values verbatim when no password is given", () => {
+	it("returns plaintext values verbatim when no password is given", async () => {
 		const data: LegacyCredentialData = {
 			apiKey: "ak",
 			apiSecret: "as",
@@ -85,7 +84,7 @@ describe("readLegacyCredentials", () => {
 			scheduling: { password: "sched-pw" },
 		};
 
-		expect(readLegacyCredentials(data)).toEqual({
+		await expect(readLegacyCredentials(data)).resolves.toEqual({
 			apiKey: "ak",
 			apiSecret: "as",
 			accessToken: "at",
@@ -94,22 +93,20 @@ describe("readLegacyCredentials", () => {
 		});
 	});
 
-	it("decrypts the four Twitter keys but reads the scheduler password as plaintext", () => {
+	it("decrypts the four Twitter keys but reads the scheduler password as plaintext", async () => {
+		// Encrypted with `openssl enc -aes-256-cbc -md md5 -pass pass:migration-pass`.
 		const password = "migration-pass";
-		const encrypt = (value: string) =>
-			CryptoES.AES.encrypt(value, password).toString();
-
 		const data: LegacyCredentialData = {
-			apiKey: encrypt("ak"),
-			apiSecret: encrypt("as"),
-			accessToken: encrypt("at"),
-			accessTokenSecret: encrypt("ats"),
+			apiKey: "U2FsdGVkX19ytuAALII+VARJip+9yIw0ip0GiORnltg=",
+			apiSecret: "U2FsdGVkX1+TZdVBuf1wMOx6ba7NZ6zle/rMK0y93uc=",
+			accessToken: "U2FsdGVkX1+m6hSg59TOht37qR7SixRkfkm70lMzyLk=",
+			accessTokenSecret: "U2FsdGVkX18Zxe2F4wfkFY6dcq2wB174ct0VJs5AhcQ=",
 			secureMode: true,
 			// The scheduler password was never encrypted by Secure Mode.
 			scheduling: { password: "sched-pw" },
 		};
 
-		const result = readLegacyCredentials(data, password);
+		const result = await readLegacyCredentials(data, password);
 
 		expect(result.apiKey).toBe("ak");
 		expect(result.apiSecret).toBe("as");
@@ -121,19 +118,38 @@ describe("readLegacyCredentials", () => {
 });
 
 describe("decryptLegacyValue", () => {
-	// Ciphertext hardcoded from crypto-es 1.2.7 on purpose: a same-version
-	// round trip (encrypt + decrypt with the installed library) can never
-	// detect a cross-version break, so this fixture pins decrypt
-	// compatibility for values users encrypted with the old Secure Mode
-	// across crypto-es upgrades.
-	it("decrypts a ciphertext produced under crypto-es 1.2.7 (cross-version compatibility pin)", () => {
-		const fixtureCiphertext =
-			"U2FsdGVkX1+oF0/EozimKUeYHNCJp5s/xIMvUyn04bUvusFwGUi5XHuI6fS2NGfo";
-		const password = "correct horse battery staple";
+	// Ciphertexts come from independent implementations on purpose: crypto-es
+	// 1.2.7 (what old Secure Mode wrote) and the OpenSSL CLI
+	// (`openssl enc -aes-256-cbc -md md5 -salt -pass pass:<password>`).
+	it("decrypts a ciphertext produced under crypto-es 1.2.7", async () => {
+		await expect(
+			decryptLegacyValue(
+				"U2FsdGVkX1+oF0/EozimKUeYHNCJp5s/xIMvUyn04bUvusFwGUi5XHuI6fS2NGfo",
+				"correct horse battery staple",
+			),
+		).resolves.toBe("api-key-1234:secret");
+	});
 
-		expect(decryptLegacyValue(fixtureCiphertext, password)).toBe(
-			"api-key-1234:secret",
-		);
+	it.each([
+		["ak", "pw", "U2FsdGVkX1+QVc3vsMD3kelrd7W6wBBa8DVXcHUz4FM="],
+		["at", "pässwörd 🔑", "U2FsdGVkX1+W30OnWTWWPhSFXVy/THLyfcbiYLLvIiI="],
+		["ats", "p".repeat(60), "U2FsdGVkX1/NZs76lENWuRfJbot0vQTeEF73GB4k1n8="],
+		[
+			"1234567890-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP",
+			"x",
+			"U2FsdGVkX19ifA6156ssNjBzgEtCutZ7sOAB59PhOTI8pCpZfFRSblJ3e78IZkjFEqy/NHrfgrN/iV0dy5Klt/o/xX6xhmPSa4JOe2+F5o4=",
+		],
+	])("decrypts OpenSSL ciphertext of %j", async (plaintext, password, ciphertext) => {
+		await expect(decryptLegacyValue(ciphertext, password)).resolves.toBe(plaintext);
+	});
+
+	it("rejects a wrong password", async () => {
+		await expect(
+			decryptLegacyValue(
+				"U2FsdGVkX1+oF0/EozimKUeYHNCJp5s/xIMvUyn04bUvusFwGUi5XHuI6fS2NGfo",
+				"wrong password",
+			),
+		).rejects.toThrow();
 	});
 });
 

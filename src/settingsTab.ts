@@ -448,7 +448,7 @@ export class NoteTweetSettingsTab extends PluginSettingTab {
 
 		let credentials;
 		try {
-			credentials = readLegacyCredentials(data, password);
+			credentials = await readLegacyCredentials(data, password);
 		} catch {
 			log.error("Could not decrypt your credentials - wrong password?");
 			return;

@@ -49,7 +49,6 @@
 		"vitest": "^4.1.11"
 	},
 	"dependencies": {
-		"crypto-es": "^2.1.0",
 		"twitter-text": "3.1.0",
 		"unicode-segmenter": "0.17.3"
 	}
