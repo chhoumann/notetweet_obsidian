@@ -101,7 +101,7 @@ THREAD END
 Threads must start with `THREAD START` and end with `THREAD END`, and individual tweets are separated by a line containing only `---`.
 
 ## Scheduling Posts
-Scheduling is optional and advanced. The self-hosted scheduler owns its own X credentials and therefore its own posting identity. Choosing an account in NoteTweet affects immediate posting only - a scheduled post is always sent by the account configured on the scheduler server. Scheduling also requires the **Natural Language Dates** community plugin for entering times. Follow [this guide](./GuideToSettingUpScheduler.md) to set it up.
+Scheduling is optional and advanced. The self-hosted scheduler owns its own X credentials and therefore its own posting identity. Choosing an account in NoteTweet affects immediate posting only - a scheduled post is always sent by the account configured on the scheduler server. Follow [this guide](./GuideToSettingUpScheduler.md) to set it up.
 
 ## Troubleshooting
 
