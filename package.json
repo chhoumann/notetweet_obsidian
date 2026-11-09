@@ -38,14 +38,14 @@
 		"@types/node": "24.19.2",
 		"@vitest/coverage-v8": "5.0.5",
 		"esbuild": "0.28.2",
-		"eslint": "10.13.0",
+		"eslint": "10.14.0",
 		"eslint-plugin-obsidianmd": "0.4.2",
-		"globals": "17.13.0",
+		"globals": "17.14.0",
 		"obsidian": "1.14.4",
 		"obsidian-e2e": "0.15.0",
 		"obsidian-test-kit": "0.2.0",
 		"typescript": "6.0.3",
-		"typescript-eslint": "8.72.0",
+		"typescript-eslint": "8.72.1",
 		"vitest": "5.0.5"
 	},
 	"dependencies": {
